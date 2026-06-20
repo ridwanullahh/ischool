@@ -1,0 +1,258 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { getDb } from '../../lib/db/index.js';
+import { schoolSupportTickets, schoolMembers } from '../../lib/db/schema.js';
+import { eq, and, desc, sql } from 'drizzle-orm';
+
+const user = Astro.locals.user;
+if (!user) return Astro.redirect('/auth/login');
+
+const db = getDb();
+const membership = db.select().from(schoolMembers).where(eq(schoolMembers.userId, user.id)).get();
+const schoolId = membership?.schoolId;
+
+const tickets = schoolId ? db.select().from(schoolSupportTickets).where(eq(schoolSupportTickets.schoolId, schoolId)).orderBy(desc(schoolSupportTickets.createdAt)).all() : [];
+const openCount = tickets.filter((t: any) => t.status === 'open').length;
+const inProgressCount = tickets.filter((t: any) => t.status === 'in_progress').length;
+const waitingCount = tickets.filter((t: any) => t.status === 'waiting_customer' || t.status === 'waiting_agent').length;
+const resolvedCount = tickets.filter((t: any) => t.status === 'resolved' || t.status === 'closed').length;
+---
+
+<DashboardLayout title="Support Tickets - iSchool">
+  <div class="space-y-6">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div>
+        <h2 class="text-2xl font-bold text-gray-900">Support Tickets</h2>
+        <p class="text-sm text-gray-500 mt-1">Manage internal & external support tickets</p>
+      </div>
+      <button onclick="document.getElementById('addModal').classList.remove('hidden')" class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 font-medium">+ New Ticket</button>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div class="bg-white rounded-lg shadow p-5"><div class="text-sm text-gray-500">Total</div><div class="text-2xl font-bold text-gray-900 mt-1">{tickets.length}</div></div>
+      <div class="bg-white rounded-lg shadow p-5"><div class="text-sm text-gray-500">Open</div><div class="text-2xl font-bold text-red-600 mt-1">{openCount}</div></div>
+      <div class="bg-white rounded-lg shadow p-5"><div class="text-sm text-gray-500">In Progress</div><div class="text-2xl font-bold text-yellow-600 mt-1">{inProgressCount}</div></div>
+      <div class="bg-white rounded-lg shadow p-5"><div class="text-sm text-gray-500">Waiting</div><div class="text-2xl font-bold text-blue-600 mt-1">{waitingCount}</div></div>
+      <div class="bg-white rounded-lg shadow p-5"><div class="text-sm text-gray-500">Resolved</div><div class="text-2xl font-bold text-green-600 mt-1">{resolvedCount}</div></div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow">
+      <div class="p-4 border-b border-gray-200 flex flex-col sm:flex-row gap-3 justify-between items-center">
+        <h3 class="text-lg font-semibold">All Tickets</h3>
+        <div class="flex gap-2">
+          <input id="searchTickets" type="text" placeholder="Search tickets..." class="px-3 py-2 border border-gray-300 rounded-lg" />
+          <select id="statusFilter" class="px-3 py-2 border border-gray-300 rounded-lg">
+            <option value="">All Statuses</option>
+            <option value="open">Open</option><option value="in_progress">In Progress</option>
+            <option value="waiting_customer">Waiting (Customer)</option><option value="waiting_agent">Waiting (Agent)</option>
+            <option value="resolved">Resolved</option><option value="closed">Closed</option>
+          </select>
+          <select id="priorityFilter" class="px-3 py-2 border border-gray-300 rounded-lg">
+            <option value="">All Priorities</option>
+            <option value="low">Low</option><option value="medium">Medium</option>
+            <option value="high">High</option><option value="urgent">Urgent</option>
+          </select>
+        </div>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead class="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ticket #</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Title</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Priority</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Source</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created By</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200">
+            {tickets.length === 0 ? (
+              <tr><td colspan="7" class="px-6 py-8 text-center text-gray-500">No tickets found.</td></tr>
+            ) : (
+              tickets.map((ticket: any) => (
+                <tr class="hover:bg-gray-50 ticket-row" data-title={ticket.title.toLowerCase()} data-number={ticket.ticketNumber.toLowerCase()} data-status={ticket.status} data-priority={ticket.priority}>
+                  <td class="px-6 py-4 text-sm font-mono text-gray-600">{ticket.ticketNumber}</td>
+                  <td class="px-6 py-4 text-sm font-medium text-gray-900">{ticket.title}</td>
+                  <td class="px-6 py-4">
+                    <span class={`px-2 py-1 text-xs font-medium rounded ${ticket.priority === 'urgent' ? 'bg-red-100 text-red-700' : ticket.priority === 'high' ? 'bg-orange-100 text-orange-700' : ticket.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-700'}`}>
+                      {ticket.priority}
+                    </span>
+                  </td>
+                  <td class="px-6 py-4">
+                    <span class={`px-2 py-1 text-xs font-medium rounded ${ticket.status === 'open' ? 'bg-red-50 text-red-700' : ticket.status === 'in_progress' ? 'bg-yellow-50 text-yellow-700' : ticket.status === 'resolved' ? 'bg-green-50 text-green-700' : ticket.status === 'closed' ? 'bg-gray-50 text-gray-700' : 'bg-blue-50 text-blue-700'}`}>
+                      {ticket.status.replace('_', ' ')}
+                    </span>
+                  </td>
+                  <td class="px-6 py-4 text-sm text-gray-600 capitalize">{ticket.source} / {ticket.channel}</td>
+                  <td class="px-6 py-4 text-sm text-gray-600">{ticket.createdByName || 'Unknown'}</td>
+                  <td class="px-6 py-4 text-sm flex gap-2">
+                    <button onclick={`viewTicket(${ticket.id})`} class="text-primary-600 hover:text-primary-700">View</button>
+                    <button onclick={`confirmDelete(${ticket.id}, '${ticket.title.replace(/'/g, "\\'")}')`} class="text-red-600 hover:text-red-700">Delete</button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Ticket Modal -->
+  <div id="addModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-lg mx-4">
+      <h3 class="text-lg font-bold mb-4">Create Support Ticket</h3>
+      <form id="ticketForm" class="space-y-3">
+        <input id="f_title" type="text" placeholder="Title *" class="w-full px-3 py-2 border border-gray-300 rounded-lg" required />
+        <textarea id="f_desc" placeholder="Description *" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg" required></textarea>
+        <div class="grid grid-cols-2 gap-3">
+          <select id="f_category" class="px-3 py-2 border border-gray-300 rounded-lg">
+            <option value="general">General</option><option value="technical">Technical</option>
+            <option value="billing">Billing</option><option value="account">Account</option>
+            <option value="feature_request">Feature Request</option><option value="bug_report">Bug Report</option>
+          </select>
+          <select id="f_priority" class="px-3 py-2 border border-gray-300 rounded-lg">
+            <option value="low">Low</option><option value="medium">Medium</option>
+            <option value="high">High</option><option value="urgent">Urgent</option>
+          </select>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <select id="f_source" class="px-3 py-2 border border-gray-300 rounded-lg">
+            <option value="internal">Internal</option><option value="external">External</option>
+          </select>
+          <select id="f_channel" class="px-3 py-2 border border-gray-300 rounded-lg">
+            <option value="web">Web</option><option value="email">Email</option>
+            <option value="phone">Phone</option><option value="chat">Chat</option>
+          </select>
+        </div>
+        <div class="flex gap-3 pt-2">
+          <button type="submit" class="flex-1 bg-primary-600 text-white py-2 rounded-lg hover:bg-primary-700 font-medium">Create Ticket</button>
+          <button type="button" onclick="document.getElementById('addModal').classList.add('hidden')" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Ticket Detail Modal -->
+  <div id="detailModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-2xl mx-4 max-h-[85vh] overflow-y-auto">
+      <div class="flex justify-between items-start mb-4">
+        <div>
+          <h3 id="detailTitle" class="text-lg font-bold"></h3>
+          <p id="detailNumber" class="text-sm text-gray-500 font-mono"></p>
+        </div>
+        <button onclick="document.getElementById('detailModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+      </div>
+      <div id="detailMeta" class="flex gap-2 mb-4 flex-wrap"></div>
+      <div id="detailDesc" class="text-sm text-gray-700 mb-6 p-3 bg-gray-50 rounded-lg"></div>
+      <h4 class="font-semibold mb-2">Replies</h4>
+      <div id="detailReplies" class="space-y-3 mb-4"></div>
+      <form id="replyForm" class="flex gap-2">
+        <input type="hidden" id="replyTicketId" />
+        <input id="replyContent" type="text" placeholder="Type a reply..." class="flex-1 px-3 py-2 border border-gray-300 rounded-lg" />
+        <button type="submit" class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700">Send</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const searchInput = document.getElementById('searchTickets') as HTMLInputElement;
+    const statusSelect = document.getElementById('statusFilter') as HTMLSelectElement;
+    const prioritySelect = document.getElementById('priorityFilter') as HTMLSelectElement;
+
+    function filterRows() {
+      const s = searchInput.value.toLowerCase();
+      const st = statusSelect.value;
+      const pr = prioritySelect.value;
+      document.querySelectorAll('.ticket-row').forEach((row: any) => {
+        const matchSearch = !s || row.dataset.title?.includes(s) || row.dataset.number?.includes(s);
+        const matchStatus = !st || row.dataset.status === st;
+        const matchPriority = !pr || row.dataset.priority === pr;
+        row.style.display = matchSearch && matchStatus && matchPriority ? '' : 'none';
+      });
+    }
+    searchInput?.addEventListener('input', filterRows);
+    statusSelect?.addEventListener('change', filterRows);
+    prioritySelect?.addEventListener('change', filterRows);
+
+    async function viewTicket(id: number) {
+      try {
+        const res = await fetch(`/api/dashboard/tickets?action=detail&id=${id}`);
+        const data = await res.json();
+        document.getElementById('detailTitle')!.textContent = data.ticket.title;
+        document.getElementById('detailNumber')!.textContent = data.ticket.ticketNumber;
+        document.getElementById('detailDesc')!.textContent = data.ticket.description;
+        document.getElementById('detailMeta')!.innerHTML = `
+          <span class="px-2 py-1 text-xs rounded bg-gray-100">${data.ticket.priority}</span>
+          <span class="px-2 py-1 text-xs rounded bg-blue-100">${data.ticket.status?.replace('_', ' ')}</span>
+          <span class="px-2 py-1 text-xs rounded bg-purple-100">${data.ticket.source}</span>
+          <span class="px-2 py-1 text-xs rounded bg-green-100">${data.ticket.category}</span>
+        `;
+        const repliesEl = document.getElementById('detailReplies')!;
+        repliesEl.innerHTML = data.replies.length === 0 ? '<p class="text-sm text-gray-400">No replies yet.</p>' : data.replies.map((r: any) => `
+          <div class="p-3 rounded-lg ${r.isInternal ? 'bg-yellow-50 border border-yellow-200' : 'bg-gray-50'}">
+            <div class="flex justify-between text-xs text-gray-500 mb-1">
+              <span class="font-medium">${r.userName || 'System'} ${r.isInternal ? '(internal)' : ''}</span>
+              <span>${new Date(r.createdAt).toLocaleString()}</span>
+            </div>
+            <p class="text-sm text-gray-700">${r.content}</p>
+          </div>
+        `).join('');
+        (document.getElementById('replyTicketId') as HTMLInputElement).value = String(id);
+        document.getElementById('detailModal')!.classList.remove('hidden');
+      } catch (e) { alert('Failed to load ticket'); }
+    }
+
+    document.getElementById('ticketForm')?.addEventListener('submit', async (e: Event) => {
+      e.preventDefault();
+      try {
+        const res = await fetch('/api/dashboard/tickets', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: (document.getElementById('f_title') as HTMLInputElement).value,
+            description: (document.getElementById('f_desc') as HTMLTextAreaElement).value,
+            category: (document.getElementById('f_category') as HTMLSelectElement).value,
+            priority: (document.getElementById('f_priority') as HTMLSelectElement).value,
+            source: (document.getElementById('f_source') as HTMLSelectElement).value,
+            channel: (document.getElementById('f_channel') as HTMLSelectElement).value,
+          }),
+        });
+        if (res.ok) location.reload();
+        else alert('Failed to create ticket');
+      } catch (e) { alert('Error creating ticket'); }
+    });
+
+    document.getElementById('replyForm')?.addEventListener('submit', async (e: Event) => {
+      e.preventDefault();
+      const ticketId = (document.getElementById('replyTicketId') as HTMLInputElement).value;
+      const content = (document.getElementById('replyContent') as HTMLInputElement).value;
+      if (!content) return;
+      try {
+        const res = await fetch('/api/dashboard/tickets', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'reply', ticketId: parseInt(ticketId), content }),
+        });
+        if (res.ok) {
+          (document.getElementById('replyContent') as HTMLInputElement).value = '';
+          viewTicket(parseInt(ticketId));
+        }
+      } catch (e) { alert('Error sending reply'); }
+    });
+
+    async function confirmDelete(id: number, title: string) {
+      if (!confirm(`Delete ticket "${title}"?`)) return;
+      try {
+        const res = await fetch('/api/dashboard/tickets', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id }),
+        });
+        if (res.ok) location.reload();
+      } catch (e) { alert('Error deleting ticket'); }
+    }
+  </script>
+</DashboardLayout>

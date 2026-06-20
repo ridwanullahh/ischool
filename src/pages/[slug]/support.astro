@@ -1,0 +1,281 @@
+---
+import { getThemeLayout } from '../../themes/index.js';
+import { getDb } from '../../lib/db/index.js';
+import { schools, schoolTicketCategories } from '../../lib/db/schema.js';
+import { eq, and } from 'drizzle-orm';
+
+const slug = Astro.params.slug!;
+const db = getDb();
+const school = db.select().from(schools).where(eq(schools.slug, slug)).get();
+if (!school) return Astro.redirect('/404');
+
+const Layout = getThemeLayout(school.theme || 'harmony');
+
+const categories = db.select().from(schoolTicketCategories)
+  .where(and(eq(schoolTicketCategories.schoolId, school.id), eq(schoolTicketCategories.isPublic, 1)))
+  .all();
+
+const success = Astro.url.searchParams.get('success');
+const ticketNumber = Astro.url.searchParams.get('ticket');
+---
+
+<Layout school={school} title="Support">
+  <section class="py-12 bg-[var(--bg)]">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <h1 class="text-4xl font-bold text-[var(--text)]">Support Center</h1>
+      <p class="mt-2 text-[var(--muted)]">Get help and track your support requests</p>
+    </div>
+  </section>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    {success && ticketNumber && (
+      <div class="mb-8 p-4 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
+        <strong>Ticket created successfully!</strong> Your ticket number is <span class="font-mono font-bold">{ticketNumber}</span>. Save this number to track your request.
+      </div>
+    )}
+
+    <div class="flex gap-2 mb-8 border-b border-[var(--border)]">
+      <button onclick="showTab('create')" id="tab-create" class="tab-btn px-4 py-3 text-sm font-medium border-b-2 border-[var(--primary)] text-[var(--primary)]">New Ticket</button>
+      <button onclick="showTab('track')" id="tab-track" class="tab-btn px-4 py-3 text-sm font-medium border-b-2 border-transparent text-[var(--muted)] hover:text-[var(--text)]">Track Ticket</button>
+      <button onclick="showTab('account')" id="tab-account" class="tab-btn px-4 py-3 text-sm font-medium border-b-2 border-transparent text-[var(--muted)] hover:text-[var(--text)]">My Account</button>
+    </div>
+
+    <div id="panel-create" class="tab-panel">
+      <div class="max-w-2xl">
+        <h2 class="text-xl font-semibold text-[var(--text)] mb-6">Submit a Support Ticket</h2>
+        <div id="create-result" class="hidden mb-6 p-4 rounded-lg text-sm"></div>
+        <form id="create-form" class="space-y-5">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div>
+              <label class="block text-sm font-medium text-[var(--text)] mb-1">Your Name *</label>
+              <input type="text" name="name" required class="w-full rounded-lg border border-[var(--border)] px-3 py-2.5 text-sm bg-[var(--surface)] text-[var(--text)] focus:border-[var(--primary)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-[var(--text)] mb-1">Email Address *</label>
+              <input type="email" name="email" required class="w-full rounded-lg border border-[var(--border)] px-3 py-2.5 text-sm bg-[var(--surface)] text-[var(--text)] focus:border-[var(--primary)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]" />
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-[var(--text)] mb-1">Category</label>
+            <select name="category" class="w-full rounded-lg border border-[var(--border)] px-3 py-2.5 text-sm bg-[var(--surface)] text-[var(--text)] focus:border-[var(--primary)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]">
+              <option value="general">General Inquiry</option>
+              {categories.map(c => (
+                <option value={c.slug}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-[var(--text)] mb-1">Subject *</label>
+            <input type="text" name="title" required class="w-full rounded-lg border border-[var(--border)] px-3 py-2.5 text-sm bg-[var(--surface)] text-[var(--text)] focus:border-[var(--primary)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]" placeholder="Brief description of your issue" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-[var(--text)] mb-1">Description *</label>
+            <textarea name="description" required rows={5} class="w-full rounded-lg border border-[var(--border)] px-3 py-2.5 text-sm bg-[var(--surface)] text-[var(--text)] focus:border-[var(--primary)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]" placeholder="Please describe your issue in detail..."></textarea>
+          </div>
+          <button type="submit" class="w-full px-6 py-3 text-sm font-medium text-white rounded-lg bg-[var(--primary)] hover:opacity-90 transition-opacity shadow-sm">
+            Submit Ticket
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div id="panel-track" class="tab-panel hidden">
+      <div class="max-w-2xl">
+        <h2 class="text-xl font-semibold text-[var(--text)] mb-6">Track Your Ticket</h2>
+        <div class="flex gap-3 mb-6">
+          <input type="email" id="track-email" placeholder="Your email address" class="flex-1 rounded-lg border border-[var(--border)] px-3 py-2.5 text-sm bg-[var(--surface)] text-[var(--text)] focus:border-[var(--primary)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]" />
+          <button onclick="loadTickets()" class="px-5 py-2.5 text-sm font-medium text-white rounded-lg bg-[var(--primary)] hover:opacity-90 transition-opacity">
+            View Tickets
+          </button>
+        </div>
+        <div id="tickets-list" class="space-y-4"></div>
+        <div id="ticket-detail" class="hidden mt-6"></div>
+      </div>
+    </div>
+
+    <div id="panel-account" class="tab-panel hidden">
+      <div class="max-w-md">
+        <div id="auth-forms">
+          <div id="login-form">
+            <h2 class="text-xl font-semibold text-[var(--text)] mb-6">Sign In</h2>
+            <div id="login-result" class="hidden mb-4 p-3 rounded-lg text-sm"></div>
+            <form onsubmit="handleLogin(event)" class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-[var(--text)] mb-1">Email</label>
+                <input type="email" name="email" required class="w-full rounded-lg border border-[var(--border)] px-3 py-2.5 text-sm bg-[var(--surface)] text-[var(--text)] focus:border-[var(--primary)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-[var(--text)] mb-1">Password</label>
+                <input type="password" name="password" required class="w-full rounded-lg border border-[var(--border)] px-3 py-2.5 text-sm bg-[var(--surface)] text-[var(--text)] focus:border-[var(--primary)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]" />
+              </div>
+              <button type="submit" class="w-full px-6 py-3 text-sm font-medium text-white rounded-lg bg-[var(--primary)] hover:opacity-90 transition-opacity">Sign In</button>
+            </form>
+            <p class="mt-4 text-sm text-[var(--muted)]">No account? <button onclick="document.getElementById('login-form').classList.add('hidden');document.getElementById('register-form').classList.remove('hidden')" class="text-[var(--primary)] font-medium hover:underline">Create one</button></p>
+          </div>
+
+          <div id="register-form" class="hidden">
+            <h2 class="text-xl font-semibold text-[var(--text)] mb-6">Create Account</h2>
+            <div id="register-result" class="hidden mb-4 p-3 rounded-lg text-sm"></div>
+            <form onsubmit="handleRegister(event)" class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-[var(--text)] mb-1">Full Name</label>
+                <input type="text" name="name" required class="w-full rounded-lg border border-[var(--border)] px-3 py-2.5 text-sm bg-[var(--surface)] text-[var(--text)] focus:border-[var(--primary)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-[var(--text)] mb-1">Email</label>
+                <input type="email" name="email" required class="w-full rounded-lg border border-[var(--border)] px-3 py-2.5 text-sm bg-[var(--surface)] text-[var(--text)] focus:border-[var(--primary)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-[var(--text)] mb-1">Password</label>
+                <input type="password" name="password" required minlength={8} class="w-full rounded-lg border border-[var(--border)] px-3 py-2.5 text-sm bg-[var(--surface)] text-[var(--text)] focus:border-[var(--primary)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]" />
+              </div>
+              <button type="submit" class="w-full px-6 py-3 text-sm font-medium text-white rounded-lg bg-[var(--primary)] hover:opacity-90 transition-opacity">Create Account</button>
+            </form>
+            <p class="mt-4 text-sm text-[var(--muted)]">Already have an account? <button onclick="document.getElementById('register-form').classList.add('hidden');document.getElementById('login-form').classList.remove('hidden')" class="text-[var(--primary)] font-medium hover:underline">Sign in</button></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  const slug = window.location.pathname.split('/')[1];
+  const apiBase = `/api/${slug}/support`;
+
+  function showTab(name) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+    document.querySelectorAll('.tab-btn').forEach(b => { b.classList.remove('border-[var(--primary)]', 'text-[var(--primary)]'); b.classList.add('border-transparent', 'text-[var(--muted)]'); });
+    document.getElementById(`panel-${name}`)?.classList.remove('hidden');
+    const btn = document.getElementById(`tab-${name}`);
+    if (btn) { btn.classList.add('border-[var(--primary)]', 'text-[var(--primary)]'); btn.classList.remove('border-transparent', 'text-[var(--muted)]'); }
+  }
+
+  document.getElementById('create-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target as HTMLFormElement;
+    const fd = new FormData(form);
+    const body = { action: 'create_ticket', name: fd.get('name'), email: fd.get('email'), category: fd.get('category'), title: fd.get('title'), description: fd.get('description') };
+    const res = await fetch(apiBase, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const data = await res.json();
+    const el = document.getElementById('create-result')!;
+    el.classList.remove('hidden', 'bg-green-50', 'bg-red-50', 'text-green-700', 'text-red-700');
+    if (res.ok) {
+      el.classList.add('bg-green-50', 'text-green-700');
+      el.innerHTML = `<strong>Ticket created!</strong> Your ticket number is <span class="font-mono font-bold">${data.ticketNumber}</span>. Save this to track your request.`;
+      (form as HTMLFormElement).reset();
+    } else {
+      el.classList.add('bg-red-50', 'text-red-700');
+      el.textContent = data.error || 'Failed to create ticket';
+    }
+  });
+
+  async function loadTickets() {
+    const email = (document.getElementById('track-email') as HTMLInputElement).value.trim();
+    if (!email) return;
+    const res = await fetch(apiBase, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'my_tickets', email }) });
+    const tickets = await res.json();
+    const el = document.getElementById('tickets-list')!;
+    if (!tickets.length) { el.innerHTML = '<p class="text-sm text-[var(--muted)]">No tickets found for this email.</p>'; return; }
+    el.innerHTML = tickets.map((t: any) => `
+      <div class="p-4 bg-[var(--surface)] border border-[var(--border)] rounded-lg">
+        <div class="flex items-center justify-between mb-2">
+          <span class="font-mono text-xs text-[var(--muted)]">${t.ticketNumber}</span>
+          <span class="text-xs px-2 py-0.5 rounded-full ${t.status === 'resolved' ? 'bg-green-100 text-green-700' : t.status === 'waiting_customer' ? 'bg-yellow-100 text-yellow-700' : 'bg-blue-100 text-blue-700'}">${t.status.replace('_', ' ')}</span>
+        </div>
+        <h3 class="font-medium text-[var(--text)]">${t.title}</h3>
+        <p class="text-sm text-[var(--muted)] mt-1">${new Date(t.createdAt).toLocaleDateString()}</p>
+        <button onclick="viewTicket(${t.id}, '${email}')" class="mt-2 text-xs text-[var(--primary)] font-medium hover:underline">View Details</button>
+      </div>
+    `).join('');
+  }
+
+  async function viewTicket(ticketId: number, email: string) {
+    const res = await fetch(apiBase, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'ticket_detail', ticketId, email }) });
+    const data = await res.json();
+    const el = document.getElementById('ticket-detail')!;
+    el.classList.remove('hidden');
+    el.innerHTML = `
+      <div class="p-6 bg-[var(--surface)] border border-[var(--border)] rounded-lg">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-semibold text-[var(--text)]">${data.ticket.title}</h3>
+          <span class="text-xs px-2 py-0.5 rounded-full ${data.ticket.status === 'resolved' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}">${data.ticket.status.replace('_', ' ')}</span>
+        </div>
+        <p class="text-sm text-[var(--muted)] mb-4">${data.ticket.description}</p>
+        <h4 class="text-sm font-medium text-[var(--text)] mb-3">Conversation</h4>
+        <div class="space-y-3 mb-4">
+          ${data.replies.map((r: any) => `
+            <div class="p-3 rounded-lg ${r.userRole === 'customer' ? 'bg-blue-50 ml-8' : 'bg-gray-50 mr-8'} text-sm">
+              <div class="flex justify-between mb-1"><span class="font-medium text-[var(--text)]">${r.userName}</span><span class="text-xs text-[var(--muted)]">${new Date(r.createdAt).toLocaleString()}</span></div>
+              <p class="text-[var(--text)]">${r.content}</p>
+            </div>
+          `).join('')}
+          ${data.replies.length === 0 ? '<p class="text-xs text-[var(--muted)]">No replies yet.</p>' : ''}
+        </div>
+        ${data.ticket.status !== 'resolved' && data.ticket.status !== 'closed' ? `
+          <div class="border-t border-[var(--border)] pt-4">
+            <textarea id="reply-content" rows={3} placeholder="Write a reply..." class="w-full rounded-lg border border-[var(--border)] px-3 py-2 text-sm bg-[var(--surface)] text-[var(--text)] focus:border-[var(--primary)] focus:outline-none"></textarea>
+            <button onclick="sendReply(${ticketId}, '${email}')" class="mt-2 px-4 py-2 text-sm font-medium text-white rounded-lg bg-[var(--primary)] hover:opacity-90">Send Reply</button>
+          </div>
+        ` : ''}
+        ${data.ticket.status === 'resolved' && !data.ticket.satisfactionRating ? `
+          <div class="border-t border-[var(--border)] pt-4 mt-4">
+            <p class="text-sm font-medium text-[var(--text)] mb-2">Rate your experience</p>
+            <div class="flex gap-2">
+              ${[1,2,3,4,5].map(n => `<button onclick="rateTicket(${ticketId}, '${email}', ${n})" class="w-10 h-10 rounded-lg border border-[var(--border)] hover:bg-[var(--primary)] hover:text-white hover:border-[var(--primary)] text-sm font-medium transition-colors">${n}</button>`).join('')}
+            </div>
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }
+
+  async function sendReply(ticketId: number, email: string) {
+    const content = (document.getElementById('reply-content') as HTMLTextAreaElement).value.trim();
+    if (!content) return;
+    await fetch(apiBase, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'reply', ticketId, email, content }) });
+    viewTicket(ticketId, email);
+  }
+
+  async function rateTicket(ticketId: number, email: string, rating: number) {
+    await fetch(apiBase, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'rate', ticketId, email, rating }) });
+    const el = document.getElementById('ticket-detail')!;
+    el.innerHTML = '<div class="p-4 bg-green-50 rounded-lg text-sm text-green-700">Thank you for your feedback!</div>';
+  }
+
+  async function handleLogin(e: Event) {
+    e.preventDefault();
+    const form = e.target as HTMLFormElement;
+    const fd = new FormData(form);
+    const res = await fetch(apiBase, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'login', email: fd.get('email'), password: fd.get('password') }) });
+    const data = await res.json();
+    const el = document.getElementById('login-result')!;
+    el.classList.remove('hidden');
+    if (res.ok) {
+      el.classList.add('bg-green-50', 'text-green-700');
+      el.textContent = `Welcome back, ${data.name}!`;
+      localStorage.setItem('support_token', data.token);
+      localStorage.setItem('support_email', data.email);
+    } else {
+      el.classList.add('bg-red-50', 'text-red-700');
+      el.textContent = data.error;
+    }
+  }
+
+  async function handleRegister(e: Event) {
+    e.preventDefault();
+    const form = e.target as HTMLFormElement;
+    const fd = new FormData(form);
+    const res = await fetch(apiBase, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'register', email: fd.get('email'), name: fd.get('name'), password: fd.get('password') }) });
+    const data = await res.json();
+    const el = document.getElementById('register-result')!;
+    el.classList.remove('hidden');
+    if (res.ok) {
+      el.classList.add('bg-green-50', 'text-green-700');
+      el.textContent = 'Account created! You can now sign in.';
+    } else {
+      el.classList.add('bg-red-50', 'text-red-700');
+      el.textContent = data.error;
+    }
+  }
+</script>

@@ -1,0 +1,66 @@
+---
+import Layout from '../../layouts/MarketingLayout.astro';
+import Input from '../../components/ui/Input.astro';
+import Button from '../../components/ui/Button.astro';
+
+if (Astro.locals.user) {
+  return Astro.redirect(Astro.locals.user.role === 'super_admin' ? '/admin' : '/dashboard');
+}
+
+const redirect = Astro.url.searchParams.get('redirect') || '/dashboard';
+const error = Astro.url.searchParams.get('error');
+---
+
+<Layout title="Sign In - iSchool">
+  <div class="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12">
+    <div class="w-full max-w-md">
+      <div class="text-center mb-8">
+        <h1 class="text-2xl font-bold text-gray-900">Welcome back</h1>
+        <p class="mt-2 text-sm text-gray-600">Sign in to manage your school website</p>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
+        {error && (
+          <div class="mb-6 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+            {error}
+          </div>
+        )}
+
+        <form method="POST" action="/api/auth/login" class="space-y-5">
+          <input type="hidden" name="redirect" value={redirect} />
+
+          <Input
+            label="Email Address"
+            name="email"
+            type="email"
+            placeholder="you@school.edu"
+            required
+            autocomplete="email"
+          />
+
+          <Input
+            label="Password"
+            name="password"
+            type="password"
+            placeholder="Enter your password"
+            required
+            autocomplete="current-password"
+          />
+
+          <Button type="submit" full>
+            Sign In
+          </Button>
+
+          <div class="text-center">
+            <a href="/auth/forgot-password" class="text-sm text-primary-600 hover:text-primary-700">Forgot password?</a>
+          </div>
+        </form>
+      </div>
+
+      <p class="mt-6 text-center text-sm text-gray-600">
+        Don't have an account?{' '}
+        <a href="/auth/register" class="font-medium text-primary-600 hover:text-primary-700">Create one</a>
+      </p>
+    </div>
+  </div>
+</Layout>

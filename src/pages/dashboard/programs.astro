@@ -1,0 +1,77 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import Input from '../../components/ui/Input.astro';
+import Button from '../../components/ui/Button.astro';
+import { getUserSchoolId } from '../../lib/school.js';
+import { getDb } from '../../lib/db/index.js';
+import { programs } from '../../lib/db/schema.js';
+import { eq, asc } from 'drizzle-orm';
+
+const user = Astro.locals.user!;
+const schoolId = getUserSchoolId(user.id);
+const db = getDb();
+
+const items = schoolId ? db.select().from(programs).where(eq(programs.schoolId, schoolId)).orderBy(asc(programs.sortOrder)).all() : [];
+const success = Astro.url.searchParams.get('success');
+const editId = Astro.url.searchParams.get('edit');
+const editing = editId ? items.find(i => i.id === Number(editId)) : null;
+---
+
+<DashboardLayout title="Programs - iSchool">
+  {success && (
+    <div class="mb-6 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">Program saved successfully.</div>
+  )}
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="lg:col-span-1">
+      <div class="bg-white rounded-xl border border-gray-200 p-6">
+        <h2 class="text-base font-semibold text-gray-900 mb-4">{editing ? 'Edit' : 'New'} Program</h2>
+        <form method="POST" action="/api/dashboard/programs" class="space-y-4">
+          {editing && <input type="hidden" name="id" value={editing.id} />}
+          <Input label="Program Name" name="name" value={editing?.name || ''} placeholder="e.g., Early Childhood" required />
+          <Input label="Slug" name="slug" value={editing?.slug || ''} placeholder="early-childhood" required />
+          <Input label="Level" name="level" value={editing?.level || ''} placeholder="e.g., Pre-K to K" />
+          <Input label="Duration" name="duration" value={editing?.duration || ''} placeholder="e.g., 2 years" />
+          <Input label="Description" name="description" value={editing?.description || ''} placeholder="Program description..." rows={3} />
+          <Input label="Full Content" name="content" value={editing?.content || ''} placeholder="Detailed content for the program page..." rows={6} />
+          <Input label="Image URL" name="imageUrl" value={editing?.imageUrl || ''} placeholder="https://..." />
+          <Input label="Icon" name="icon" value={editing?.icon || ''} placeholder="e.g., seedling, book, rocket" />
+          <Input label="Sort Order" name="sortOrder" type="number" value={editing?.sortOrder?.toString() || '0'} />
+          <div class="flex items-center gap-2">
+            <input type="checkbox" id="hasDetailPage" name="hasDetailPage" checked={editing ? editing.hasDetailPage : true} class="rounded border-gray-300" />
+            <label for="hasDetailPage" class="text-sm text-gray-700">Enable detail page</label>
+          </div>
+          <Button type="submit" full>{editing ? 'Update' : 'Add'} Program</Button>
+          {editing && <a href="/dashboard/programs" class="block text-center text-sm text-gray-500 hover:text-gray-700">Cancel Edit</a>}
+        </form>
+      </div>
+    </div>
+
+    <div class="lg:col-span-2">
+      <div class="bg-white rounded-xl border border-gray-200">
+        <div class="px-6 py-4 border-b border-gray-200">
+          <h2 class="text-base font-semibold text-gray-900">All Programs ({items.length})</h2>
+        </div>
+        <div class="divide-y divide-gray-100">
+          {items.length === 0 && <p class="p-6 text-sm text-gray-500 text-center">No programs added yet.</p>}
+          {items.map(item => (
+            <div class="px-6 py-4 flex items-center justify-between gap-4">
+              <div class="flex-1 min-w-0">
+                <h3 class="text-sm font-medium text-gray-900">{item.name}</h3>
+                <p class="text-sm text-gray-500">{item.level}{item.duration ? ` · ${item.duration}` : ''}</p>
+              </div>
+              <div class="flex items-center gap-2 shrink-0">
+                <a href={`?edit=${item.id}`} class="text-xs text-primary-600 hover:text-primary-700">Edit</a>
+                <form method="POST" action="/api/dashboard/programs">
+                  <input type="hidden" name="id" value={item.id} />
+                  <input type="hidden" name="action" value="delete" />
+                  <button type="submit" class="text-xs text-red-500 hover:text-red-700">Delete</button>
+                </form>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  </div>
+</DashboardLayout>

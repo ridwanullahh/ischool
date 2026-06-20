@@ -1,0 +1,107 @@
+---
+import { validateSession, getSessionIdFromCookie } from '../lib/auth.js';
+
+const sessionId = getSessionIdFromCookie(Astro.request);
+const result = sessionId ? await validateSession(sessionId) : null;
+const user = result?.user;
+
+if (!user) {
+  return Astro.redirect('/auth/login?redirect=/portal');
+}
+
+const portalRoles = ['student', 'parent', 'teacher', 'school_admin'];
+if (!portalRoles.includes(user.role)) {
+  return Astro.redirect('/dashboard');
+}
+
+const { title } = Astro.props;
+const currentPath = Astro.url.pathname;
+
+const navItems = [
+  { href: '/portal', label: 'Overview', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
+  { href: '/portal/courses', label: 'Courses', icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253' },
+  { href: '/portal/attendance', label: 'Attendance', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4' },
+  { href: '/portal/assignments', label: 'Assignments', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
+  { href: '/portal/grades', label: 'Grades', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
+  { href: '/portal/fees', label: 'Fees', icon: 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z' },
+];
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{title} — Student Portal</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <script is:inline>
+    (function() {
+      if (typeof window !== 'undefined' && !document.querySelector('script[src*="tailwindcss"]')) {
+        var s = document.createElement('script');
+        s.src = 'https://cdn.tailwindcss.com';
+        document.head.appendChild(s);
+      }
+    })();
+  </script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <div class="flex">
+    <aside class="hidden lg:flex lg:flex-col lg:w-64 bg-white border-r border-gray-200 min-h-screen fixed">
+      <div class="p-6 border-b border-gray-200">
+        <h2 class="text-lg font-bold text-gray-900">Student Portal</h2>
+        <p class="text-sm text-gray-500 mt-1">Welcome, {user.name}</p>
+      </div>
+      <nav class="flex-1 p-4 space-y-1">
+        {navItems.map(item => (
+          <a href={item.href} class:list={[
+            'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+            currentPath === item.href ? 'bg-primary-50 text-primary-700' : 'text-gray-600 hover:bg-gray-100'
+          ]}>
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={item.icon} /></svg>
+            {item.label}
+          </a>
+        ))}
+      </nav>
+      <div class="p-4 border-t border-gray-200">
+        <a href="/dashboard" class="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+          Back to Dashboard
+        </a>
+        <form method="POST" action="/api/auth/logout" class="mt-2">
+          <button type="submit" class="text-sm text-red-600 hover:text-red-700">Sign Out</button>
+        </form>
+      </div>
+    </aside>
+
+    <main class="flex-1 lg:ml-64">
+      <header class="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-3 lg:hidden flex items-center justify-between">
+        <h1 class="text-lg font-bold">Student Portal</h1>
+        <button id="mobile-menu-btn" class="p-2 rounded-lg hover:bg-gray-100">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+        </button>
+      </header>
+
+      <div id="mobile-menu" class="hidden lg:hidden bg-white border-b border-gray-200 px-4 py-2 space-y-1">
+        {navItems.map(item => (
+          <a href={item.href} class:list={[
+            'block px-3 py-2 rounded-lg text-sm font-medium',
+            currentPath === item.href ? 'bg-primary-50 text-primary-700' : 'text-gray-600'
+          ]}>
+            {item.label}
+          </a>
+        ))}
+      </div>
+
+      <div class="p-4 lg:p-8">
+        <slot />
+      </div>
+    </main>
+  </div>
+
+  <script>
+    document.getElementById('mobile-menu-btn')?.addEventListener('click', () => {
+      document.getElementById('mobile-menu')?.classList.toggle('hidden');
+    });
+  </script>
+</body>
+</html>

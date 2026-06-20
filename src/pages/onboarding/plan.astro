@@ -1,0 +1,75 @@
+---
+import OnboardingLayout from '../../layouts/OnboardingLayout.astro';
+import { getDb } from '../../lib/db/index.js';
+import { subscriptionPlans } from '../../lib/db/schema.js';
+import { asc, eq } from 'drizzle-orm';
+
+const db = getDb();
+const plans = db.select().from(subscriptionPlans)
+  .where(eq(subscriptionPlans.isActive, true))
+  .orderBy(asc(subscriptionPlans.sortOrder)).all();
+---
+<OnboardingLayout title="Choose Plan - iSchool Setup" step={2}>
+  <div class="bg-white rounded-xl border border-gray-200 p-8">
+    <h1 class="text-xl font-bold text-gray-900 mb-1">Choose Your Plan</h1>
+    <p class="text-sm text-gray-500 mb-6">Select a plan that fits your school. You can upgrade or change later.</p>
+    <form method="POST" action="/api/onboarding/plan" class="space-y-4">
+      <input type="hidden" name="billingCycle" value="annual" id="billingCycle" />
+      <div class="flex justify-end mb-2">
+        <div class="flex items-center gap-2 text-sm">
+          <span class="text-gray-600">Monthly</span>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" checked class="sr-only peer" onchange="toggleBilling(this)" />
+            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+          </label>
+          <span class="text-gray-600 font-medium">Annual <span class="text-green-600 text-xs">(Save ~4%)</span></span>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 gap-3">
+        {plans.map(plan => {
+          const monthlyPrice = (plan.monthlyPrice / 100).toFixed(2);
+          const annualPrice = (plan.annualPrice / 100).toFixed(2);
+          const annualMonthly = (plan.annualPrice / 1200).toFixed(2);
+          const features: string[] = Array.isArray(plan.features) ? plan.features as any : [];
+          return (
+            <label class:list={['relative flex items-start p-4 rounded-xl border-2 cursor-pointer transition-all', plan.isPopular ? 'border-primary-600 bg-primary-50/50' : 'border-gray-200 hover:border-gray-300']}>
+              <input type="radio" name="planSlug" value={plan.slug} class="mt-1 mr-3" checked={plan.isPopular} />
+              <div class="flex-1">
+                <div class="flex items-center gap-2">
+                  <h3 class="font-semibold text-gray-900">{plan.name}</h3>
+                  {plan.isPopular && <span class="text-xs bg-primary-600 text-white px-2 py-0.5 rounded-full">Most Popular</span>}
+                  {plan.isFree && <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Free Forever</span>}
+                  {plan.trialDays > 0 && !plan.isFree && <span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">{plan.trialDays}-day trial</span>}
+                </div>
+                <p class="text-sm text-gray-500 mt-0.5">{plan.description}</p>
+                <div class="mt-2 flex items-baseline gap-1">
+                  <span class="text-2xl font-bold text-gray-900 price-monthly">${monthlyPrice}</span>
+                  <span class="text-2xl font-bold text-gray-900 price-annual hidden">${annualMonthly}</span>
+                  <span class="text-sm text-gray-500">/month</span>
+                  <span class="text-xs text-gray-400 price-annual hidden">(billed annually)</span>
+                </div>
+                <div class="mt-2 flex flex-wrap gap-1">
+                  {features.slice(0, 6).map(f => (
+                    <span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">{f}</span>
+                  ))}
+                </div>
+              </div>
+            </label>
+          );
+        })}
+      </div>
+      <div class="pt-4">
+        <button type="submit" class="w-full px-6 py-3 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition-colors">Continue with Selected Plan</button>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    function toggleBilling(el: HTMLInputElement) {
+      const cycle = document.getElementById('billingCycle') as HTMLInputElement;
+      cycle.value = el.checked ? 'annual' : 'monthly';
+      document.querySelectorAll('.price-monthly').forEach(e => e.classList.toggle('hidden', el.checked));
+      document.querySelectorAll('.price-annual').forEach(e => e.classList.toggle('hidden', !el.checked));
+    }
+  </script>
+</OnboardingLayout>

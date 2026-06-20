@@ -1,0 +1,149 @@
+---
+import '../../styles/global.css';
+import LanguageSelector from '../../components/LanguageSelector.astro';
+import SchoolBannerPopup from '../../components/SchoolBannerPopup.astro';
+import PublicAIChatWidget from '../../components/PublicAIChatWidget.astro';
+import { getSchoolNav, getSchoolContacts, getSchoolPalette } from '../../lib/school.ts';
+import { normalizeSocialUrl, getSocialIcon } from '../../lib/social.ts';
+
+interface Props { school: any; title?: string; }
+const { school, title } = Astro.props;
+const nav = getSchoolNav(school.id);
+const contacts = getSchoolContacts(school.id);
+const palette = getSchoolPalette(school);
+const pageTitle = title ? `${title} — ${school.name}` : school.name;
+const prefix = `/${school.slug}`;
+const { pathname } = Astro.url;
+const social = (school.socialHandles as Record<string, string>) || {};
+const socialEntries = Object.entries(social).filter(([, v]) => v && v !== '#');
+---
+<!doctype html>
+<html lang={school.locale || 'en'} dir={['ar','he','fa','ur'].includes(school.locale || 'en') ? 'rtl' : 'ltr'} class="light scroll-smooth">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="description" content={school.tagline || school.name} />
+  {school.faviconUrl && <link rel="icon" href={school.faviconUrl} />}
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Raleway:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <title>{pageTitle}</title>
+  <script is:inline>
+    (function(){var s=localStorage.getItem('themeMode');var d=window.matchMedia('(prefers-color-scheme:dark)').matches;var dk=s==='dark'||(!s&&d);document.documentElement.classList.remove('light','dark');document.documentElement.classList.add(dk?'dark':'light')})();
+  </script>
+  <style is:inline>{`
+    html.light{--bg:${palette.backgroundLight};--surface:${palette.surfaceLight};--text:${palette.textLight};--muted:${palette.mutedLight};--border:${palette.borderLight};--accent:${palette.accent};--primary:${palette.primary}}
+    html.dark{--bg:${palette.backgroundDark};--surface:${palette.surfaceDark};--text:${palette.textDark};--muted:${palette.mutedDark};--border:${palette.borderDark};--accent:${palette.accent};--primary:${palette.primary}}
+  `}</style>
+  <style>
+    .marble-line{height:1px;background:linear-gradient(90deg,transparent,var(--primary),transparent);opacity:.4}
+  </style>
+</head>
+<body class="min-h-screen font-['Raleway',sans-serif] bg-[var(--bg)] text-[var(--text)] transition-colors">
+  <header class="sticky top-0 z-50" style="background:var(--bg);border-bottom:1px solid var(--border)">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-[76px]">
+        <a href={`${prefix}/`} class="flex items-center gap-4">
+          {school.logoUrl ? <img src={school.logoUrl} alt={school.name} class="h-10 w-auto" /> : (
+            <div class="w-10 h-10 flex items-center justify-center font-['EB_Garamond',serif] text-xl font-bold" style="border:2px solid var(--primary);color:var(--primary);border-radius:4px">{school.name.charAt(0)}</div>
+          )}
+          <div>
+            <span class="font-['EB_Garamond',serif] text-xl font-semibold tracking-wide" style="color:var(--text)">{school.name}</span>
+            {school.tagline && <span class="block text-[11px] uppercase tracking-[0.15em] font-light" style="color:var(--muted)">{school.tagline}</span>}
+          </div>
+        </a>
+        <nav class="hidden lg:flex items-center gap-8">
+          {nav.map(item => (
+            <a href={`${prefix}${item.url}`} class:list={[
+              'text-sm font-medium tracking-wide transition-colors relative',
+              pathname === `${prefix}${item.url}` ? 'marble-active' : 'hover:opacity-70'
+            ]} style={pathname === `${prefix}${item.url}` ? `color:var(--primary)` : `color:var(--muted)`}>
+              {item.label}
+              {pathname === `${prefix}${item.url}` && <span class="absolute -bottom-1 left-0 right-0 h-px" style="background:var(--primary)"></span>}
+            </a>
+          ))}
+        </nav>
+        <div class="flex items-center gap-2">
+          <button id="theme-toggle" class="w-9 h-9 flex items-center justify-center transition-colors" style="border:1px solid var(--border);border-radius:4px" aria-label="Toggle theme">
+            <span class="sun hidden">☀️</span><span class="moon">🌙</span>
+          </button>
+          <button id="mobile-toggle" class="lg:hidden w-9 h-9 flex items-center justify-center" style="border:1px solid var(--border);border-radius:4px" aria-label="Menu">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div id="mobile-menu" class="hidden lg:hidden px-4 pb-4">
+      {nav.map(item => (
+        <a href={`${prefix}${item.url}`} class="block px-4 py-3 text-sm font-medium tracking-wide" style={pathname === `${prefix}${item.url}` ? 'color:var(--primary)' : `color:var(--muted)`}>{item.label}</a>
+      ))}
+    </div>
+  </header>
+  <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <slot />
+  </main>
+  <div class="marble-line max-w-6xl mx-auto"></div>
+  <footer class="mt-8" style="background:var(--surface);border-top:1px solid var(--border)">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
+        <div>
+          <span class="font-['EB_Garamond',serif] text-xl font-semibold" style="color:var(--text)">{school.name}</span>
+          {school.tagline && <p class="text-sm mt-2 font-light" style="color:var(--muted)">{school.tagline}</p>}
+          {socialEntries.length > 0 && (
+            <div class="flex gap-3 mt-5">
+              {socialEntries.map(([platform, handle]) => {
+                const icon = getSocialIcon(platform);
+                return (
+                  <a href={normalizeSocialUrl(handle, platform)} aria-label={platform} target="_blank" rel="noopener" class="w-9 h-9 flex items-center justify-center transition-colors hover:opacity-70" style="border:1px solid var(--border);border-radius:4px">
+                    <span class="text-sm">{icon}</span>
+                  </a>
+                );
+              })}
+            </div>
+          )}
+        </div>
+        <div>
+          <h4 class="font-['EB_Garamond',serif] text-base font-semibold mb-3" style="color:var(--text)">Pages</h4>
+          {nav.map(item => (
+            <a href={`${prefix}${item.url}`} class="block text-sm py-1.5 hover:opacity-70 font-light" style="color:var(--muted)">{item.label}</a>
+          ))}
+        </div>
+        <div>
+          <h4 class="font-['EB_Garamond',serif] text-base font-semibold mb-3" style="color:var(--text)">Contact</h4>
+          {contacts.map(c => (
+            <div class="text-sm py-1 font-light" style="color:var(--muted)">
+              {c.address && <p>{c.address}</p>}
+              {c.phone && <p>{c.phone}</p>}
+              {c.email && <p>{c.email}</p>}
+            </div>
+          ))}
+        </div>
+      </div>
+      <div class="mt-10 pt-5 text-center text-xs font-light tracking-wider" style="border-top:1px solid var(--border);color:var(--muted)">
+        &copy; {new Date().getFullYear()} {school.name}. All rights reserved.
+        <a href="/" class="ml-2 hover:opacity-70" style="color:var(--primary)">Powered by iSchool</a>
+      </div>
+    </div>
+  </footer>
+  <LanguageSelector />
+  <SchoolBannerPopup schoolId={school.id} />
+  <PublicAIChatWidget schoolSlug={school.slug} />
+  <script>
+    const toggle = document.getElementById('mobile-toggle');
+    const menu = document.getElementById('mobile-menu');
+    toggle?.addEventListener('click', () => menu?.classList.toggle('hidden'));
+    const themeBtn = document.getElementById('theme-toggle');
+    themeBtn?.addEventListener('click', () => {
+      const html = document.documentElement;
+      const isDark = html.classList.contains('dark');
+      html.classList.remove('light', 'dark');
+      html.classList.add(isDark ? 'light' : 'dark');
+      localStorage.setItem('themeMode', isDark ? 'light' : 'dark');
+      updateIcons();
+    });
+    function updateIcons() {
+      const isDark = document.documentElement.classList.contains('dark');
+      document.querySelectorAll('.sun').forEach(el => el.classList.toggle('hidden', !isDark));
+      document.querySelectorAll('.moon').forEach(el => el.classList.toggle('hidden', isDark));
+    }
+    updateIcons();
+  </script>
+</body>
+</html>

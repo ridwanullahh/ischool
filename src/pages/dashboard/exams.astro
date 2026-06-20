@@ -1,0 +1,260 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { getDb } from '../../lib/db/index.js';
+import { exams, examSeries, schoolMembers } from '../../lib/db/schema.js';
+import { eq, inArray } from 'drizzle-orm';
+
+const user = Astro.locals.user;
+if (!user) return Astro.redirect('/auth/login');
+
+const db = getDb();
+const membership = db.select().from(schoolMembers).where(eq(schoolMembers.userId, user.id)).get();
+const schoolId = membership?.schoolId;
+
+let allSeries: any[] = [];
+let allExams: any[] = [];
+
+if (schoolId) {
+  allSeries = db.select().from(examSeries).where(eq(examSeries.schoolId, schoolId)).all();
+  const seriesIds = allSeries.map(s => s.id);
+  if (seriesIds.length > 0) {
+    allExams = db.select().from(exams).where(inArray(exams.seriesId, seriesIds)).all();
+  }
+}
+---
+
+<DashboardLayout title="Exams - iSchool">
+  <div class="space-y-6">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div>
+        <h2 class="text-2xl font-bold text-gray-900">Examinations</h2>
+        <p class="text-sm text-gray-500 mt-1">Manage exam series and examinations</p>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="document.getElementById('addSeriesModal').classList.remove('hidden')" class="bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-800 font-medium text-sm">+ Exam Series</button>
+        <button onclick="document.getElementById('addExamModal').classList.remove('hidden')" class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 font-medium text-sm">+ Create Exam</button>
+      </div>
+    </div>
+
+    <!-- Exam Series -->
+    <div class="bg-white rounded-lg shadow">
+      <div class="p-4 border-b border-gray-200">
+        <h3 class="text-lg font-semibold text-gray-900">Exam Series</h3>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead class="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Year/Term</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dates</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Exams</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200">
+            {allSeries.length === 0 ? (
+              <tr><td colspan="7" class="px-6 py-8 text-center text-gray-500">No exam series created yet.</td></tr>
+            ) : (
+              allSeries.map((s: any) => (
+                <tr class="hover:bg-gray-50">
+                  <td class="px-6 py-4 text-sm font-medium text-gray-900">{s.name}</td>
+                  <td class="px-6 py-4 text-sm text-gray-600 capitalize">{s.type}</td>
+                  <td class="px-6 py-4 text-sm text-gray-600">{s.academicYear || '-'} {s.term ? `/ ${s.term}` : ''}</td>
+                  <td class="px-6 py-4 text-sm text-gray-600">{s.startDate || '-'} {s.endDate ? `to ${s.endDate}` : ''}</td>
+                  <td class="px-6 py-4">
+                    <span class={`px-2 py-1 text-xs font-medium rounded ${s.status === 'active' ? 'bg-green-100 text-green-700' : s.status === 'scheduled' ? 'bg-blue-100 text-blue-700' : s.status === 'completed' ? 'bg-gray-100 text-gray-700' : 'bg-yellow-100 text-yellow-700'}`}>{s.status}</span>
+                  </td>
+                  <td class="px-6 py-4 text-sm text-gray-600">{allExams.filter((e: any) => e.seriesId === s.id).length}</td>
+                  <td class="px-6 py-4 text-sm">
+                    <button onclick={`confirmDeleteSeries(${s.id}, '${s.name.replace(/'/g, "\\'")}')`} class="text-red-600 hover:text-red-700">Delete</button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Individual Exams -->
+    <div class="bg-white rounded-lg shadow">
+      <div class="p-4 border-b border-gray-200">
+        <h3 class="text-lg font-semibold text-gray-900">Exams</h3>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead class="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Subject</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Series</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Marks</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Duration</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Venue</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200">
+            {allExams.length === 0 ? (
+              <tr><td colspan="7" class="px-6 py-8 text-center text-gray-500">No exams created yet.</td></tr>
+            ) : (
+              allExams.map((exam: any) => {
+                const series = allSeries.find((s: any) => s.id === exam.seriesId);
+                return (
+                  <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 text-sm font-medium text-gray-900">{exam.subject}</td>
+                    <td class="px-6 py-4 text-sm text-gray-600">{series?.name || '-'}</td>
+                    <td class="px-6 py-4 text-sm text-gray-600">{exam.totalMarks}</td>
+                    <td class="px-6 py-4 text-sm text-gray-600">{exam.duration ? `${exam.duration} min` : '-'}</td>
+                    <td class="px-6 py-4 text-sm text-gray-600">{exam.date || '-'}</td>
+                    <td class="px-6 py-4 text-sm text-gray-600">{exam.venue || '-'}</td>
+                    <td class="px-6 py-4 text-sm">
+                      <button onclick={`confirmDeleteExam(${exam.id}, '${exam.subject.replace(/'/g, "\\'")}')`} class="text-red-600 hover:text-red-700">Delete</button>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Series Modal -->
+  <div id="addSeriesModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4">
+      <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+        <h3 class="text-lg font-semibold">Create Exam Series</h3>
+        <button onclick="document.getElementById('addSeriesModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+      </div>
+      <form id="addSeriesForm" class="p-6 space-y-4">
+        <div class="grid grid-cols-2 gap-4">
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Name *</label><input name="name" required class="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Type *</label>
+            <select name="type" required class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+              <option value="midterm">Midterm</option><option value="final">Final</option><option value="mock">Mock</option><option value="quiz">Quiz</option><option value="practical">Practical</option><option value="custom">Custom</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Academic Year</label><input name="academicYear" placeholder="2025-2026" class="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Term</label><input name="term" placeholder="Term 1" class="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label><input name="startDate" type="date" class="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">End Date</label><input name="endDate" type="date" class="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+        </div>
+        <div id="addSeriesError" class="text-red-600 text-sm hidden"></div>
+        <div class="flex justify-end gap-3 pt-4 border-t border-gray-200">
+          <button type="button" onclick="document.getElementById('addSeriesModal').classList.add('hidden')" class="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">Create Series</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add Exam Modal -->
+  <div id="addExamModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4">
+      <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+        <h3 class="text-lg font-semibold">Create Exam</h3>
+        <button onclick="document.getElementById('addExamModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+      </div>
+      <form id="addExamForm" class="p-6 space-y-4">
+        <div class="grid grid-cols-2 gap-4">
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Subject *</label><input name="subject" required class="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Series *</label>
+            <select name="seriesId" required class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+              {allSeries.map((s: any) => <option value={s.id}>{s.name}</option>)}
+            </select>
+          </div>
+        </div>
+        <div class="grid grid-cols-3 gap-4">
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Total Marks *</label><input name="totalMarks" type="number" required class="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Passing Marks</label><input name="passingMarks" type="number" class="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Duration (min)</label><input name="duration" type="number" class="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Date</label><input name="date" type="date" class="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Venue</label><input name="venue" class="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+        </div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">Invigilator</label><input name="invigilator" class="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">Instructions</label><textarea name="instructions" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg"></textarea></div>
+        <div id="addExamError" class="text-red-600 text-sm hidden"></div>
+        <div class="flex justify-end gap-3 pt-4 border-t border-gray-200">
+          <button type="button" onclick="document.getElementById('addExamModal').classList.add('hidden')" class="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">Create Exam</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete Modal -->
+  <div id="deleteModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4 p-6">
+      <h3 class="text-lg font-semibold text-gray-900 mb-2">Confirm Delete</h3>
+      <p class="text-gray-600 mb-6">Are you sure you want to delete <strong id="deleteName"></strong>?</p>
+      <div class="flex justify-end gap-3">
+        <button onclick="document.getElementById('deleteModal').classList.add('hidden')" class="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
+        <button id="confirmDeleteBtn" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('addSeriesForm')?.addEventListener('submit', async (e: Event) => {
+      e.preventDefault();
+      const form = e.target as HTMLFormElement;
+      const data = Object.fromEntries(new FormData(form));
+      const errEl = document.getElementById('addSeriesError')!;
+      errEl.classList.add('hidden');
+      try {
+        const res = await fetch('/api/dashboard/exam-series', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+        if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Failed'); }
+        window.location.reload();
+      } catch (err: any) { errEl.textContent = err.message; errEl.classList.remove('hidden'); }
+    });
+
+    document.getElementById('addExamForm')?.addEventListener('submit', async (e: Event) => {
+      e.preventDefault();
+      const form = e.target as HTMLFormElement;
+      const data = Object.fromEntries(new FormData(form));
+      data.totalMarks = Number(data.totalMarks);
+      if (data.passingMarks) data.passingMarks = Number(data.passingMarks);
+      if (data.duration) data.duration = Number(data.duration);
+      if (data.seriesId) data.seriesId = Number(data.seriesId);
+      const errEl = document.getElementById('addExamError')!;
+      errEl.classList.add('hidden');
+      try {
+        const res = await fetch('/api/dashboard/exams', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+        if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Failed'); }
+        window.location.reload();
+      } catch (err: any) { errEl.textContent = err.message; errEl.classList.remove('hidden'); }
+    });
+
+    let deleteTarget: { id: number; type: string } | null = null;
+    (window as any).confirmDeleteSeries = (id: number, name: string) => {
+      deleteTarget = { id, type: 'series' };
+      document.getElementById('deleteName')!.textContent = name;
+      document.getElementById('deleteModal')!.classList.remove('hidden');
+    };
+    (window as any).confirmDeleteExam = (id: number, name: string) => {
+      deleteTarget = { id, type: 'exam' };
+      document.getElementById('deleteName')!.textContent = name;
+      document.getElementById('deleteModal')!.classList.remove('hidden');
+    };
+
+    document.getElementById('confirmDeleteBtn')?.addEventListener('click', async () => {
+      if (!deleteTarget) return;
+      try {
+        const url = deleteTarget.type === 'series' ? '/api/dashboard/exam-series' : '/api/dashboard/exams';
+        await fetch(url, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: deleteTarget.id }) });
+        window.location.reload();
+      } catch { document.getElementById('deleteModal')!.classList.add('hidden'); }
+    });
+  </script>
+</DashboardLayout>

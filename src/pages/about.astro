@@ -1,0 +1,66 @@
+---
+import MarketingLayout from '../layouts/MarketingLayout.astro';
+---
+
+<MarketingLayout title="About - iSchool" description="Learn about iSchool and our mission to make school websites simple and beautiful.">
+  <section class="py-24">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="max-w-3xl mx-auto text-center">
+        <h1 class="text-4xl font-bold text-gray-900">Our mission is simple</h1>
+        <p class="mt-6 text-xl text-gray-600 leading-relaxed">
+          Every school deserves a professional, modern website — regardless of their technical expertise or budget. 
+          We built iSchool to make that possible.
+        </p>
+      </div>
+
+      <div class="mt-20 grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
+        <div>
+          <h2 class="text-2xl font-bold text-gray-900 mb-4">Why we built iSchool</h2>
+          <p class="text-gray-600 leading-relaxed mb-4">
+            We noticed that many schools struggle with outdated, hard-to-manage websites. Parents and prospective 
+            families form their first impression online, and a poor website can hurt enrollment.
+          </p>
+          <p class="text-gray-600 leading-relaxed mb-4">
+            Existing solutions were either too expensive, too complex, or too generic. Schools needed something 
+            built specifically for them — something that was both powerful and simple.
+          </p>
+          <p class="text-gray-600 leading-relaxed">
+            That's why we created iSchool: a platform where schools bring their content, and we handle 
+            everything else. Beautiful design, mobile responsiveness, security, and performance — all included.
+          </p>
+        </div>
+        <div class="bg-gradient-to-br from-primary-100 to-blue-100 rounded-2xl p-10">
+          <div class="space-y-6">
+            {[
+              { num: '500+', label: 'Schools Trust iSchool' },
+              { num: '50K+', label: 'Students Reached Daily' },
+              { num: '99.9%', label: 'Uptime Guarantee' },
+              { num: '24/7', label: 'Support Available' },
+            ].map(stat => (
+              <div class="flex items-center gap-4">
+                <span class="text-3xl font-bold text-primary-700">{stat.num}</span>
+                <span class="text-gray-700">{stat.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-20">
+        <h2 class="text-2xl font-bold text-gray-900 text-center mb-12">Our values</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {[
+            { title: 'Simplicity First', desc: 'We believe the best tools are the ones you don\'t need to learn. Every feature is designed to be intuitive from day one.' },
+            { title: 'Schools at the Center', desc: 'Every decision we make starts with one question: does this make life easier for schools?' },
+            { title: 'Always Improving', desc: 'We listen to our schools, iterate constantly, and ship new features that make a real difference.' },
+          ].map(value => (
+            <div class="p-6 rounded-2xl border border-gray-200">
+              <h3 class="text-lg font-semibold text-gray-900 mb-3">{value.title}</h3>
+              <p class="text-gray-600 leading-relaxed">{value.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  </section>
+</MarketingLayout>

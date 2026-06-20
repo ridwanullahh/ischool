@@ -1,0 +1,168 @@
+---
+import { getThemeLayout } from '../../themes/index.js';
+import { getDb } from '../../lib/db/index.js';
+import { schools, galleryItems, galleryAlbums, virtualTours } from '../../lib/db/schema.js';
+import { eq, and, asc } from 'drizzle-orm';
+
+const slug = Astro.params.slug!;
+const db = getDb();
+const school = db.select().from(schools).where(eq(schools.slug, slug)).get();
+if (!school) return Astro.redirect('/404');
+
+const Layout = getThemeLayout(school.theme || 'harmony');
+
+const albums = db.select().from(galleryAlbums).where(and(eq(galleryAlbums.schoolId, school.id), eq(galleryAlbums.isPublished, true))).orderBy(asc(galleryAlbums.sortOrder)).all();
+const items = db.select().from(galleryItems).where(eq(galleryItems.schoolId, school.id)).orderBy(asc(galleryItems.sortOrder)).all();
+const tours = db.select().from(virtualTours).where(and(eq(virtualTours.schoolId, school.id), eq(virtualTours.isPublished, true))).orderBy(asc(virtualTours.sortOrder)).all();
+
+const viewAlbum = Astro.url.searchParams.get('album');
+const currentAlbum = viewAlbum ? albums.find(a => a.slug === viewAlbum || String(a.id) === viewAlbum) : null;
+
+const albumTypeLabels: Record<string, string> = {
+  campus: 'Campus', facilities: 'Facilities', students: 'Students',
+  activities: 'Activities', events: 'Events', sports: 'Sports',
+  virtual_tour: 'Virtual Tours', custom: 'Gallery',
+};
+---
+
+<Layout school={school} title="Gallery">
+  <section class="py-16 bg-[var(--bg)]">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <h1 class="text-4xl font-bold text-[var(--text)]">Gallery</h1>
+      <p class="mt-2 text-[var(--muted)]">Explore life at {school.name}</p>
+    </div>
+  </section>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+    {tours.length > 0 && !currentAlbum && (
+      <div class="mb-16">
+        <h2 class="text-2xl font-bold text-[var(--text)] mb-6">360° Virtual Tours</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {tours.map(tour => (
+            <div class="rounded-2xl overflow-hidden border border-[var(--border)] bg-[var(--surface)] shadow-sm hover:shadow-md transition-shadow">
+              <div class="aspect-video relative">
+                <iframe src={tour.embedUrl} class="w-full h-full" allowfullscreen loading="lazy" style="border:0"></iframe>
+              </div>
+              <div class="p-4">
+                <h3 class="text-base font-semibold text-[var(--text)]">{tour.title}</h3>
+                {tour.location && <p class="text-sm text-[var(--muted)] mt-1">{tour.location}</p>}
+                {tour.description && <p class="text-sm text-[var(--muted)] mt-2">{tour.description}</p>}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+
+    {currentAlbum ? (
+      <div>
+        <div class="mb-8">
+          <a href={`/${school.slug}/gallery`} class="text-sm text-[var(--primary)] hover:opacity-80 inline-flex items-center gap-1">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            Back to Gallery
+          </a>
+          <h2 class="text-3xl font-bold text-[var(--text)] mt-4">{currentAlbum.name}</h2>
+          {currentAlbum.description && <p class="text-[var(--muted)] mt-2">{currentAlbum.description}</p>}
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {items.filter(i => i.albumId === currentAlbum.id).map(item => (
+            <div class="group relative rounded-xl overflow-hidden aspect-square bg-[var(--surface)]">
+              <img src={item.imageUrl} alt={item.title || ''} class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
+              <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
+                <div>
+                  {item.title && <p class="text-white font-medium text-sm">{item.title}</p>}
+                  {item.caption && <p class="text-white/80 text-xs">{item.caption}</p>}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        {items.filter(i => i.albumId === currentAlbum.id).length === 0 && (
+          <p class="text-center py-12 text-[var(--muted)]">No photos in this album yet.</p>
+        )}
+      </div>
+    ) : albums.length > 0 ? (
+      <div>
+        <h2 class="text-2xl font-bold text-[var(--text)] mb-6">Albums</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-16">
+          {albums.map(album => {
+            const albumItems = items.filter(i => i.albumId === album.id);
+            return (
+              <a href={`/${school.slug}/gallery?album=${album.slug}`} class="group rounded-2xl overflow-hidden border border-[var(--border)] bg-[var(--surface)] shadow-sm hover:shadow-lg transition-all">
+                <div class="aspect-[4/3] relative overflow-hidden">
+                  {album.coverImageUrl ? (
+                    <img src={album.coverImageUrl} alt={album.name} class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
+                  ) : albumItems.length > 0 ? (
+                    <img src={albumItems[0].imageUrl} alt={album.name} class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
+                  ) : (
+                    <div class="w-full h-full flex items-center justify-center text-4xl" style="background:color-mix(in srgb, var(--primary) 10%, transparent)">
+                      {album.type === 'campus' ? '🏫' : album.type === 'facilities' ? '🏊' : album.type === 'students' ? '🎓' : album.type === 'activities' ? '🎭' : album.type === 'sports' ? '⚽' : album.type === 'virtual_tour' ? '🔭' : '📁'}
+                    </div>
+                  )}
+                  <div class="absolute top-3 left-3">
+                    <span class="text-[11px] font-medium px-3 py-1 rounded-full bg-white/90 text-gray-700 backdrop-blur-sm">
+                      {albumTypeLabels[album.type] || album.type}
+                    </span>
+                  </div>
+                  <div class="absolute bottom-3 right-3">
+                    <span class="text-[11px] font-medium px-2 py-1 rounded-full bg-black/50 text-white backdrop-blur-sm">{albumItems.length} photos</span>
+                  </div>
+                </div>
+                <div class="p-4">
+                  <h3 class="text-base font-semibold text-[var(--text)] group-hover:text-[var(--primary)] transition-colors">{album.name}</h3>
+                  {album.description && <p class="text-sm text-[var(--muted)] mt-1 line-clamp-2">{album.description}</p>}
+                </div>
+              </a>
+            );
+          })}
+        </div>
+
+        {items.filter(i => !i.albumId).length > 0 && (
+          <div>
+            <h2 class="text-2xl font-bold text-[var(--text)] mb-6">Other Photos</h2>
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {items.filter(i => !i.albumId).map(item => (
+                <div class="group relative rounded-xl overflow-hidden aspect-square bg-[var(--surface)]">
+                  <img src={item.imageUrl} alt={item.title || ''} class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
+                  <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
+                    <div>
+                      {item.title && <p class="text-white font-medium text-sm">{item.title}</p>}
+                      {item.caption && <p class="text-white/80 text-xs">{item.caption}</p>}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    ) : (
+      <div>
+        {items.length > 0 ? (
+          <div class="space-y-12">
+            {[...new Set(items.map(g => g.category || 'General'))].map(cat => (
+              <div>
+                <h2 class="text-xl font-semibold text-[var(--text)] mb-6">{cat}</h2>
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {items.filter(g => (g.category || 'General') === cat).map(item => (
+                    <div class="group relative rounded-xl overflow-hidden aspect-square bg-[var(--surface)]">
+                      <img src={item.imageUrl} alt={item.title || ''} class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
+                      <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
+                        <div>
+                          {item.title && <p class="text-white font-medium text-sm">{item.title}</p>}
+                          {item.caption && <p class="text-white/80 text-xs">{item.caption}</p>}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p class="text-center py-12 text-[var(--muted)]">Gallery photos coming soon.</p>
+        )}
+      </div>
+    )}
+  </div>
+</Layout>

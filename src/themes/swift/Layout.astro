@@ -1,0 +1,83 @@
+---
+import '../../styles/global.css';
+import LanguageSelector from '../../components/LanguageSelector.astro';
+import SchoolBannerPopup from '../../components/SchoolBannerPopup.astro';
+import PublicAIChatWidget from '../../components/PublicAIChatWidget.astro';
+import { getSchoolNav, getSchoolContacts, getSchoolPalette } from '../../lib/school.ts';
+import { normalizeSocialUrl, getSocialIcon } from '../../lib/social.ts';
+
+interface Props { school: any; title?: string; }
+const { school, title } = Astro.props;
+const nav = getSchoolNav(school.id);
+const contacts = getSchoolContacts(school.id);
+const palette = getSchoolPalette(school);
+const pageTitle = title ? `${title} — ${school.name}` : school.name;
+const prefix = `/${school.slug}`;
+const { pathname } = Astro.url;
+const social = (school.socialHandles as Record<string, string>) || {};
+const socialEntries = Object.entries(social).filter(([, v]) => v && v !== '#');
+---
+<!doctype html>
+<html lang={school.locale || 'en'} dir={['ar','he','fa','ur'].includes(school.locale || 'en') ? 'rtl' : 'ltr'} class="light scroll-smooth">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="description" content={school.tagline || school.name} />
+  {school.faviconUrl && <link rel="icon" href={school.faviconUrl} />}
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <title>{pageTitle}</title>
+  <script is:inline>(function(){var s=localStorage.getItem('themeMode');var d=window.matchMedia('(prefers-color-scheme:dark)').matches;var dk=s==='dark'||(!s&&d);document.documentElement.classList.remove('light','dark');document.documentElement.classList.add(dk?'dark':'light')})();</script>
+  <style is:inline>{`
+    html.light{--bg:#f2f2f7;--surface:#ffffff;--text:#000;--muted:#8e8e93;--border:rgba(60,60,67,.12);--accent:${palette.accent};--primary:${palette.primary}}
+    html.dark{--bg:#000;--surface:#1c1c1e;--text:#fff;--muted:#8e8e93;--border:rgba(84,84,88,.35);--accent:${palette.accent};--primary:${palette.primary}}
+    :root{--tp:${palette.primary}}
+    .swift-card{background:var(--surface);border-radius:12px;box-shadow:0 .5px 1px rgba(0,0,0,.05)}
+    .swift-seg{display:inline-flex;background:rgba(118,118,128,.12);border-radius:8px;padding:2px}
+    .swift-seg a{padding:6px 16px;border-radius:7px;font-size:13px;font-weight:500;transition:all .2s}
+    .swift-seg a.active{background:var(--surface);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+    .swift-tab{position:fixed;bottom:0;left:0;right:0;z-index:50;padding-bottom:env(safe-area-inset-bottom);backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);background:color-mix(in srgb, var(--surface) 85%, transparent);border-top:.5px solid var(--border)}
+  `}</style>
+</head>
+<body class="min-h-screen" style="background:var(--bg);color:var(--text);font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif;-webkit-font-smoothing:antialiased">
+  <header class="sticky top-0 z-40" style="backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);background:color-mix(in srgb, var(--bg) 80%, transparent)">
+    <div class="px-4 h-12 flex items-center justify-between">
+      <a href={`${prefix}/`} class="flex items-center gap-2">
+        {school.logoUrl ? <img src={school.logoUrl} alt={school.name} class="h-7 w-auto rounded-lg" /> : (
+          <div class="w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-bold" style="background:var(--primary)">{school.name.charAt(0)}</div>
+        )}
+        <span class="text-base font-semibold" style="color:var(--text)">{school.name}</span>
+      </a>
+      <div class="flex items-center gap-2">
+        <LanguageSelector />
+        <button id="theme-toggle" class="w-8 h-8 flex items-center justify-center rounded-full" style="color:var(--muted)" aria-label="Toggle theme">
+          <svg class="w-4 h-4 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+          <svg class="w-4 h-4 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="px-4 pb-2 overflow-x-auto scrollbar-hide">
+      <div class="swift-seg whitespace-nowrap">
+        {nav.map(item => (
+          <a href={`${prefix}${item.url}`} class:list={[pathname === `${prefix}${item.url}` ? 'active' : '']} style={pathname === `${prefix}${item.url}` ? `color:var(--text)` : `color:var(--muted)`}>{item.label}</a>
+        ))}
+      </div>
+    </div>
+  </header>
+  <main class="pb-20"><slot /></main>
+  <nav class="swift-tab">
+    <div class="flex items-center justify-around h-14 max-w-lg mx-auto">
+      {nav.slice(0, 5).map((item, i) => (
+        <a href={`${prefix}${item.url}`} class="flex flex-col items-center gap-0.5 px-3 py-1" style={pathname === `${prefix}${item.url}` ? `color:var(--primary)` : `color:var(--muted)`}>
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d={i === 0 ? 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0h4' : i === 1 ? 'M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z' : i === 2 ? 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' : i === 3 ? 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' : 'M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'} /></svg>
+          <span class="text-[10px] font-medium">{item.label}</span>
+        </a>
+      ))}
+    </div>
+  </nav>
+  <script>
+    document.getElementById('mob-tog')?.addEventListener('click',()=>document.getElementById('mob-menu')?.classList.toggle('hidden'));
+    document.getElementById('theme-toggle')?.addEventListener('click',()=>{const h=document.documentElement;const d=h.classList.contains('dark');h.classList.remove('light','dark');h.classList.add(d?'light':'dark');localStorage.setItem('themeMode',d?'light':'dark')});
+  </script>
+  <SchoolBannerPopup schoolId={school.id} />
+  <PublicAIChatWidget schoolSlug={school.slug} />
+</body>
+</html>

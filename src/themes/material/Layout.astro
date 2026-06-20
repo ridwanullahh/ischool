@@ -1,0 +1,130 @@
+---
+import '../../styles/global.css';
+import LanguageSelector from '../../components/LanguageSelector.astro';
+import SchoolBannerPopup from '../../components/SchoolBannerPopup.astro';
+import PublicAIChatWidget from '../../components/PublicAIChatWidget.astro';
+import { getSchoolNav, getSchoolContacts, getSchoolPalette } from '../../lib/school.ts';
+import { normalizeSocialUrl, getSocialIcon } from '../../lib/social.ts';
+
+interface Props { school: any; title?: string; }
+const { school, title } = Astro.props;
+const nav = getSchoolNav(school.id);
+const contacts = getSchoolContacts(school.id);
+const palette = getSchoolPalette(school);
+const pageTitle = title ? `${title} — ${school.name}` : school.name;
+const prefix = `/${school.slug}`;
+const { pathname } = Astro.url;
+const social = (school.socialHandles as Record<string, string>) || {};
+const socialEntries = Object.entries(social).filter(([, v]) => v && v !== '#');
+---
+<!doctype html>
+<html lang={school.locale || 'en'} dir={['ar','he','fa','ur'].includes(school.locale || 'en') ? 'rtl' : 'ltr'} class="light scroll-smooth">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="description" content={school.tagline || school.name} />
+  {school.faviconUrl && <link rel="icon" href={school.faviconUrl} />}
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
+  <title>{pageTitle}</title>
+  <script is:inline>(function(){var s=localStorage.getItem('themeMode');var d=window.matchMedia('(prefers-color-scheme:dark)').matches;var dk=s==='dark'||(!s&&d);document.documentElement.classList.remove('light','dark');document.documentElement.classList.add(dk?'dark':'light')})();</script>
+  <style is:inline>{`
+    html.light{--bg:#fafafa;--surface:#fff;--surface2:#f5f5f5;--text:#1b1b1f;--muted:#49454f;--border:#e0e0e0;--accent:${palette.accent};--primary:${palette.primary}}
+    html.dark{--bg:#1b1b1f;--surface:#2b2b2f;--surface2:#363639;--text:#e6e1e5;--muted:#cac4d0;--border:#49454f;--accent:${palette.accent};--primary:${palette.primary}}
+    :root{--tp:${palette.primary}}
+    .m3-card{background:var(--surface);border-radius:16px;border:1px solid var(--border);transition:box-shadow .2s}
+    .m3-card:hover{box-shadow:0 1px 3px 1px rgba(0,0,0,.1),0 1px 2px rgba(0,0,0,.06)}
+    .m3-elevated{background:var(--surface);border-radius:16px;box-shadow:0 2px 6px 2px rgba(0,0,0,.08)}
+    .m3-fab{position:fixed;bottom:24px;right:24px;z-index:50;width:56px;height:56px;border-radius:16px;display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 4px 12px rgba(0,0,0,.25);transition:all .2s}
+    .m3-fab:hover{box-shadow:0 6px 16px rgba(0,0,0,.3);transform:translateY(-2px)}
+    .m3-chip{display:inline-flex;align-items:center;gap:4px;padding:6px 16px;border-radius:8px;font-size:13px;font-weight:500;border:1px solid var(--border);background:transparent;color:var(--text);transition:all .15s}
+    .m3-chip.active{background:color-mix(in srgb, var(--primary) 12%, transparent);border-color:var(--primary);color:var(--primary)}
+    .m3-nav-rail{position:fixed;left:0;top:0;bottom:0;width:80px;z-index:40;background:var(--surface);border-right:1px solid var(--border);display:none;flex-direction:column;align-items:center;padding-top:16px}
+    @media(min-width:1024px){.m3-nav-rail{display:flex}}
+  `}</style>
+</head>
+<body class="min-h-screen" style="background:var(--bg);color:var(--text);font-family:'Google Sans',Roboto,system-ui,sans-serif">
+  <div class="m3-nav-rail">
+    <a href={`${prefix}/`} class="flex flex-col items-center gap-1 mb-6">
+      {school.logoUrl ? <img src={school.logoUrl} class="w-10 h-10 rounded-xl" /> : (
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-bold" style="background:var(--primary)">{school.name.charAt(0)}</div>
+      )}
+    </a>
+    {nav.slice(0, 7).map(item => (
+      <a href={`${prefix}${item.url}`} class="w-14 flex flex-col items-center gap-0.5 py-3 rounded-2xl mb-1 transition-all" style={pathname === `${prefix}${item.url}` ? `background:color-mix(in srgb, var(--primary) 12%, transparent);color:var(--primary)` : `color:var(--muted)`}>
+        <span class="text-[10px] font-medium">{item.label.slice(0, 8)}</span>
+      </a>
+    ))}
+  </div>
+  <header class="sticky top-0 z-30 lg:ml-[80px]" style="background:color-mix(in srgb, var(--bg) 90%, transparent);backdrop-filter:blur(20px)">
+    <div class="px-4 h-16 flex items-center justify-between">
+      <a href={`${prefix}/`} class="flex items-center gap-3 lg:hidden">
+        {school.logoUrl ? <img src={school.logoUrl} class="h-8 w-auto rounded-lg" /> : (
+          <div class="w-8 h-8 rounded-xl flex items-center justify-center text-white text-xs font-bold" style="background:var(--primary)">{school.name.charAt(0)}</div>
+        )}
+        <span class="text-lg font-medium">{school.name}</span>
+      </a>
+      <span class="hidden lg:block text-lg font-medium">{school.name}</span>
+      <div class="flex items-center gap-2">
+        <LanguageSelector />
+        <button id="theme-toggle" class="w-9 h-9 rounded-full flex items-center justify-center" style="color:var(--muted)" aria-label="Toggle theme">
+          <svg class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+          <svg class="w-5 h-5 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+        </button>
+        <button id="mob-tog" class="lg:hidden w-9 h-9 rounded-full flex items-center justify-center" style="color:var(--muted)"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+      </div>
+    </div>
+    <div class="px-4 pb-2 overflow-x-auto flex gap-2 lg:hidden">
+      {nav.map(item => (
+        <a href={`${prefix}${item.url}`} class:list={['m3-chip whitespace-nowrap', pathname === `${prefix}${item.url}` ? 'active' : '']}>{item.label}</a>
+      ))}
+    </div>
+    <div id="mob-menu" class="hidden lg:hidden" style="background:var(--surface);border-top:1px solid var(--border)">
+      <div class="px-4 py-3 space-y-1">
+        {nav.map(item => (
+          <a href={`${prefix}${item.url}`} class="block px-4 py-3 rounded-xl text-sm font-medium" style={pathname === `${prefix}${item.url}` ? `background:color-mix(in srgb, var(--primary) 12%, transparent);color:var(--primary)` : `color:var(--text)`}>{item.label}</a>
+        ))}
+      </div>
+    </div>
+  </header>
+  <main class="lg:ml-[80px]"><slot /></main>
+  <a href={`${prefix}/admissions`} class="m3-fab lg:ml-[80px]" style="background:var(--primary)" title="Apply">
+    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+  </a>
+  <footer class="lg:ml-[80px]" style="background:var(--surface);border-top:1px solid var(--border)">
+    <div class="max-w-5xl mx-auto px-4 py-16">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div>
+          <div class="flex items-center gap-2 mb-3">
+            <div class="w-8 h-8 rounded-xl flex items-center justify-center text-white text-xs font-bold" style="background:var(--primary)">{school.name.charAt(0)}</div>
+            <span class="font-medium">{school.name}</span>
+          </div>
+          {school.tagline && <p class="text-sm" style="color:var(--muted)">{school.tagline}</p>}
+        </div>
+        <div>
+          <h4 class="text-xs font-medium uppercase tracking-wider mb-3" style="color:var(--primary)">Navigate</h4>
+          <ul class="space-y-2">{nav.slice(0,6).map(item => <li><a href={`${prefix}${item.url}`} class="text-sm hover:opacity-80" style="color:var(--muted)">{item.label}</a></li>)}</ul>
+        </div>
+        <div>
+          <h4 class="text-xs font-medium uppercase tracking-wider mb-3" style="color:var(--primary)">Contact</h4>
+          <ul class="space-y-2">{contacts.slice(0,4).map(c => <li class="text-sm" style="color:var(--muted)">{c.label}: {c.value}</li>)}</ul>
+          {socialEntries.length > 0 && (
+            <div class="flex gap-2 mt-4">
+              {socialEntries.map(([platform, handle]) => (
+                <a href={normalizeSocialUrl(handle, platform)} target="_blank" rel="noopener" class="w-9 h-9 rounded-full flex items-center justify-center" style="background:var(--surface2);color:var(--muted)"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d={getSocialIcon(platform)}/></svg></a>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+      <div class="mt-12 pt-6 text-center text-xs" style="border-top:1px solid var(--border);color:var(--muted)">
+        &copy; {new Date().getFullYear()} {school.name} — Powered by <a href="/" class="hover:opacity-80">iSchool</a>
+      </div>
+    </div>
+  </footer>
+  <script>
+    document.getElementById('mob-tog')?.addEventListener('click',()=>document.getElementById('mob-menu')?.classList.toggle('hidden'));
+    document.getElementById('theme-toggle')?.addEventListener('click',()=>{const h=document.documentElement;const d=h.classList.contains('dark');h.classList.remove('light','dark');h.classList.add(d?'light':'dark');localStorage.setItem('themeMode',d?'light':'dark')});
+  </script>
+  <SchoolBannerPopup schoolId={school.id} />
+  <PublicAIChatWidget schoolSlug={school.slug} />
+</body>
+</html>

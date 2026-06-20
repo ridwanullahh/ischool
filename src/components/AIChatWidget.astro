@@ -1,0 +1,207 @@
+---
+interface Props {
+  schoolSlug?: string;
+}
+const { schoolSlug } = Astro.props;
+---
+
+<div id="ai-chat-widget" class="fixed bottom-6 right-6 z-50">
+  <button id="ai-chat-toggle" class="w-14 h-14 bg-primary-600 hover:bg-primary-700 rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-105" title="AI Assistant">
+    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+  </button>
+
+  <div id="ai-chat-panel" class="hidden absolute bottom-16 right-0 w-96 max-w-[calc(100vw-2rem)] bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden" style="height: 560px;">
+    <div class="bg-primary-600 text-white px-4 py-3 flex items-center justify-between shrink-0">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611l-.772.13a17.965 17.965 0 01-16.326 0l-.772-.13c-1.717-.293-2.3-2.379-1.067-3.61L5 14.5" /></svg>
+        </div>
+        <div>
+          <p class="font-semibold text-sm">AI Assistant</p>
+          <p class="text-xs text-white/70">Powered by iSchool AI</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-1">
+        <button id="ai-new-chat" class="p-1.5 hover:bg-white/20 rounded-lg transition-colors" title="New chat">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+        </button>
+        <button id="ai-close-panel" class="p-1.5 hover:bg-white/20 rounded-lg transition-colors">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+        </button>
+      </div>
+    </div>
+
+    <div id="ai-messages" class="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
+      <div class="flex justify-start">
+        <div class="bg-white rounded-2xl rounded-tl-sm px-4 py-2 max-w-[85%] shadow-sm text-sm text-gray-800">
+          Hello! I'm your AI assistant. I can help you manage your school — search students, check attendance, view fees, send messages, and more. What can I help you with?
+        </div>
+      </div>
+    </div>
+
+    <div class="px-3 py-3 border-t border-gray-200 bg-white shrink-0">
+      <div id="ai-attachments" class="flex gap-1 mb-2 flex-wrap hidden"></div>
+      <form id="ai-chat-form" class="flex gap-2">
+        <button type="button" id="ai-attach-btn" class="text-gray-400 hover:text-gray-600 p-2 transition-colors" title="Attach file">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
+        </button>
+        <input type="file" id="ai-file-input" class="hidden" accept="image/*,.pdf,.csv,.doc,.docx,.txt" multiple />
+        <input id="ai-input" type="text" placeholder="Ask me anything about your school..." class="flex-1 px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" autocomplete="off" />
+        <button type="submit" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-xl transition-colors shrink-0">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  const toggle = document.getElementById('ai-chat-toggle')!;
+  const panel = document.getElementById('ai-chat-panel')!;
+  const closeBtn = document.getElementById('ai-close-panel')!;
+  const newChatBtn = document.getElementById('ai-new-chat')!;
+  const form = document.getElementById('ai-chat-form')!;
+  const input = document.getElementById('ai-input') as HTMLInputElement;
+  const messagesEl = document.getElementById('ai-messages')!;
+  let conversationId: number | null = null;
+  let isLoading = false;
+  let pendingAttachments: { url: string; fileName: string; type: string }[] = [];
+
+  const attachBtn = document.getElementById('ai-attach-btn')!;
+  const fileInput = document.getElementById('ai-file-input') as HTMLInputElement;
+  const attachmentsEl = document.getElementById('ai-attachments')!;
+
+  attachBtn.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', async () => {
+    if (!fileInput.files?.length) return;
+    for (const file of Array.from(fileInput.files)) {
+      const fd = new FormData();
+      fd.append('file', file);
+      try {
+        const res = await fetch('/api/dashboard/upload', { method: 'POST', body: fd });
+        if (res.ok) {
+          const data = await res.json();
+          pendingAttachments.push({ url: data.url, fileName: data.fileName, type: data.type });
+          renderAttachments();
+        }
+      } catch { /* skip */ }
+    }
+    fileInput.value = '';
+  });
+
+  function renderAttachments() {
+    if (pendingAttachments.length === 0) { attachmentsEl.classList.add('hidden'); attachmentsEl.innerHTML = ''; return; }
+    attachmentsEl.classList.remove('hidden');
+    attachmentsEl.innerHTML = pendingAttachments.map((a, i) =>
+      `<span class="inline-flex items-center gap-1 bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-lg">` +
+      (a.type === 'image' ? '<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>' : '<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>') +
+      a.fileName.substring(0, 20) + `<button onclick="removeAttachment(${i})" class="ml-1 text-gray-400 hover:text-red-500">&times;</button></span>`
+    ).join('');
+  }
+
+  (window as any).removeAttachment = (i: number) => { pendingAttachments.splice(i, 1); renderAttachments(); };
+
+  toggle.addEventListener('click', () => { panel.classList.toggle('hidden'); if (!panel.classList.contains('hidden')) input.focus(); });
+  closeBtn.addEventListener('click', () => panel.classList.add('hidden'));
+  newChatBtn.addEventListener('click', () => { conversationId = null; messagesEl.innerHTML = '<div class="flex justify-start"><div class="bg-white rounded-2xl rounded-tl-sm px-4 py-2 max-w-[85%] shadow-sm text-sm text-gray-800">New conversation started. How can I help?</div></div>'; });
+
+  function addMessage(content: string, role: 'user' | 'assistant', tools?: any[]) {
+    const div = document.createElement('div');
+    div.className = role === 'user' ? 'flex justify-end' : 'flex justify-start';
+    let html = '';
+    if (role === 'assistant' && tools && tools.length > 0) {
+      html += '<div class="text-xs text-gray-400 mb-1">';
+      tools.forEach((t: any) => { html += '<span class="inline-block bg-gray-100 text-gray-600 rounded px-1.5 py-0.5 mr-1 mb-1">Used: ' + t.tool + '</span>'; });
+      html += '</div>';
+    }
+    html += '<div class="' + (role === 'user' ? 'bg-primary-600 text-white rounded-2xl rounded-tr-sm' : 'bg-white rounded-2xl rounded-tl-sm shadow-sm') + ' px-4 py-2 max-w-[85%] text-sm whitespace-pre-wrap">' + escapeHtml(content) + '</div>';
+    div.innerHTML = html;
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function addTypingIndicator() {
+    const div = document.createElement('div');
+    div.id = 'ai-typing';
+    div.className = 'flex justify-start';
+    div.innerHTML = '<div class="bg-white rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm"><div class="flex gap-1"><div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay:0s"></div><div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay:0.15s"></div><div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay:0.3s"></div></div></div>';
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function removeTypingIndicator() { document.getElementById('ai-typing')?.remove(); }
+
+  function escapeHtml(text: string): string {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (isLoading) return;
+    const msg = input.value.trim();
+    if (!msg && pendingAttachments.length === 0) return;
+    input.value = '';
+    const attachments = [...pendingAttachments];
+    pendingAttachments = [];
+    renderAttachments();
+
+    let displayMsg = msg;
+    if (attachments.length > 0) {
+      displayMsg += (msg ? '\n' : '') + '[Attachments: ' + attachments.map(a => a.fileName).join(', ') + ']';
+    }
+    addMessage(displayMsg, 'user');
+    isLoading = true;
+    addTypingIndicator();
+
+    try {
+      const res = await fetch('/api/dashboard/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: msg || 'I have attached some files for you to review.',
+          conversationId,
+          stream: true,
+          attachments: attachments.length > 0 ? attachments : undefined,
+        }),
+      });
+      removeTypingIndicator();
+
+      if (res.headers.get('content-type')?.includes('text/event-stream')) {
+        const reader = res.body!.getReader();
+        const decoder = new TextDecoder();
+        let buf = '';
+        let streamDone = false;
+        while (!streamDone) {
+          const { value, done } = await reader.read();
+          streamDone = done;
+          buf += decoder.decode(value || new Uint8Array(), { stream: true });
+          const lines = buf.split('\n');
+          buf = lines.pop() || '';
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const d = JSON.parse(line.slice(6));
+                if (d.conversationId) conversationId = d.conversationId;
+                if (d.response) addMessage(d.response, 'assistant', d.toolResults);
+                if (d.error) addMessage('Error: ' + d.error, 'assistant');
+              } catch {}
+            }
+          }
+        }
+      } else if (!res.ok) {
+        const err = await res.json();
+        addMessage('Error: ' + (err.error || 'Failed to get response'), 'assistant');
+      } else {
+        const data = await res.json();
+        conversationId = data.conversationId;
+        addMessage(data.response || 'No response', 'assistant', data.toolResults);
+      }
+    } catch (err) {
+      removeTypingIndicator();
+      addMessage('Network error. Please try again.', 'assistant');
+    }
+    isLoading = false;
+  });
+</script>

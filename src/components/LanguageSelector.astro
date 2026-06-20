@@ -1,0 +1,145 @@
+---
+import { translationService } from '../lib/i18n/translation-service.js';
+
+const languages = translationService.getSupportedLanguages();
+---
+
+<div class="relative" id="language-selector">
+  <button
+    id="language-toggle"
+    class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+    aria-label="Select Language"
+  >
+    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+    <span class="text-sm font-medium hidden sm:inline" id="current-language">English</span>
+  </button>
+
+  <div id="language-dropdown" class="hidden absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
+    <div class="p-2">
+      <div class="px-3 py-2 text-sm font-semibold text-gray-500">Select Language</div>
+      <div class="space-y-1">
+        {languages.map((lang) => (
+          <button
+            data-lang={lang.code}
+            class="lang-option w-full flex items-center justify-between px-3 py-2 rounded-md hover:bg-gray-100 transition-colors text-left"
+          >
+            <div class="flex flex-col">
+              <span class="text-sm font-medium">{lang.nativeName}</span>
+              <span class="text-xs text-gray-500">{lang.name}</span>
+            </div>
+            <svg class="w-4 h-4 text-primary-600 hidden check-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+          </button>
+        ))}
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const toggle = document.getElementById('language-toggle');
+  const dropdown = document.getElementById('language-dropdown');
+  const currentLangEl = document.getElementById('current-language');
+  const rtlLanguages = ['ar', 'he', 'fa', 'ur'];
+
+  const getCurrentLang = () => {
+    return localStorage.getItem('preferredLanguage') || 'en';
+  };
+
+  const updateUI = () => {
+    const currentLang = getCurrentLang();
+    const currentOption = document.querySelector(`[data-lang="${currentLang}"]`);
+    if (currentOption) {
+      const nativeName = currentOption.querySelector('.text-sm.font-medium')?.textContent;
+      if (currentLangEl && nativeName) currentLangEl.textContent = nativeName;
+
+      document.querySelectorAll('.check-icon').forEach(icon => icon.classList.add('hidden'));
+      const checkIcon = currentOption.querySelector('.check-icon');
+      if (checkIcon) checkIcon.classList.remove('hidden');
+    }
+
+    document.documentElement.lang = currentLang;
+    document.documentElement.dir = rtlLanguages.includes(currentLang) ? 'rtl' : 'ltr';
+  };
+
+  toggle?.addEventListener('click', () => {
+    dropdown?.classList.toggle('hidden');
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!document.getElementById('language-selector')?.contains(e.target as Node)) {
+      dropdown?.classList.add('hidden');
+    }
+  });
+
+  document.querySelectorAll('.lang-option').forEach(button => {
+    button.addEventListener('click', () => {
+      const lang = button.getAttribute('data-lang');
+      if (lang) {
+        localStorage.setItem('preferredLanguage', lang);
+        updateUI();
+        dropdown?.classList.add('hidden');
+
+        if (lang !== 'en') {
+          translatePage(lang);
+        } else {
+          window.location.reload();
+        }
+      }
+    });
+  });
+
+  const translatePage = async (targetLang: string) => {
+    const translatedNodes = new Set<Node>();
+    const textNodes: Array<{ node: Node; text: string }> = [];
+
+    const collectTextNodes = (node: Node) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        const text = node.textContent?.trim();
+        if (text && text.length > 0 && text.length < 500 && !translatedNodes.has(node)) {
+          textNodes.push({ node, text });
+        }
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        const element = node as Element;
+        if (['SCRIPT', 'STYLE', 'CODE', 'PRE', 'SVG'].includes(element.tagName)) return;
+        for (const child of Array.from(element.childNodes)) {
+          collectTextNodes(child);
+        }
+      }
+    };
+
+    collectTextNodes(document.body);
+
+    for (const { node, text } of textNodes.slice(0, 100)) {
+      try {
+        const response = await fetch('/api/translate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text, targetLang, sourceLang: 'en' })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.translatedText && node.textContent !== data.translatedText) {
+            node.textContent = data.translatedText;
+            translatedNodes.add(node);
+          }
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 50));
+      } catch (error) {
+        console.error('Translation error:', error);
+      }
+    }
+  };
+
+  updateUI();
+
+  const currentLang = getCurrentLang();
+  if (currentLang !== 'en') {
+    setTimeout(() => translatePage(currentLang), 500);
+  }
+</script>

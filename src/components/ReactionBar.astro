@@ -1,0 +1,53 @@
+---
+interface Props {
+  entityType: string;
+  entityId: number;
+}
+const { entityType, entityId } = Astro.props;
+const types = [
+  { key: 'like', emoji: '👍', label: 'Like' },
+  { key: 'love', emoji: '❤️', label: 'Love' },
+  { key: 'helpful', emoji: '💡', label: 'Helpful' },
+  { key: 'celebrate', emoji: '🎉', label: 'Celebrate' },
+];
+---
+<div class="flex items-center gap-2 reaction-bar" data-entity-type={entityType} data-entity-id={entityId}>
+  {types.map(t => (
+    <button class="reaction-btn flex items-center gap-1 px-2.5 py-1.5 rounded-full text-sm border border-gray-200 hover:border-gray-300 transition-colors" data-type={t.key}>
+      <span>{t.emoji}</span>
+      <span class="reaction-count text-xs text-gray-500">0</span>
+    </button>
+  ))}
+</div>
+<script>
+  document.querySelectorAll('.reaction-bar').forEach(bar => {
+    const entityType = bar.dataset.entityType!;
+    const entityId = bar.dataset.entityId!;
+    const buttons = bar.querySelectorAll('.reaction-btn');
+
+    async function loadCounts() {
+      try {
+        const res = await fetch(`/api/reactions?entityType=${entityType}&entityId=${entityId}`);
+        const data = await res.json();
+        buttons.forEach(btn => {
+          const type = btn.dataset.type!;
+          const count = btn.querySelector('.reaction-count');
+          if (count) count.textContent = String(data.counts[type] || 0);
+          if (data.userReaction === type) btn.classList.add('ring-2', 'ring-primary-400');
+        });
+      } catch {}
+    }
+
+    buttons.forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const type = btn.dataset.type!;
+        try {
+          await fetch('/api/reactions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ entityType, entityId: parseInt(entityId), reactionType: type }) });
+          await loadCounts();
+        } catch {}
+      });
+    });
+
+    loadCounts();
+  });
+</script>

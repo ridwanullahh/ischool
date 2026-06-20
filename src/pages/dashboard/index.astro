@@ -1,0 +1,185 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { getUserSchoolId } from '../../lib/school.js';
+import { getDb } from '../../lib/db/index.js';
+import {
+  announcements, blogPosts, classes, contactSubmissions, galleryItems, faqs,
+  students, staff, courses, invoices, payments, attendance, events, messages,
+  libraryBooks, vehicles, assets, exams, examSeries,
+} from '../../lib/db/schema.js';
+import { eq, sql, desc } from 'drizzle-orm';
+
+const user = Astro.locals.user!;
+const schoolId = getUserSchoolId(user.id);
+
+let cmsStats = { announcements: 0, posts: 0, classes: 0, submissions: 0, gallery: 0, faqs: 0 };
+let moduleStats = { students: 0, staff: 0, courses: 0, revenue: 0, pendingPayments: 0, events: 0, messages: 0, books: 0, vehicles: 0, assets: 0, exams: 0, todayAttendance: 0 };
+let recentActivity: any[] = [];
+
+if (schoolId) {
+  const db = getDb();
+
+  cmsStats = {
+    announcements: db.select({ count: sql<number>`count(*)` }).from(announcements).where(eq(announcements.schoolId, schoolId)).get()?.count || 0,
+    posts: db.select({ count: sql<number>`count(*)` }).from(blogPosts).where(eq(blogPosts.schoolId, schoolId)).get()?.count || 0,
+    classes: db.select({ count: sql<number>`count(*)` }).from(classes).where(eq(classes.schoolId, schoolId)).get()?.count || 0,
+    submissions: db.select({ count: sql<number>`count(*)` }).from(contactSubmissions).where(eq(contactSubmissions.schoolId, schoolId)).get()?.count || 0,
+    gallery: db.select({ count: sql<number>`count(*)` }).from(galleryItems).where(eq(galleryItems.schoolId, schoolId)).get()?.count || 0,
+    faqs: db.select({ count: sql<number>`count(*)` }).from(faqs).where(eq(faqs.schoolId, schoolId)).get()?.count || 0,
+  };
+
+  moduleStats = {
+    students: db.select({ count: sql<number>`count(*)` }).from(students).where(eq(students.schoolId, schoolId)).get()?.count || 0,
+    staff: db.select({ count: sql<number>`count(*)` }).from(staff).where(eq(staff.schoolId, schoolId)).get()?.count || 0,
+    courses: db.select({ count: sql<number>`count(*)` }).from(courses).where(eq(courses.schoolId, schoolId)).get()?.count || 0,
+    revenue: db.select({ total: sql<number>`coalesce(sum(${payments.amount}), 0)` }).from(payments).where(eq(payments.schoolId, schoolId)).get()?.total || 0,
+    pendingPayments: db.select({ count: sql<number>`count(*)` }).from(invoices).where(sql`${invoices.schoolId} = ${schoolId} AND ${invoices.status} != 'paid'`).get()?.count || 0,
+    events: db.select({ count: sql<number>`count(*)` }).from(events).where(eq(events.schoolId, schoolId)).get()?.count || 0,
+    messages: db.select({ count: sql<number>`count(*)` }).from(messages).where(eq(messages.schoolId, schoolId)).get()?.count || 0,
+    books: db.select({ count: sql<number>`count(*)` }).from(libraryBooks).where(eq(libraryBooks.schoolId, schoolId)).get()?.count || 0,
+    vehicles: db.select({ count: sql<number>`count(*)` }).from(vehicles).where(eq(vehicles.schoolId, schoolId)).get()?.count || 0,
+    assets: db.select({ count: sql<number>`count(*)` }).from(assets).where(eq(assets.schoolId, schoolId)).get()?.count || 0,
+    exams: 0,
+    todayAttendance: 0,
+  };
+
+  const today = new Date().toISOString().split('T')[0];
+  moduleStats.todayAttendance = db.select({ count: sql<number>`count(*)` }).from(attendance).where(sql`${attendance.schoolId} = ${schoolId} AND ${attendance.date} = ${today}`).get()?.count || 0;
+
+  const allSeries = db.select().from(examSeries).where(eq(examSeries.schoolId, schoolId)).all();
+  if (allSeries.length > 0) {
+    const seriesIds = allSeries.map(s => s.id);
+    moduleStats.exams = db.select({ count: sql<number>`count(*)` }).from(exams).where(sql`${exams.seriesId} IN (${sql.join(seriesIds.map(id => sql`${id}`), sql`, `)})`).get()?.count || 0;
+  }
+
+  const recentStudents = db.select({ type: sql`'student'`, name: sql`${students.firstName} || ' ' || ${students.lastName}`, date: students.createdAt }).from(students).where(eq(students.schoolId, schoolId)).orderBy(desc(students.createdAt)).limit(3).all();
+  const recentEvents = db.select({ type: sql`'event'`, name: events.title, date: events.createdAt }).from(events).where(eq(events.schoolId, schoolId)).orderBy(desc(events.createdAt)).limit(3).all();
+  const recentCourses = db.select({ type: sql`'course'`, name: courses.title, date: courses.createdAt }).from(courses).where(eq(courses.schoolId, schoolId)).orderBy(desc(courses.createdAt)).limit(3).all();
+  recentActivity = [...recentStudents, ...recentEvents, ...recentCourses]
+    .sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime())
+    .slice(0, 8);
+}
+
+const quickActions = [
+  { label: 'Add Student', href: '/dashboard/students', icon: 'M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z' },
+  { label: 'Create Course', href: '/dashboard/courses', icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253' },
+  { label: 'Mark Attendance', href: '/dashboard/attendance', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4' },
+  { label: 'Send Message', href: '/dashboard/messages', icon: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' },
+  { label: 'Record Payment', href: '/dashboard/payments', icon: 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z' },
+  { label: 'Schedule Event', href: '/dashboard/events', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
+];
+
+const overviewCards = [
+  { label: 'Students', count: moduleStats.students, href: '/dashboard/students', color: 'blue' },
+  { label: 'Staff', count: moduleStats.staff, href: '/dashboard/staff', color: 'purple' },
+  { label: 'Courses', count: moduleStats.courses, href: '/dashboard/courses', color: 'green' },
+  { label: 'Today Attendance', count: moduleStats.todayAttendance, href: '/dashboard/attendance', color: 'yellow' },
+  { label: 'Revenue', count: typeof moduleStats.revenue === 'number' ? `$${moduleStats.revenue.toLocaleString()}` : '$0', href: '/dashboard/payments', color: 'emerald' },
+  { label: 'Pending Invoices', count: moduleStats.pendingPayments, href: '/dashboard/invoices', color: 'red' },
+  { label: 'Events', count: moduleStats.events, href: '/dashboard/events', color: 'indigo' },
+  { label: 'Messages', count: moduleStats.messages, href: '/dashboard/messages', color: 'cyan' },
+  { label: 'Library Books', count: moduleStats.books, href: '/dashboard/library', color: 'orange' },
+  { label: 'Vehicles', count: moduleStats.vehicles, href: '/dashboard/transport', color: 'teal' },
+  { label: 'Assets', count: moduleStats.assets, href: '/dashboard/inventory', color: 'pink' },
+  { label: 'Exams', count: moduleStats.exams, href: '/dashboard/exams', color: 'violet' },
+];
+
+const cmsCards = [
+  { label: 'Announcements', count: cmsStats.announcements, href: '/dashboard/announcements' },
+  { label: 'Blog Posts', count: cmsStats.posts, href: '/dashboard/blog' },
+  { label: 'Classes', count: cmsStats.classes, href: '/dashboard/classes' },
+  { label: 'Contact Submissions', count: cmsStats.submissions, href: '/dashboard/contacts' },
+  { label: 'Gallery Items', count: cmsStats.gallery, href: '/dashboard/gallery' },
+  { label: 'FAQs', count: cmsStats.faqs, href: '/dashboard/faqs' },
+];
+---
+
+<DashboardLayout title="Dashboard - iSchool">
+  <div class="space-y-8">
+    <div>
+      <h2 class="text-2xl font-bold text-gray-900">Welcome back, {user.name.split(' ')[0]}</h2>
+      <p class="text-gray-500 mt-1">Here's an overview of your school's activity.</p>
+    </div>
+
+    <div>
+      <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Quick Actions</h3>
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        {quickActions.map(action => (
+          <a href={action.href} class="bg-white rounded-lg border border-gray-200 p-3 hover:border-primary-300 hover:shadow-sm transition-all text-center group">
+            <div class="w-8 h-8 bg-primary-50 rounded-lg flex items-center justify-center mx-auto mb-2 group-hover:bg-primary-100 transition-colors">
+              <svg class="w-4 h-4 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d={action.icon} /></svg>
+            </div>
+            <p class="text-xs font-medium text-gray-700">{action.label}</p>
+          </a>
+        ))}
+      </div>
+    </div>
+
+    <div>
+      <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Module Overview</h3>
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+        {overviewCards.map(card => (
+          <a href={card.href} class="bg-white rounded-xl border border-gray-200 p-4 hover:border-primary-300 hover:shadow-md transition-all">
+            <p class="text-xs font-medium text-gray-500 mb-1">{card.label}</p>
+            <p class="text-xl font-bold text-gray-900">{card.count}</p>
+          </a>
+        ))}
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="lg:col-span-2">
+        <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">CMS Content</h3>
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {cmsCards.map(card => (
+            <a href={card.href} class="bg-white rounded-xl border border-gray-200 p-4 hover:border-primary-300 hover:shadow-md transition-all">
+              <p class="text-xs font-medium text-gray-500 mb-1">{card.label}</p>
+              <p class="text-xl font-bold text-gray-900">{card.count}</p>
+            </a>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Recent Activity</h3>
+        <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          {recentActivity.length === 0 ? (
+            <div class="p-6 text-center text-gray-400 text-sm">No recent activity</div>
+          ) : (
+            <ul class="divide-y divide-gray-100">
+              {recentActivity.map(item => (
+                <li class="px-4 py-3 flex items-center gap-3">
+                  <span class={`w-2 h-2 rounded-full flex-shrink-0 ${
+                    item.type === 'student' ? 'bg-blue-400' : item.type === 'event' ? 'bg-purple-400' : 'bg-green-400'
+                  }`}></span>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-sm text-gray-900 truncate">{item.name}</p>
+                    <p class="text-xs text-gray-400">{item.type === 'student' ? 'New student' : item.type === 'event' ? 'New event' : 'New course'}</p>
+                  </div>
+                  {item.date && (
+                    <span class="text-xs text-gray-400 whitespace-nowrap">{new Date(item.date).toLocaleDateString()}</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <a href="/dashboard/about" class="bg-white rounded-xl border border-gray-200 p-5 hover:border-primary-300 hover:shadow-md transition-all">
+        <h3 class="font-semibold text-gray-900 mb-1">About Page</h3>
+        <p class="text-sm text-gray-500">Edit mission, vision, features, and stats</p>
+      </a>
+      <a href="/dashboard/settings" class="bg-white rounded-xl border border-gray-200 p-5 hover:border-primary-300 hover:shadow-md transition-all">
+        <h3 class="font-semibold text-gray-900 mb-1">School Settings</h3>
+        <p class="text-sm text-gray-500">Update name, colors, theme, and preferences</p>
+      </a>
+      <a href="/dashboard/it-admin" class="bg-white rounded-xl border border-gray-200 p-5 hover:border-primary-300 hover:shadow-md transition-all">
+        <h3 class="font-semibold text-gray-900 mb-1">IT Administration</h3>
+        <p class="text-sm text-gray-500">Module settings, audit logs, and user management</p>
+      </a>
+    </div>
+  </div>
+</DashboardLayout>

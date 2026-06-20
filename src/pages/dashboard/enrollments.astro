@@ -1,0 +1,149 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { getUserSchoolId } from '../../lib/school.js';
+import { getDb } from '../../lib/db/index.js';
+import { enrollments, students, classes } from '../../lib/db/schema.js';
+import { eq, desc, sql } from 'drizzle-orm';
+
+const user = Astro.locals.user!;
+if (!user) return Astro.redirect('/auth/login');
+const schoolId = getUserSchoolId(user.id);
+
+let records: any[] = [];
+let allStudents: any[] = [];
+let allClasses: any[] = [];
+let stats = { total: 0, submitted: 0, accepted: 0, rejected: 0 };
+
+if (schoolId) {
+  const db = getDb();
+  allStudents = db.select().from(students).where(eq(students.schoolId, schoolId)).all();
+  allClasses = db.select().from(classes).where(eq(classes.schoolId, schoolId)).all();
+  records = db.select({
+    id: enrollments.id, studentId: enrollments.studentId, classId: enrollments.classId,
+    academicYear: enrollments.academicYear, term: enrollments.term, status: enrollments.status,
+    notes: enrollments.notes, createdAt: enrollments.createdAt,
+    studentName: sql`${students.firstName} || ' ' || ${students.lastName}`.as('student_name'),
+    studentIdentifier: students.studentId,
+    className: classes.name,
+  }).from(enrollments)
+    .leftJoin(students, eq(enrollments.studentId, students.id))
+    .leftJoin(classes, eq(enrollments.classId, classes.id))
+    .where(eq(enrollments.schoolId, schoolId))
+    .orderBy(desc(enrollments.createdAt)).all();
+
+  stats = {
+    total: records.length,
+    submitted: records.filter(r => r.status === 'submitted').length,
+    accepted: records.filter(r => r.status === 'accepted').length,
+    rejected: records.filter(r => r.status === 'rejected').length,
+  };
+}
+---
+
+<DashboardLayout title="Enrollments - iSchool">
+  <div class="space-y-6">
+    <div class="flex justify-between items-center">
+      <div><h2 class="text-2xl font-bold text-gray-900">Enrollments</h2><p class="text-sm text-gray-500 mt-1">Manage student enrollment records</p></div>
+      <button onclick="document.getElementById('addModal').classList.remove('hidden')" class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 font-medium text-sm">+ New Enrollment</button>
+      <button onclick="exportCsv('enrollments')" class="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 font-medium text-sm">Export CSV</button>
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="bg-white rounded-lg border p-4"><p class="text-sm text-gray-500">Total</p><p class="text-2xl font-bold">{stats.total}</p></div>
+      <div class="bg-white rounded-lg border p-4"><p class="text-sm text-gray-500">Submitted</p><p class="text-2xl font-bold text-blue-600">{stats.submitted}</p></div>
+      <div class="bg-white rounded-lg border p-4"><p class="text-sm text-gray-500">Accepted</p><p class="text-2xl font-bold text-green-600">{stats.accepted}</p></div>
+      <div class="bg-white rounded-lg border p-4"><p class="text-sm text-gray-500">Rejected</p><p class="text-2xl font-bold text-red-600">{stats.rejected}</p></div>
+    </div>
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+      <div class="p-4 border-b flex gap-3">
+        <input type="text" id="searchInput" placeholder="Search..." class="border rounded-lg px-3 py-2 text-sm flex-1" oninput="filterTable()" />
+        <select id="statusFilter" class="border rounded-lg px-3 py-2 text-sm" onchange="filterTable()">
+          <option value="">All Status</option><option value="submitted">Submitted</option><option value="reviewed">Reviewed</option>
+          <option value="accepted">Accepted</option><option value="rejected">Rejected</option><option value="waitlisted">Waitlisted</option>
+        </select>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm" id="dataTable">
+          <thead class="bg-gray-50"><tr>
+            <th class="px-4 py-3 text-left font-medium text-gray-600">Student</th><th class="px-4 py-3 text-left font-medium text-gray-600">Class</th>
+            <th class="px-4 py-3 text-left font-medium text-gray-600">Year</th><th class="px-4 py-3 text-left font-medium text-gray-600">Term</th>
+            <th class="px-4 py-3 text-left font-medium text-gray-600">Status</th><th class="px-4 py-3 text-left font-medium text-gray-600">Actions</th>
+          </tr></thead>
+          <tbody class="divide-y">
+            {records.length === 0 && <tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">No enrollments found</td></tr>}
+            {records.map(r => (
+              <tr data-search={`${r.studentName} ${r.studentIdentifier}`.toLowerCase()} data-status={r.status}>
+                <td class="px-4 py-3 font-medium">{r.studentName} <span class="text-gray-400 text-xs">({r.studentIdentifier})</span></td>
+                <td class="px-4 py-3">{r.className || '-'}</td>
+                <td class="px-4 py-3">{r.academicYear}</td><td class="px-4 py-3">{r.term || '-'}</td>
+                <td class="px-4 py-3"><span class={`px-2 py-1 rounded-full text-xs font-medium ${r.status === 'accepted' ? 'bg-green-100 text-green-700' : r.status === 'rejected' ? 'bg-red-100 text-red-700' : r.status === 'submitted' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>{r.status}</span></td>
+                <td class="px-4 py-3 flex gap-2">
+                  <button onclick={`updateStatus(${r.id}, 'accepted')`} class="text-green-600 hover:text-green-800 text-xs">Accept</button>
+                  <button onclick={`updateStatus(${r.id}, 'rejected')`} class="text-red-600 hover:text-red-800 text-xs">Reject</button>
+                  <button onclick={`deleteRecord(${r.id})`} class="text-gray-600 hover:text-gray-800 text-xs">Delete</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="addModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl p-6 w-full max-w-md mx-4">
+      <h3 class="text-lg font-bold mb-4">New Enrollment</h3>
+      <form onsubmit="submitForm(event)">
+        <div class="space-y-3">
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Student</label>
+            <select id="studentId" required class="w-full border rounded-lg px-3 py-2 text-sm">
+              <option value="">Select</option>{allStudents.map(s => <option value={s.id}>{s.firstName} {s.lastName}</option>)}
+            </select></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Class</label>
+            <select id="classId" class="w-full border rounded-lg px-3 py-2 text-sm">
+              <option value="">None</option>{allClasses.map(c => <option value={c.id}>{c.name}</option>)}
+            </select></div>
+          <div class="grid grid-cols-2 gap-3">
+            <div><label class="block text-sm font-medium text-gray-700 mb-1">Academic Year</label>
+              <input type="text" id="academicYear" required class="w-full border rounded-lg px-3 py-2 text-sm" value="2025-2026" /></div>
+            <div><label class="block text-sm font-medium text-gray-700 mb-1">Term</label>
+              <input type="text" id="term" class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="e.g., Term 1" /></div>
+          </div>
+        </div>
+        <div class="flex justify-end gap-3 mt-6">
+          <button type="button" onclick="document.getElementById('addModal').classList.add('hidden')" class="px-4 py-2 border rounded-lg text-sm">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function filterTable() {
+      const search = (document.getElementById('searchInput') as HTMLInputElement).value.toLowerCase();
+      const status = (document.getElementById('statusFilter') as HTMLSelectElement).value;
+      document.querySelectorAll('#dataTable tbody tr[data-search]').forEach(row => {
+        const el = row as HTMLElement;
+        el.style.display = (!search || el.dataset.search!.includes(search)) && (!status || el.dataset.status === status) ? '' : 'none';
+      });
+    }
+    async function submitForm(e: Event) {
+      e.preventDefault();
+      await fetch('/api/dashboard/enrollments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+        studentId: parseInt((document.getElementById('studentId') as HTMLSelectElement).value),
+        classId: (document.getElementById('classId') as HTMLSelectElement).value ? parseInt((document.getElementById('classId') as HTMLSelectElement).value) : null,
+        academicYear: (document.getElementById('academicYear') as HTMLInputElement).value,
+        term: (document.getElementById('term') as HTMLInputElement).value || null,
+      })});
+      location.reload();
+    }
+    async function updateStatus(id: number, status: string) {
+      await fetch('/api/dashboard/enrollments', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, status }) });
+      location.reload();
+    }
+    async function deleteRecord(id: number) {
+      if (!confirm('Delete this enrollment?')) return;
+      await fetch('/api/dashboard/enrollments', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
+      location.reload();
+    }
+  </script>
+</DashboardLayout>

@@ -1,0 +1,71 @@
+---
+import PortalLayout from '../../layouts/PortalLayout.astro';
+import { getDb } from '../../lib/db/index.js';
+import { assignments, schoolMembers, courses } from '../../lib/db/schema.js';
+import { eq, and, desc, sql } from 'drizzle-orm';
+
+const user = (Astro.locals as any).user;
+if (!user) return Astro.redirect('/auth/login');
+
+const db = getDb();
+const membership = db.select().from(schoolMembers).where(eq(schoolMembers.userId, user.id)).get();
+const schoolId = membership?.schoolId;
+
+let assignmentList: any[] = [];
+if (schoolId) {
+  assignmentList = db.select({
+    id: assignments.id,
+    title: assignments.title,
+    instructions: assignments.instructions,
+    dueDate: assignments.dueDate,
+    type: assignments.type,
+    maxPoints: assignments.maxPoints,
+    courseTitle: courses.title,
+  }).from(assignments)
+    .leftJoin(courses, eq(assignments.courseId, courses.id))
+    .where(eq(assignments.schoolId, schoolId))
+    .orderBy(desc(assignments.dueDate))
+    .all();
+}
+---
+
+<PortalLayout title="My Assignments">
+  <div class="mb-8">
+    <h1 class="text-2xl font-bold text-gray-900">My Assignments</h1>
+    <p class="text-gray-500 mt-1">View and track your assignments</p>
+  </div>
+
+  {assignmentList.length === 0 ? (
+    <div class="bg-white rounded-xl border border-gray-200 p-12 text-center">
+      <p class="text-gray-500">No assignments yet.</p>
+    </div>
+  ) : (
+    <div class="space-y-3">
+      {assignmentList.map((a: any) => {
+        const isOverdue = a.dueDate && new Date(a.dueDate) < new Date();
+        return (
+          <div class="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow">
+            <div class="flex items-start justify-between">
+              <div>
+                <h3 class="font-semibold text-gray-900">{a.title}</h3>
+                <p class="text-sm text-gray-500 mt-1">Course: {a.courseTitle || 'General'}</p>
+                {a.instructions && <p class="text-sm text-gray-600 mt-2">{a.instructions}</p>}
+              </div>
+              <div class="text-right">
+                {a.dueDate && (
+                  <span class:list={['text-xs font-medium px-2 py-1 rounded-full',
+                    isOverdue ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
+                  ]}>
+                    {isOverdue ? 'Overdue' : 'Upcoming'}
+                  </span>
+                )}
+                <p class="text-xs text-gray-400 mt-1">Due: {a.dueDate || 'No deadline'}</p>
+                <p class="text-xs text-gray-400">Max: {a.maxPoints} pts</p>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  )}
+</PortalLayout>

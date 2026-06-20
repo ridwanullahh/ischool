@@ -1,0 +1,127 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { getDb } from '../../lib/db/index.js';
+import { students, staff, courses, invoices, events, libraryBooks, attendance, schoolMembers } from '../../lib/db/schema.js';
+import { eq } from 'drizzle-orm';
+
+const user = Astro.locals.user;
+if (!user) return Astro.redirect('/auth/login');
+
+const db = getDb();
+const membership = db.select().from(schoolMembers).where(eq(schoolMembers.userId, user.id)).get();
+const schoolId = membership?.schoolId;
+
+const totalStudents = schoolId ? db.select().from(students).where(eq(students.schoolId, schoolId)).all().length : 0;
+const totalStaff = schoolId ? db.select().from(staff).where(eq(staff.schoolId, schoolId)).all().length : 0;
+const totalCourses = schoolId ? db.select().from(courses).where(eq(courses.schoolId, schoolId)).all().length : 0;
+const totalEvents = schoolId ? db.select().from(events).where(eq(events.schoolId, schoolId)).all().length : 0;
+const totalBooks = schoolId ? db.select().from(libraryBooks).where(eq(libraryBooks.schoolId, schoolId)).all().length : 0;
+const allInvoices = schoolId ? db.select().from(invoices).where(eq(invoices.schoolId, schoolId)).all() : [];
+const totalRevenue = allInvoices.filter((i: any) => i.status === 'paid').reduce((sum: number, i: any) => sum + (i.paidAmount || 0), 0);
+const pendingRevenue = allInvoices.filter((i: any) => i.status === 'pending' || i.status === 'partial').reduce((sum: number, i: any) => sum + (i.balance || 0), 0);
+const activeStudents = schoolId ? db.select().from(students).where(eq(students.schoolId, schoolId)).all().filter((s: any) => s.status === 'active').length : 0;
+---
+
+<DashboardLayout title="Analytics - iSchool">
+  <div class="space-y-6">
+    <div>
+      <h2 class="text-2xl font-bold text-gray-900">Analytics & Reporting</h2>
+      <p class="text-sm text-gray-500 mt-1">School performance insights and metrics</p>
+    </div>
+
+    <!-- Key Metrics -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="bg-white rounded-xl shadow p-6">
+        <div class="text-sm text-gray-500 mb-1">Students</div>
+        <div class="text-3xl font-bold text-gray-900">{totalStudents}</div>
+        <div class="text-xs text-green-600 mt-1">{activeStudents} active</div>
+      </div>
+      <div class="bg-white rounded-xl shadow p-6">
+        <div class="text-sm text-gray-500 mb-1">Staff</div>
+        <div class="text-3xl font-bold text-gray-900">{totalStaff}</div>
+        <div class="text-xs text-gray-500 mt-1">employees</div>
+      </div>
+      <div class="bg-white rounded-xl shadow p-6">
+        <div class="text-sm text-gray-500 mb-1">Courses</div>
+        <div class="text-3xl font-bold text-gray-900">{totalCourses}</div>
+        <div class="text-xs text-gray-500 mt-1">active courses</div>
+      </div>
+      <div class="bg-white rounded-xl shadow p-6">
+        <div class="text-sm text-gray-500 mb-1">Events</div>
+        <div class="text-3xl font-bold text-gray-900">{totalEvents}</div>
+        <div class="text-xs text-gray-500 mt-1">scheduled</div>
+      </div>
+    </div>
+
+    <!-- Financial Overview -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow p-6 text-white">
+        <div class="text-sm opacity-80 mb-1">Total Revenue (Paid)</div>
+        <div class="text-3xl font-bold">${(totalRevenue / 100).toFixed(2)}</div>
+        <div class="text-xs opacity-80 mt-2">{allInvoices.filter((i: any) => i.status === 'paid').length} invoices paid</div>
+      </div>
+      <div class="bg-gradient-to-br from-yellow-500 to-orange-500 rounded-xl shadow p-6 text-white">
+        <div class="text-sm opacity-80 mb-1">Pending Collections</div>
+        <div class="text-3xl font-bold">${(pendingRevenue / 100).toFixed(2)}</div>
+        <div class="text-xs opacity-80 mt-2">{allInvoices.filter((i: any) => i.status === 'pending' || i.status === 'partial').length} outstanding</div>
+      </div>
+      <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow p-6 text-white">
+        <div class="text-sm opacity-80 mb-1">Total Invoices</div>
+        <div class="text-3xl font-bold">{allInvoices.length}</div>
+        <div class="text-xs opacity-80 mt-2">{allInvoices.filter((i: any) => i.status === 'overdue').length} overdue</div>
+      </div>
+    </div>
+
+    <!-- Resource Overview -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="bg-white rounded-xl shadow p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Resource Summary</h3>
+        <div class="space-y-4">
+          <div class="flex justify-between items-center">
+            <span class="text-sm text-gray-600">Library Books</span>
+            <span class="text-sm font-semibold text-gray-900">{totalBooks}</span>
+          </div>
+          <div class="w-full bg-gray-200 rounded-full h-2"><div class="bg-blue-600 h-2 rounded-full" style={`width: ${Math.min(totalBooks * 2, 100)}%`}></div></div>
+
+          <div class="flex justify-between items-center mt-3">
+            <span class="text-sm text-gray-600">Student-to-Staff Ratio</span>
+            <span class="text-sm font-semibold text-gray-900">{totalStaff > 0 ? Math.round(totalStudents / totalStaff) : 0}:1</span>
+          </div>
+
+          <div class="flex justify-between items-center mt-3">
+            <span class="text-sm text-gray-600">Courses per Student</span>
+            <span class="text-sm font-semibold text-gray-900">{totalStudents > 0 ? (totalCourses / totalStudents).toFixed(1) : 0}</span>
+          </div>
+
+          <div class="flex justify-between items-center mt-3">
+            <span class="text-sm text-gray-600">Invoice Collection Rate</span>
+            <span class="text-sm font-semibold text-gray-900">{allInvoices.length > 0 ? Math.round((allInvoices.filter((i: any) => i.status === 'paid').length / allInvoices.length) * 100) : 0}%</span>
+          </div>
+          <div class="w-full bg-gray-200 rounded-full h-2"><div class="bg-green-600 h-2 rounded-full" style={`width: ${allInvoices.length > 0 ? Math.round((allInvoices.filter((i: any) => i.status === 'paid').length / allInvoices.length) * 100) : 0}%`}></div></div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl shadow p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Quick Stats</h3>
+        <div class="space-y-3">
+          <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <span class="text-sm text-gray-700">Active Students</span>
+            <span class="text-lg font-bold text-green-600">{activeStudents}</span>
+          </div>
+          <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <span class="text-sm text-gray-700">Total Staff Members</span>
+            <span class="text-lg font-bold text-blue-600">{totalStaff}</span>
+          </div>
+          <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <span class="text-sm text-gray-700">Published Courses</span>
+            <span class="text-lg font-bold text-purple-600">{totalCourses}</span>
+          </div>
+          <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <span class="text-sm text-gray-700">Library Collection</span>
+            <span class="text-lg font-bold text-indigo-600">{totalBooks}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</DashboardLayout>

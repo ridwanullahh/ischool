@@ -1,0 +1,48 @@
+# ==========================================
+# UNIVERSAL DEPS, PACKAGE MANAGERS & CACHES
+# ==========================================
+node_modules/
+.pnpm-store/
+.yarn/
+.npm/
+.cache/
+.turbo/
+.eslintcache/
+
+# ==========================================
+# FRAMEWORK EXCLUSIONS
+# ==========================================
+
+# --- Astro ---
+dist/
+.astro/
+
+# --- Nuxt ---
+.nuxt/
+.output/
+# (dist/ is already covered under Astro, but applies to Nuxt static too)
+
+# --- Next.js ---
+.next/
+out/
+
+# ==========================================
+# SYSTEM, DEPLOYMENT & LOGS
+# ==========================================
+.git/
+.vercel/
+.netlify/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.DS_Store
+Thumbs.db
+
+# ==========================================
+# ENV & SENSITIVE FILES
+# ==========================================
+.env
+.env.*
+!.env.example

@@ -1,0 +1,30 @@
+---
+import OnboardingLayout from '../../layouts/OnboardingLayout.astro';
+import Input from '../../components/ui/Input.astro';
+import Button from '../../components/ui/Button.astro';
+import { getUserSchool } from '../../lib/school.js';
+
+const user = Astro.locals.user!;
+const school = getUserSchool(user.id);
+---
+<OnboardingLayout title="About Page - iSchool Setup" step={2}>
+  <div class="bg-white rounded-xl border border-gray-200 p-8">
+    <h1 class="text-xl font-bold text-gray-900 mb-1">About Your School</h1>
+    <p class="text-sm text-gray-500 mb-6">Help visitors understand your mission and values.</p>
+    <form method="POST" action="/api/onboarding/about" class="space-y-4">
+      <div class="space-y-1">
+        <label class="block text-sm font-medium text-gray-700">Mission Statement</label>
+        <textarea name="mission" rows={3} class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500" placeholder="Your school's mission...">{school ? '' : ''}</textarea>
+      </div>
+      <div class="space-y-1">
+        <label class="block text-sm font-medium text-gray-700">Vision Statement</label>
+        <textarea name="vision" rows={3} class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500" placeholder="Your school's vision..."></textarea>
+      </div>
+      <Input label="Why Choose Your School?" name="valueProposition" placeholder="A compelling reason for families to enroll" />
+      <div class="flex gap-3 pt-4">
+        <a href="/onboarding/school" class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900">Back</a>
+        <Button type="submit">Continue</Button>
+      </div>
+    </form>
+  </div>
+</OnboardingLayout>

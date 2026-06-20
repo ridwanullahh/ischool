@@ -1,0 +1,41 @@
+---
+import MarketingLayout from '../../layouts/MarketingLayout.astro';
+import { getDb } from '../../lib/db/index.js';
+import { platformBlogPosts } from '../../lib/db/schema.js';
+import { eq, and } from 'drizzle-orm';
+import { formatDate } from '../../lib/utils.js';
+
+const postSlug = Astro.params.post!;
+const db = getDb();
+const post = db.select().from(platformBlogPosts)
+  .where(and(eq(platformBlogPosts.slug, postSlug), eq(platformBlogPosts.isPublished, true)))
+  .get();
+if (!post) return Astro.redirect('/blog');
+---
+
+<MarketingLayout title={`${post.title} - iSchool Blog`}>
+  <article class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <a href="/blog" class="text-sm text-primary-600 hover:underline mb-6 inline-block">&larr; Back to Blog</a>
+
+    {post.coverImageUrl && (
+      <img src={post.coverImageUrl} alt={post.title} class="w-full h-64 sm:h-80 object-cover rounded-xl mb-8" />
+    )}
+
+    <header class="mb-8">
+      <div class="flex items-center gap-3 mb-3">
+        {post.category && <span class="text-sm font-medium bg-primary-50 text-primary-700 px-3 py-1 rounded-full">{post.category}</span>}
+        {post.publishedAt && <span class="text-sm text-gray-500">{formatDate(post.publishedAt)}</span>}
+      </div>
+      <h1 class="text-3xl sm:text-4xl font-bold text-gray-900 leading-tight">{post.title}</h1>
+      {post.excerpt && (
+        <p class="mt-4 text-lg text-gray-600">{post.excerpt}</p>
+      )}
+    </header>
+
+    <div class="prose prose-gray max-w-none">
+      {post.content.split('\n').map(para => para.trim()).filter(Boolean).map(para => (
+        <p class="text-gray-700 leading-relaxed mb-4">{para}</p>
+      ))}
+    </div>
+  </article>
+</MarketingLayout>

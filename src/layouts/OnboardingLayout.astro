@@ -1,0 +1,55 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  step?: number;
+}
+
+const { title = 'Onboarding - iSchool', step = 1 } = Astro.props;
+const steps = ['School Info', 'About Page', 'Contacts', 'Complete'];
+---
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <title>{title}</title>
+</head>
+<body class="min-h-screen bg-gray-50">
+  <div class="min-h-screen flex flex-col">
+    <header class="bg-white border-b border-gray-200">
+      <div class="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
+            <span class="text-white font-bold text-sm">iS</span>
+          </div>
+          <span class="font-bold text-gray-900">iSchool Setup</span>
+        </div>
+        <form method="POST" action="/api/auth/logout">
+          <button type="submit" class="text-sm text-gray-500 hover:text-gray-700">Sign out</button>
+        </form>
+      </div>
+    </header>
+    <div class="flex-1 max-w-3xl mx-auto w-full px-4 py-8">
+      <div class="mb-8">
+        <div class="flex items-center justify-between mb-2">
+          {steps.map((s, i) => (
+            <div class="flex items-center gap-2">
+              <div class:list={[
+                'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium',
+                i + 1 < step ? 'bg-green-500 text-white' : i + 1 === step ? 'bg-primary-600 text-white' : 'bg-gray-200 text-gray-500'
+              ]}>{i + 1 < step ? '✓' : i + 1}</div>
+              <span class:list={['text-xs font-medium hidden sm:block', i + 1 === step ? 'text-primary-600' : 'text-gray-400']}>{s}</span>
+              {i < steps.length - 1 && <div class:list={['hidden sm:block w-8 h-0.5 mx-2', i + 1 < step ? 'bg-green-500' : 'bg-gray-200']}></div>}
+            </div>
+          ))}
+        </div>
+      </div>
+      <slot />
+    </div>
+  </div>
+</body>
+</html>

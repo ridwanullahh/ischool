@@ -1,0 +1,242 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { getDb } from '../../lib/db/index.js';
+import { feeStructures, invoices, payments, schoolMembers } from '../../lib/db/schema.js';
+import { eq } from 'drizzle-orm';
+
+const user = Astro.locals.user;
+if (!user) return Astro.redirect('/auth/login');
+
+const db = getDb();
+const membership = db.select().from(schoolMembers).where(eq(schoolMembers.userId, user.id)).get();
+const schoolId = membership?.schoolId;
+
+const allFees = schoolId ? db.select().from(feeStructures).where(eq(feeStructures.schoolId, schoolId)).all() : [];
+const allInvoices = schoolId ? db.select().from(invoices).where(eq(invoices.schoolId, schoolId)).all() : [];
+---
+
+<DashboardLayout title="Fees - iSchool">
+  <div class="space-y-6">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div>
+        <h2 class="text-2xl font-bold text-gray-900">Fee Management</h2>
+        <p class="text-sm text-gray-500 mt-1">Manage fee structures and invoices</p>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="document.getElementById('addFeeModal').classList.remove('hidden')" class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 font-medium text-sm">+ Fee Structure</button>
+        <button onclick="document.getElementById('addInvoiceModal').classList.remove('hidden')" class="bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-800 font-medium text-sm">+ Create Invoice</button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div class="bg-white rounded-lg shadow p-5">
+        <div class="text-sm text-gray-500">Fee Structures</div>
+        <div class="text-2xl font-bold text-gray-900 mt-1">{allFees.length}</div>
+      </div>
+      <div class="bg-white rounded-lg shadow p-5">
+        <div class="text-sm text-gray-500">Total Invoices</div>
+        <div class="text-2xl font-bold text-gray-900 mt-1">{allInvoices.length}</div>
+      </div>
+      <div class="bg-white rounded-lg shadow p-5">
+        <div class="text-sm text-gray-500">Paid</div>
+        <div class="text-2xl font-bold text-green-600 mt-1">{allInvoices.filter((i: any) => i.status === 'paid').length}</div>
+      </div>
+      <div class="bg-white rounded-lg shadow p-5">
+        <div class="text-sm text-gray-500">Pending</div>
+        <div class="text-2xl font-bold text-yellow-600 mt-1">{allInvoices.filter((i: any) => i.status === 'pending' || i.status === 'partial').length}</div>
+      </div>
+    </div>
+
+    <!-- Fee Structures -->
+    <div class="bg-white rounded-lg shadow">
+      <div class="p-4 border-b border-gray-200"><h3 class="text-lg font-semibold">Fee Structures</h3></div>
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead class="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Grade</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Frequency</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200">
+            {allFees.length === 0 ? (
+              <tr><td colspan="6" class="px-6 py-8 text-center text-gray-500">No fee structures defined.</td></tr>
+            ) : (
+              allFees.map((fee: any) => (
+                <tr class="hover:bg-gray-50">
+                  <td class="px-6 py-4 text-sm font-medium text-gray-900">{fee.name}</td>
+                  <td class="px-6 py-4 text-sm text-gray-600">{fee.gradeLevel || '-'}</td>
+                  <td class="px-6 py-4 text-sm text-gray-600">{fee.category || '-'}</td>
+                  <td class="px-6 py-4 text-sm font-medium text-gray-900">${(fee.totalAmount / 100).toFixed(2)}</td>
+                  <td class="px-6 py-4 text-sm text-gray-600 capitalize">{fee.frequency}</td>
+                  <td class="px-6 py-4 text-sm">
+                    <button onclick={`confirmDelete(${fee.id}, '${fee.name.replace(/'/g, "\\'")}')`} class="text-red-600 hover:text-red-700">Delete</button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Invoices -->
+    <div class="bg-white rounded-lg shadow">
+      <div class="p-4 border-b border-gray-200"><h3 class="text-lg font-semibold">Invoices</h3></div>
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead class="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Invoice #</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Due Date</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200">
+            {allInvoices.length === 0 ? (
+              <tr><td colspan="6" class="px-6 py-8 text-center text-gray-500">No invoices created yet.</td></tr>
+            ) : (
+              allInvoices.map((inv: any) => (
+                <tr class="hover:bg-gray-50">
+                  <td class="px-6 py-4 text-sm font-medium text-gray-900">{inv.invoiceNumber}</td>
+                  <td class="px-6 py-4 text-sm text-gray-600">Student #{inv.studentId}</td>
+                  <td class="px-6 py-4 text-sm font-medium text-gray-900">${(inv.amount / 100).toFixed(2)}</td>
+                  <td class="px-6 py-4 text-sm text-gray-600">{inv.dueDate}</td>
+                  <td class="px-6 py-4">
+                    <span class={`px-2 py-1 text-xs font-medium rounded ${inv.status === 'paid' ? 'bg-green-100 text-green-700' : inv.status === 'overdue' ? 'bg-red-100 text-red-700' : inv.status === 'cancelled' ? 'bg-gray-100 text-gray-700' : 'bg-yellow-100 text-yellow-700'}`}>{inv.status}</span>
+                  </td>
+                  <td class="px-6 py-4 text-sm">
+                    <button onclick={`confirmDelete(${inv.id}, 'Invoice ${inv.invoiceNumber}')`} class="text-red-600 hover:text-red-700">Delete</button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Fee Structure Modal -->
+  <div id="addFeeModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4">
+      <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+        <h3 class="text-lg font-semibold">Add Fee Structure</h3>
+        <button onclick="document.getElementById('addFeeModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+      </div>
+      <form id="addFeeForm" class="p-6 space-y-4">
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">Name *</label><input name="name" required class="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+        <div class="grid grid-cols-3 gap-4">
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Grade Level</label><input name="gradeLevel" class="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Category</label><input name="category" class="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Frequency *</label>
+            <select name="frequency" required class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+              <option value="monthly">Monthly</option><option value="termly">Termly</option><option value="annual">Annual</option><option value="one_time">One Time</option>
+            </select>
+          </div>
+        </div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">Total Amount (cents) *</label><input name="totalAmount" type="number" required class="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">Items (JSON)</label><textarea name="items" rows="2" placeholder='[{"name":"Tuition","amount":50000}]' class="w-full px-3 py-2 border border-gray-300 rounded-lg"></textarea></div>
+        <div id="addFeeError" class="text-red-600 text-sm hidden"></div>
+        <div class="flex justify-end gap-3 pt-4 border-t border-gray-200">
+          <button type="button" onclick="document.getElementById('addFeeModal').classList.add('hidden')" class="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">Add Fee Structure</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add Invoice Modal -->
+  <div id="addInvoiceModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4">
+      <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+        <h3 class="text-lg font-semibold">Create Invoice</h3>
+        <button onclick="document.getElementById('addInvoiceModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+      </div>
+      <form id="addInvoiceForm" class="p-6 space-y-4">
+        <div class="grid grid-cols-2 gap-4">
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Student ID *</label><input name="studentId" type="number" required class="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Invoice Number *</label><input name="invoiceNumber" required class="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Amount (cents) *</label><input name="amount" type="number" required class="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Due Date *</label><input name="dueDate" type="date" required class="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+        </div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">Items (JSON)</label><textarea name="items" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg"></textarea></div>
+        <div id="addInvoiceError" class="text-red-600 text-sm hidden"></div>
+        <div class="flex justify-end gap-3 pt-4 border-t border-gray-200">
+          <button type="button" onclick="document.getElementById('addInvoiceModal').classList.add('hidden')" class="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">Create Invoice</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete Modal -->
+  <div id="deleteModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4 p-6">
+      <h3 class="text-lg font-semibold text-gray-900 mb-2">Confirm Delete</h3>
+      <p class="text-gray-600 mb-6">Are you sure you want to delete <strong id="deleteName"></strong>?</p>
+      <div class="flex justify-end gap-3">
+        <button onclick="document.getElementById('deleteModal').classList.add('hidden')" class="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
+        <button id="confirmDeleteBtn" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('addFeeForm')?.addEventListener('submit', async (e: Event) => {
+      e.preventDefault();
+      const form = e.target as HTMLFormElement;
+      const data = Object.fromEntries(new FormData(form));
+      data.totalAmount = Number(data.totalAmount);
+      if (data.items) { try { data.items = JSON.parse(data.items as string); } catch { data.items = '[]'; } } else { data.items = '[]'; }
+      const errEl = document.getElementById('addFeeError')!;
+      errEl.classList.add('hidden');
+      try {
+        const res = await fetch('/api/dashboard/fees', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+        if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Failed'); }
+        window.location.reload();
+      } catch (err: any) { errEl.textContent = err.message; errEl.classList.remove('hidden'); }
+    });
+
+    document.getElementById('addInvoiceForm')?.addEventListener('submit', async (e: Event) => {
+      e.preventDefault();
+      const form = e.target as HTMLFormElement;
+      const data = Object.fromEntries(new FormData(form));
+      data.amount = Number(data.amount);
+      data.studentId = Number(data.studentId);
+      if (data.items) { try { data.items = JSON.parse(data.items as string); } catch { data.items = '[]'; } } else { data.items = '[]'; }
+      const errEl = document.getElementById('addInvoiceError')!;
+      errEl.classList.add('hidden');
+      try {
+        const res = await fetch('/api/dashboard/invoices', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+        if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Failed'); }
+        window.location.reload();
+      } catch (err: any) { errEl.textContent = err.message; errEl.classList.remove('hidden'); }
+    });
+
+    let deleteTargetId: number | null = null;
+    (window as any).confirmDelete = (id: number, name: string) => {
+      deleteTargetId = id;
+      document.getElementById('deleteName')!.textContent = name;
+      document.getElementById('deleteModal')!.classList.remove('hidden');
+    };
+
+    document.getElementById('confirmDeleteBtn')?.addEventListener('click', async () => {
+      if (!deleteTargetId) return;
+      try {
+        await fetch('/api/dashboard/fees', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: deleteTargetId }) });
+        window.location.reload();
+      } catch { document.getElementById('deleteModal')!.classList.add('hidden'); }
+    });
+  </script>
+</DashboardLayout>

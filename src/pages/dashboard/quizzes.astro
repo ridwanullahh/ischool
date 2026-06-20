@@ -1,0 +1,146 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { getUserSchoolId } from '../../lib/school.js';
+import { getDb } from '../../lib/db/index.js';
+import { quizzes, courses } from '../../lib/db/schema.js';
+import { eq, desc } from 'drizzle-orm';
+
+const user = Astro.locals.user!;
+if (!user) return Astro.redirect('/auth/login');
+const schoolId = getUserSchoolId(user.id);
+
+let records: any[] = [];
+let allCourses: any[] = [];
+let stats = { total: 0, draft: 0, published: 0 };
+
+if (schoolId) {
+  const db = getDb();
+  allCourses = db.select().from(courses).where(eq(courses.schoolId, schoolId)).all();
+  records = db.select().from(quizzes).where(eq(quizzes.schoolId, schoolId)).orderBy(desc(quizzes.createdAt)).all();
+  stats = { total: records.length, draft: records.filter(r => r.status === 'draft').length, published: records.filter(r => r.status === 'published').length };
+}
+---
+
+<DashboardLayout title="Quizzes - iSchool">
+  <div class="space-y-6">
+    <div class="flex justify-between items-center">
+      <div><h2 class="text-2xl font-bold text-gray-900">Quizzes</h2><p class="text-sm text-gray-500 mt-1">Manage quizzes and assessments</p></div>
+      <button onclick="document.getElementById('addModal').classList.remove('hidden')" class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 font-medium text-sm">+ Create Quiz</button>
+      <button onclick="exportCsv('quizzes')" class="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 font-medium text-sm">Export CSV</button>
+    </div>
+    <div class="grid grid-cols-3 gap-4">
+      <div class="bg-white rounded-lg border p-4"><p class="text-sm text-gray-500">Total</p><p class="text-2xl font-bold">{stats.total}</p></div>
+      <div class="bg-white rounded-lg border p-4"><p class="text-sm text-gray-500">Draft</p><p class="text-2xl font-bold text-yellow-600">{stats.draft}</p></div>
+      <div class="bg-white rounded-lg border p-4"><p class="text-sm text-gray-500">Published</p><p class="text-2xl font-bold text-green-600">{stats.published}</p></div>
+    </div>
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+      <div class="p-4 border-b"><input type="text" id="searchInput" placeholder="Search quizzes..." class="border rounded-lg px-3 py-2 text-sm w-full" oninput="filterTable()" /></div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm" id="dataTable">
+          <thead class="bg-gray-50"><tr>
+            <th class="px-4 py-3 text-left font-medium text-gray-600">Title</th><th class="px-4 py-3 text-left font-medium text-gray-600">Course</th>
+            <th class="px-4 py-3 text-left font-medium text-gray-600">Time Limit</th><th class="px-4 py-3 text-left font-medium text-gray-600">Pass Score</th>
+            <th class="px-4 py-3 text-left font-medium text-gray-600">Attempts</th><th class="px-4 py-3 text-left font-medium text-gray-600">Status</th>
+            <th class="px-4 py-3 text-left font-medium text-gray-600">Actions</th>
+          </tr></thead>
+          <tbody class="divide-y">
+            {records.length === 0 && <tr><td colspan="7" class="px-4 py-8 text-center text-gray-500">No quizzes found</td></tr>}
+            {records.map(r => {
+              const course = allCourses.find(c => c.id === r.courseId);
+              return (
+              <tr data-search={r.title.toLowerCase()}>
+                <td class="px-4 py-3 font-medium">{r.title}</td>
+                <td class="px-4 py-3">{course?.title || '-'}</td>
+                <td class="px-4 py-3">{r.timeLimit ? `${r.timeLimit} min` : 'None'}</td>
+                <td class="px-4 py-3">{r.passingScore}%</td>
+                <td class="px-4 py-3">{r.attempts}</td>
+                <td class="px-4 py-3"><span class={`px-2 py-1 rounded-full text-xs font-medium ${r.status === 'published' ? 'bg-green-100 text-green-700' : r.status === 'closed' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}>{r.status}</span></td>
+                <td class="px-4 py-3 flex gap-2">
+                  <button onclick={`editRecord(${JSON.stringify(r).replace(/"/g, '&quot;')})`} class="text-primary-600 text-xs font-medium">Edit</button>
+                  <button onclick={`deleteRecord(${r.id})`} class="text-red-600 text-xs font-medium">Delete</button>
+                </td>
+              </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="addModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl p-6 w-full max-w-md mx-4">
+      <h3 class="text-lg font-bold mb-4" id="modalTitle">Create Quiz</h3>
+      <form onsubmit="submitForm(event)">
+        <input type="hidden" id="editId" value="" />
+        <div class="space-y-3">
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Title</label>
+            <input type="text" id="title" required class="w-full border rounded-lg px-3 py-2 text-sm" /></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Course</label>
+            <select id="courseId" class="w-full border rounded-lg px-3 py-2 text-sm">
+              <option value="">None</option>{allCourses.map(c => <option value={c.id}>{c.title}</option>)}
+            </select></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <textarea id="description" rows="2" class="w-full border rounded-lg px-3 py-2 text-sm"></textarea></div>
+          <div class="grid grid-cols-3 gap-3">
+            <div><label class="block text-sm font-medium text-gray-700 mb-1">Time (min)</label>
+              <input type="number" id="timeLimit" class="w-full border rounded-lg px-3 py-2 text-sm" /></div>
+            <div><label class="block text-sm font-medium text-gray-700 mb-1">Pass %</label>
+              <input type="number" id="passingScore" class="w-full border rounded-lg px-3 py-2 text-sm" value="50" /></div>
+            <div><label class="block text-sm font-medium text-gray-700 mb-1">Attempts</label>
+              <input type="number" id="attempts" class="w-full border rounded-lg px-3 py-2 text-sm" value="1" /></div>
+          </div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+            <select id="status" class="w-full border rounded-lg px-3 py-2 text-sm">
+              <option value="draft">Draft</option><option value="published">Published</option><option value="closed">Closed</option>
+            </select></div>
+        </div>
+        <div class="flex justify-end gap-3 mt-6">
+          <button type="button" onclick="document.getElementById('addModal').classList.add('hidden')" class="px-4 py-2 border rounded-lg text-sm">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function filterTable() {
+      const s = (document.getElementById('searchInput') as HTMLInputElement).value.toLowerCase();
+      document.querySelectorAll('#dataTable tbody tr[data-search]').forEach(r => { (r as HTMLElement).style.display = !s || (r as HTMLElement).dataset.search!.includes(s) ? '' : 'none'; });
+    }
+    function editRecord(r: any) {
+      (document.getElementById('editId') as HTMLInputElement).value = String(r.id);
+      (document.getElementById('title') as HTMLInputElement).value = r.title;
+      (document.getElementById('courseId') as HTMLSelectElement).value = String(r.courseId || '');
+      (document.getElementById('description') as HTMLTextAreaElement).value = r.description || '';
+      (document.getElementById('timeLimit') as HTMLInputElement).value = r.timeLimit ? String(r.timeLimit) : '';
+      (document.getElementById('passingScore') as HTMLInputElement).value = String(r.passingScore);
+      (document.getElementById('attempts') as HTMLInputElement).value = String(r.attempts);
+      (document.getElementById('status') as HTMLSelectElement).value = r.status;
+      document.getElementById('modalTitle')!.textContent = 'Edit Quiz';
+      document.getElementById('addModal')!.classList.remove('hidden');
+    }
+    async function submitForm(e: Event) {
+      e.preventDefault();
+      const editId = (document.getElementById('editId') as HTMLInputElement).value;
+      const body: any = {
+        title: (document.getElementById('title') as HTMLInputElement).value,
+        courseId: (document.getElementById('courseId') as HTMLSelectElement).value ? parseInt((document.getElementById('courseId') as HTMLSelectElement).value) : null,
+        description: (document.getElementById('description') as HTMLTextAreaElement).value || null,
+        timeLimit: (document.getElementById('timeLimit') as HTMLInputElement).value ? parseInt((document.getElementById('timeLimit') as HTMLInputElement).value) : null,
+        passingScore: parseInt((document.getElementById('passingScore') as HTMLInputElement).value),
+        attempts: parseInt((document.getElementById('attempts') as HTMLInputElement).value),
+        status: (document.getElementById('status') as HTMLSelectElement).value,
+      };
+      const method = editId ? 'PUT' : 'POST';
+      if (editId) body.id = parseInt(editId);
+      await fetch('/api/dashboard/quizzes', { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      location.reload();
+    }
+    async function deleteRecord(id: number) {
+      if (!confirm('Delete this quiz?')) return;
+      await fetch('/api/dashboard/quizzes', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
+      location.reload();
+    }
+  </script>
+</DashboardLayout>

@@ -1,0 +1,118 @@
+---
+import '../../styles/global.css';
+import LanguageSelector from '../../components/LanguageSelector.astro';
+import SchoolBannerPopup from '../../components/SchoolBannerPopup.astro';
+import PublicAIChatWidget from '../../components/PublicAIChatWidget.astro';
+import { getSchoolNav, getSchoolContacts, getSchoolPalette } from '../../lib/school.ts';
+import { normalizeSocialUrl, getSocialIcon } from '../../lib/social.ts';
+
+interface Props { school: any; title?: string; }
+const { school, title } = Astro.props;
+const nav = getSchoolNav(school.id);
+const contacts = getSchoolContacts(school.id);
+const palette = getSchoolPalette(school);
+const pageTitle = title ? `${title} — ${school.name}` : school.name;
+const prefix = `/${school.slug}`;
+const { pathname } = Astro.url;
+const social = (school.socialHandles as Record<string, string>) || {};
+const socialEntries = Object.entries(social).filter(([, v]) => v && v !== '#');
+---
+<!doctype html>
+<html lang={school.locale || 'en'} dir={['ar','he','fa','ur'].includes(school.locale || 'en') ? 'rtl' : 'ltr'} class="light scroll-smooth">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="description" content={school.tagline || school.name} />
+  {school.faviconUrl && <link rel="icon" href={school.faviconUrl} />}
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Work+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <title>{pageTitle}</title>
+  <script is:inline>
+    (function(){var s=localStorage.getItem('themeMode');var d=window.matchMedia('(prefers-color-scheme:dark)').matches;var dk=s==='dark'||(!s&&d);document.documentElement.classList.remove('light','dark');document.documentElement.classList.add(dk?'dark':'light')})();
+  </script>
+  <style is:inline>{`
+    html.light{--bg:${palette.backgroundLight};--surface:${palette.surfaceLight};--text:${palette.textLight};--muted:${palette.mutedLight};--border:${palette.borderLight};--accent:${palette.accent};--primary:${palette.primary}}
+    html.dark{--bg:${palette.backgroundDark};--surface:${palette.surfaceDark};--text:${palette.textDark};--muted:${palette.mutedDark};--border:${palette.borderDark};--accent:${palette.accent};--primary:${palette.primary}}
+    :root{--tp:${palette.primary}}.tp{color:var(--tp)}.tbg{background:var(--primary)}
+    .em-serif{font-family:'Lora',Georgia,serif}
+    .em-sans{font-family:'Work Sans',sans-serif}
+  `}</style>
+</head>
+<body class="min-h-screen em-sans" style="background:var(--bg);color:var(--text)">
+  <header class="sticky top-0 z-50" style="background:var(--surface);border-bottom:1px solid var(--border)">
+    <nav class="max-w-6xl mx-auto px-5 sm:px-8 h-20 flex items-center justify-between">
+      <a href={`${prefix}/`} class="flex items-center gap-3">
+        {school.logoUrl ? <img src={school.logoUrl} alt={school.name} class="h-12 w-12 rounded-2xl object-cover" /> : (
+          <div class="w-12 h-12 rounded-2xl tbg flex items-center justify-center text-white font-bold text-lg shadow-md">{school.name.charAt(0)}</div>
+        )}
+        <div>
+          <span class="text-lg font-semibold em-serif block leading-tight" style="color:var(--text)">{school.name}</span>
+          {school.tagline && <span class="text-[11px] italic" style="color:var(--muted)">{school.tagline}</span>}
+        </div>
+      </a>
+      <div class="hidden lg:flex items-center gap-2">
+        {nav.map(item => (
+          <a href={`${prefix}${item.url}`} class:list={[
+            'px-4 py-2 text-sm font-medium rounded-2xl transition-all',
+            pathname === `${prefix}${item.url}` ? 'text-white tbg shadow-sm' : ''
+          ]} style={pathname === `${prefix}${item.url}` ? '' : `color:var(--muted)`}>{item.label}</a>
+        ))}
+      </div>
+      <div class="flex items-center gap-3">
+        <LanguageSelector />
+          <button id="theme-toggle" class="p-2 rounded-full transition-colors" style="background:color-mix(in srgb, var(--primary) 10%, transparent);color:var(--muted)" aria-label="Toggle dark mode">
+          <svg class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+          <svg class="w-5 h-5 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+        </button>
+        <a href={`${prefix}/admissions`} class="hidden lg:inline-flex px-5 py-2.5 text-sm font-semibold text-white rounded-2xl tbg shadow-md hover:shadow-lg transition-all">Enroll</a>
+        <button id="mob-tog" class="lg:hidden p-2 rounded-full" style="color:var(--muted)"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+      </div>
+    </nav>
+    <div id="mob-menu" class="hidden lg:hidden" style="border-top:1px solid var(--border);background:var(--surface)">
+      <div class="px-5 py-4 space-y-1">
+        {nav.map(item => (
+          <a href={`${prefix}${item.url}`} class:list={['block px-4 py-3 text-sm font-medium rounded-2xl', pathname === `${prefix}${item.url}` ? 'text-white tbg' : '']} style={pathname === `${prefix}${item.url}` ? '' : `color:var(--muted)`}>{item.label}</a>
+        ))}
+      </div>
+    </div>
+  </header>
+  <main><slot /></main>
+  <footer style="background:var(--surface);border-top:1px solid var(--border)">
+    <div class="max-w-6xl mx-auto px-5 sm:px-8 py-16">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
+        <div>
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-10 h-10 rounded-2xl tbg flex items-center justify-center text-white font-bold">{school.name.charAt(0)}</div>
+            <span class="text-lg font-semibold em-serif" style="color:var(--text)">{school.name}</span>
+          </div>
+          {school.tagline && <p class="text-sm italic leading-relaxed em-serif" style="color:var(--muted)">{school.tagline}</p>}
+        </div>
+        <div>
+          <h4 class="em-serif text-sm font-semibold mb-4" style="color:var(--text)">Pages</h4>
+          <ul class="space-y-2">{nav.slice(0,6).map(item => <li><a href={`${prefix}${item.url}`} class="text-sm hover:opacity-80 transition-colors" style="color:var(--muted)">{item.label}</a></li>)}</ul>
+        </div>
+        <div>
+          <h4 class="em-serif text-sm font-semibold mb-4" style="color:var(--text)">Contact</h4>
+          <ul class="space-y-2">{contacts.slice(0,4).map(c => <li class="text-sm" style="color:var(--muted)">{c.value}</li>)}</ul>
+          {socialEntries.length > 0 && (
+            <div class="flex items-center gap-3 mt-4 pt-4" style="border-top:1px solid var(--border)">
+              {socialEntries.map(([platform, handle]) => (
+                <a href={normalizeSocialUrl(handle, platform)} aria-label={platform} target="_blank" rel="noopener" class="w-9 h-9 rounded-2xl flex items-center justify-center transition-all hover:opacity-80" style="background:color-mix(in srgb, var(--primary) 10%, transparent);color:var(--primary)">
+                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d={getSocialIcon(platform)}/></svg>
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+      <div class="mt-12 pt-6 text-center text-xs" style="border-top:1px solid var(--border);color:var(--muted)">
+        &copy; {new Date().getFullYear()} {school.name} — Powered by <a href="/" class="tp hover:opacity-80">iSchool</a>
+      </div>
+    </div>
+  </footer>
+  <script>
+    document.getElementById('mob-tog')?.addEventListener('click',()=>document.getElementById('mob-menu')?.classList.toggle('hidden'));
+    document.getElementById('theme-toggle')?.addEventListener('click',()=>{const h=document.documentElement;const d=h.classList.contains('dark');h.classList.remove('light','dark');h.classList.add(d?'light':'dark');localStorage.setItem('themeMode',d?'light':'dark')});
+  </script>
+    <SchoolBannerPopup schoolId={school.id} />
+  <PublicAIChatWidget schoolSlug={school.slug} />
+</body>
+</html>

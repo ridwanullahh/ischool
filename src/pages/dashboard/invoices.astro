@@ -1,0 +1,71 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { getDb } from '../../lib/db/index.js';
+import { invoices } from '../../lib/db/schema.js';
+
+const user = Astro.locals.user;
+if (!user) return Astro.redirect('/auth/login');
+
+const db = getDb();
+const allInvoices = db.select().from(invoices).all();
+---
+
+<DashboardLayout title="Invoices - iSchool">
+  <div class="space-y-6">
+    <div class="flex justify-between items-center">
+      <div>
+        <h2 class="text-2xl font-bold text-gray-900">Invoices</h2>
+        <p class="text-sm text-gray-500 mt-1">Manage billing and invoices</p>
+      </div>
+      <button class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 font-medium">
+        + Create Invoice
+      </button>
+      <button onclick="exportCsv('invoices')" class="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 font-medium text-sm">Export CSV</button>
+    </div>
+
+    <div class="bg-white rounded-lg shadow">
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead class="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Invoice #</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Due Date</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200">
+            {allInvoices.length === 0 ? (
+              <tr>
+                <td colspan="6" class="px-6 py-8 text-center text-gray-500">No invoices found.</td>
+              </tr>
+            ) : (
+              allInvoices.map((invoice) => (
+                <tr class="hover:bg-gray-50">
+                  <td class="px-6 py-4 text-sm text-gray-900">{invoice.invoiceNumber}</td>
+                  <td class="px-6 py-4 text-sm text-gray-900">{invoice.studentId}</td>
+                  <td class="px-6 py-4 text-sm text-gray-900">${invoice.totalAmount}</td>
+                  <td class="px-6 py-4">
+                    <span class:list={[
+                      'px-2 py-1 text-xs font-medium rounded',
+                      invoice.status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                    ]}>
+                      {invoice.status}
+                    </span>
+                  </td>
+                  <td class="px-6 py-4 text-sm text-gray-900">{invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : '-'}</td>
+                  <td class="px-6 py-4 text-sm">
+                    <button class="text-primary-600 hover:text-primary-700 mr-3">View</button>
+                    <button class="text-red-600 hover:text-red-700">Delete</button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</DashboardLayout>

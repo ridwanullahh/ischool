@@ -1,0 +1,142 @@
+---
+import { getDb } from '../lib/db/index.js';
+import { banners, popups } from '../lib/db/schema.js';
+import { eq, and, lte, gte, isNull } from 'drizzle-orm';
+
+interface Props {
+  schoolId: number;
+  currentPage?: string;
+}
+
+const { schoolId, currentPage = '/' } = Astro.props;
+const db = getDb();
+const now = new Date().toISOString().split('T')[0];
+
+function parsePages(val: any): string[] {
+  if (Array.isArray(val)) return val;
+  if (typeof val === 'string') { try { const p = JSON.parse(val); return Array.isArray(p) ? p : ['all']; } catch { return ['all']; } }
+  return ['all'];
+}
+
+const activeBanners = db.select().from(banners)
+  .where(and(eq(banners.schoolId, schoolId), eq(banners.isActive, true)))
+  .all()
+  .filter(b => {
+    if (b.startDate && b.startDate > now) return false;
+    if (b.endDate && b.endDate < now) return false;
+    const pages = parsePages(b.displayPages);
+    if (pages.includes('all')) return true;
+    return pages.some(p => currentPage.startsWith(p));
+  });
+
+const activePopups = db.select().from(popups)
+  .where(and(eq(popups.schoolId, schoolId), eq(popups.isActive, true)))
+  .all()
+  .filter(p => {
+    if (p.startDate && p.startDate > now) return false;
+    if (p.endDate && p.endDate < now) return false;
+    const pages = parsePages(p.displayPages);
+    if (pages.includes('all')) return true;
+    return pages.some(pg => currentPage.startsWith(pg));
+  });
+---
+
+{activeBanners.length > 0 && activeBanners.filter(b => b.position === 'top').map(b => (
+  <div class="ischool-banner" data-position="top" style={b.styleOverrides ? `--banner-bg:${b.styleOverrides?.background || ''};` : ''}>
+    <div class="ischool-banner-inner">
+      <div class="ischool-banner-content">
+        <span class="ischool-banner-title">{b.title}</span>
+        {b.subtitle && <span class="ischool-banner-subtitle">{b.subtitle}</span>}
+      </div>
+      {b.linkUrl && <a href={b.linkUrl} class="ischool-banner-link">{b.linkText || 'Learn More'}</a>}
+      <button class="ischool-banner-close" onclick="this.closest('.ischool-banner').remove()" aria-label="Close">&times;</button>
+    </div>
+  </div>
+))}
+
+{activeBanners.length > 0 && activeBanners.filter(b => b.position === 'hero').map(b => (
+  <section class="ischool-hero-banner" style={b.imageUrl ? `background-image:url(${b.imageUrl})` : ''}>
+    <div class="ischool-hero-overlay">
+      <h2 class="ischool-hero-title">{b.title}</h2>
+      {b.subtitle && <p class="ischool-hero-subtitle">{b.subtitle}</p>}
+      {b.linkUrl && <a href={b.linkUrl} class="ischool-hero-link">{b.linkText || 'Learn More'} &rarr;</a>}
+    </div>
+  </section>
+))}
+
+{activePopups.length > 0 && (
+  <div id="ischool-popup-overlay" class="ischool-popup-overlay" style="display:none">
+    {activePopups.map(p => (
+      <div class="ischool-popup" data-trigger={p.triggerType} data-delay={p.triggerDelay} data-frequency={p.displayFrequency} data-id={p.id}>
+        <button class="ischool-popup-close" onclick="document.getElementById('ischool-popup-overlay').style.display='none';sessionStorage.setItem('popup_dismissed_'+this.closest('.ischool-popup').dataset.id,'1')" aria-label="Close">&times;</button>
+        {p.imageUrl && <img src={p.imageUrl} alt={p.title} class="ischool-popup-image" />}
+        <h3 class="ischool-popup-title">{p.title}</h3>
+        <p class="ischool-popup-content">{p.content}</p>
+        {p.linkUrl && <a href={p.linkUrl} class="ischool-popup-link">{p.linkText || 'Learn More'}</a>}
+      </div>
+    ))}
+  </div>
+)}
+
+<script is:inline>
+(function(){
+  var popups = document.querySelectorAll('.ischool-popup');
+  if (!popups.length) return;
+  var overlay = document.getElementById('ischool-popup-overlay');
+  function showPopup(el) {
+    var id = el.dataset.id;
+    var freq = el.dataset.frequency;
+    var key = 'popup_' + id;
+    if (freq === 'once' && localStorage.getItem(key)) return;
+    if (freq === 'once_per_session' && sessionStorage.getItem(key)) return;
+    if (freq === 'once_per_day') { var d = localStorage.getItem(key); if (d && new Date(d).toDateString() === new Date().toDateString()) return; }
+    if (sessionStorage.getItem('popup_dismissed_' + id)) return;
+    overlay.style.display = 'flex';
+    if (freq === 'once') localStorage.setItem(key, '1');
+    else if (freq === 'once_per_session') sessionStorage.setItem(key, '1');
+    else if (freq === 'once_per_day') localStorage.setItem(key, new Date().toISOString());
+  }
+  popups.forEach(function(el) {
+    var trigger = el.dataset.trigger;
+    var delay = parseInt(el.dataset.delay) || 0;
+    if (trigger === 'on_load') setTimeout(function(){ showPopup(el); }, delay * 1000);
+    else if (trigger === 'timed') setTimeout(function(){ showPopup(el); }, delay * 1000);
+    else if (trigger === 'scroll') {
+      var shown = false;
+      window.addEventListener('scroll', function() {
+        if (!shown && window.scrollY > document.body.scrollHeight * 0.5) { showPopup(el); shown = true; }
+      });
+    } else if (trigger === 'exit_intent') {
+      document.addEventListener('mouseout', function(e) {
+        if (e.clientY < 5) showPopup(el);
+      });
+    }
+  });
+})();
+</script>
+
+<style is:inline>{`
+  .ischool-banner{background:var(--tp,#2563eb);color:#fff;padding:8px 0;font-size:14px;position:relative;z-index:50}
+  .ischool-banner-inner{max-width:1280px;margin:0 auto;padding:0 16px;display:flex;align-items:center;justify-content:center;gap:16px}
+  .ischool-banner-title{font-weight:600}.ischool-banner-subtitle{opacity:.85;margin-left:8px}
+  .ischool-banner-link{background:rgba(255,255,255,.2);padding:4px 12px;border-radius:999px;font-weight:500;color:#fff;text-decoration:none;font-size:13px}
+  .ischool-banner-link:hover{background:rgba(255,255,255,.3)}
+  .ischool-banner-close{background:none;border:none;color:#fff;font-size:20px;cursor:pointer;opacity:.7;padding:0 4px}
+  .ischool-banner-close:hover{opacity:1}
+  .ischool-hero-banner{position:relative;min-height:400px;background-size:cover;background-position:center;display:flex;align-items:center}
+  .ischool-hero-overlay{max-width:700px;padding:60px 40px;background:rgba(0,0,0,.45);color:#fff;border-radius:0 16px 16px 0}
+  .ischool-hero-title{font-size:2.5rem;font-weight:800;line-height:1.1;margin-bottom:12px}
+  .ischool-hero-subtitle{font-size:1.1rem;opacity:.9;margin-bottom:20px;line-height:1.5}
+  .ischool-hero-link{display:inline-block;background:#fff;color:#111;padding:12px 28px;border-radius:999px;font-weight:600;text-decoration:none;font-size:14px}
+  .ischool-hero-link:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.2)}
+  .ischool-popup-overlay{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
+  .ischool-popup{background:#fff;border-radius:20px;max-width:480px;width:100%;padding:40px;position:relative;box-shadow:0 24px 64px rgba(0,0,0,.25);text-align:center;animation:popupIn .3s ease}
+  @keyframes popupIn{from{opacity:0;transform:scale(.9) translateY(20px)}to{opacity:1;transform:scale(1) translateY(0)}}
+  .ischool-popup-close{position:absolute;top:12px;right:16px;background:none;border:none;font-size:24px;color:#999;cursor:pointer}
+  .ischool-popup-close:hover{color:#333}
+  .ischool-popup-image{width:100%;max-height:200px;object-fit:cover;border-radius:12px;margin-bottom:20px}
+  .ischool-popup-title{font-size:1.5rem;font-weight:700;color:#111;margin-bottom:8px}
+  .ischool-popup-content{color:#555;line-height:1.6;margin-bottom:20px}
+  .ischool-popup-link{display:inline-block;background:var(--tp,#2563eb);color:#fff;padding:12px 32px;border-radius:999px;font-weight:600;text-decoration:none;font-size:14px}
+  .ischool-popup-link:hover{opacity:.9;transform:translateY(-1px)}
+`}</style>

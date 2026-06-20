@@ -1,0 +1,30 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+---
+
+<AdminLayout title="Settings - iSchool">
+  <div class="max-w-2xl">
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <h2 class="text-base font-semibold text-gray-900 mb-4">Platform Settings</h2>
+      <p class="text-sm text-gray-500 mb-6">Configure global platform settings for iSchool.</p>
+
+      <form class="space-y-5">
+        <div class="space-y-1">
+          <label class="block text-sm font-medium text-gray-700">Platform Name</label>
+          <input type="text" value="iSchool" class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500" />
+        </div>
+        <div class="space-y-1">
+          <label class="block text-sm font-medium text-gray-700">Support Email</label>
+          <input type="email" value="support@ischool.com" class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500" />
+        </div>
+        <div class="space-y-1">
+          <label class="block text-sm font-medium text-gray-700">Default Trial Duration (days)</label>
+          <input type="number" value="14" class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500" />
+        </div>
+        <button type="submit" class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 shadow-sm">
+          Save Settings
+        </button>
+      </form>
+    </div>
+  </div>
+</AdminLayout>

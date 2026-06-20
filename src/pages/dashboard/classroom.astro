@@ -1,0 +1,199 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { getUserSchoolId } from '../../lib/school.js';
+import { getDb } from '../../lib/db/index.js';
+import { lessonPlans, behaviorLogs, courses, students, users } from '../../lib/db/schema.js';
+import { eq, desc, sql } from 'drizzle-orm';
+
+const user = Astro.locals.user!;
+if (!user) return Astro.redirect('/auth/login');
+const schoolId = getUserSchoolId(user.id);
+
+let plans: any[] = [];
+let logs: any[] = [];
+let allCourses: any[] = [];
+let allStudents: any[] = [];
+
+if (schoolId) {
+  const db = getDb();
+  allCourses = db.select().from(courses).where(eq(courses.schoolId, schoolId)).all();
+  allStudents = db.select().from(students).where(eq(students.schoolId, schoolId)).all();
+  plans = db.select({
+    id: lessonPlans.id, title: lessonPlans.title, week: lessonPlans.week,
+    objectives: lessonPlans.objectives, status: lessonPlans.status, createdAt: lessonPlans.createdAt,
+    courseTitle: courses.title, teacherName: users.name,
+  }).from(lessonPlans)
+    .leftJoin(courses, eq(lessonPlans.courseId, courses.id))
+    .leftJoin(users, eq(lessonPlans.teacherId, users.id))
+    .where(eq(lessonPlans.schoolId, schoolId))
+    .orderBy(desc(lessonPlans.createdAt)).all();
+  logs = db.select({
+    id: behaviorLogs.id, studentId: behaviorLogs.studentId, type: behaviorLogs.type,
+    category: behaviorLogs.category, description: behaviorLogs.description,
+    points: behaviorLogs.points, createdAt: behaviorLogs.createdAt,
+    studentName: sql`${students.firstName} || ' ' || ${students.lastName}`.as('student_name'),
+  }).from(behaviorLogs)
+    .leftJoin(students, eq(behaviorLogs.studentId, students.id))
+    .where(eq(behaviorLogs.schoolId, schoolId))
+    .orderBy(desc(behaviorLogs.createdAt)).limit(50).all();
+}
+---
+
+<DashboardLayout title="Classroom Tools - iSchool">
+  <div class="space-y-6">
+    <div class="flex justify-between items-center">
+      <div><h2 class="text-2xl font-bold text-gray-900">Classroom Tools</h2><p class="text-sm text-gray-500 mt-1">Lesson plans and behavior tracking</p></div>
+    </div>
+
+    <div class="border-b">
+      <nav class="flex gap-4">
+        <button id="tab-plans" onclick="switchTab('plans')" class="pb-2 px-1 text-sm font-medium border-b-2 border-primary-500 text-primary-600">Lesson Plans ({plans.length})</button>
+        <button id="tab-logs" onclick="switchTab('logs')" class="pb-2 px-1 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700">Behavior Logs ({logs.length})</button>
+      </nav>
+    </div>
+
+    <div id="panel-plans">
+      <div class="flex justify-end mb-4">
+        <button onclick="document.getElementById('planModal').classList.remove('hidden')" class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 text-sm font-medium">+ New Lesson Plan</button>
+        <button onclick="exportCsv('classroom')" class="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 font-medium text-sm">Export CSV</button>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {plans.length === 0 && <div class="col-span-2 bg-white rounded-lg shadow p-8 text-center text-gray-500">No lesson plans yet</div>}
+        {plans.map(p => (
+          <div class="bg-white rounded-lg shadow p-4">
+            <div class="flex justify-between items-start">
+              <div>
+                <h3 class="font-medium">{p.title}</h3>
+                <p class="text-sm text-gray-500">{p.courseTitle || 'No course'} · Week {p.week || '-'}</p>
+                <p class="text-xs text-gray-400 mt-1">By {p.teacherName || 'Unknown'}</p>
+              </div>
+              <span class={`px-2 py-1 rounded-full text-xs ${p.status === 'approved' ? 'bg-green-100 text-green-700' : p.status === 'submitted' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>{p.status}</span>
+            </div>
+            {p.objectives && <p class="text-sm text-gray-600 mt-2 line-clamp-2">{p.objectives}</p>}
+            <div class="flex gap-2 mt-3">
+              <button onclick={`deletePlan(${p.id})`} class="text-red-600 text-xs">Delete</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    <div id="panel-logs" class="hidden">
+      <div class="flex justify-end mb-4">
+        <button onclick="document.getElementById('logModal').classList.remove('hidden')" class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 text-sm font-medium">+ Log Behavior</button>
+      </div>
+      <div class="bg-white rounded-lg shadow overflow-hidden">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50"><tr>
+            <th class="px-4 py-3 text-left font-medium text-gray-600">Student</th><th class="px-4 py-3 text-left font-medium text-gray-600">Type</th>
+            <th class="px-4 py-3 text-left font-medium text-gray-600">Category</th><th class="px-4 py-3 text-left font-medium text-gray-600">Points</th>
+            <th class="px-4 py-3 text-left font-medium text-gray-600">Description</th><th class="px-4 py-3 text-left font-medium text-gray-600">Date</th>
+          </tr></thead>
+          <tbody class="divide-y">
+            {logs.length === 0 && <tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">No behavior logs</td></tr>}
+            {logs.map(l => (
+              <tr>
+                <td class="px-4 py-3 font-medium">{l.studentName}</td>
+                <td class="px-4 py-3"><span class={`px-2 py-1 rounded-full text-xs ${l.type === 'positive' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{l.type}</span></td>
+                <td class="px-4 py-3">{l.category || '-'}</td><td class="px-4 py-3 font-medium">{l.points}</td>
+                <td class="px-4 py-3 text-gray-600">{l.description || '-'}</td>
+                <td class="px-4 py-3 text-gray-400 text-xs">{new Date(l.createdAt).toLocaleDateString()}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="planModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl p-6 w-full max-w-md mx-4">
+      <h3 class="text-lg font-bold mb-4">New Lesson Plan</h3>
+      <form onsubmit="submitPlan(event)">
+        <div class="space-y-3">
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Title</label>
+            <input type="text" id="planTitle" required class="w-full border rounded-lg px-3 py-2 text-sm" /></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Course</label>
+            <select id="planCourse" class="w-full border rounded-lg px-3 py-2 text-sm">
+              <option value="">None</option>{allCourses.map(c => <option value={c.id}>{c.title}</option>)}
+            </select></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Week</label>
+            <input type="text" id="planWeek" class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="e.g., Week 3" /></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Objectives</label>
+            <textarea id="planObjectives" rows="3" class="w-full border rounded-lg px-3 py-2 text-sm"></textarea></div>
+        </div>
+        <div class="flex justify-end gap-3 mt-6">
+          <button type="button" onclick="document.getElementById('planModal').classList.add('hidden')" class="px-4 py-2 border rounded-lg text-sm">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="logModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl p-6 w-full max-w-md mx-4">
+      <h3 class="text-lg font-bold mb-4">Log Behavior</h3>
+      <form onsubmit="submitLog(event)">
+        <div class="space-y-3">
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Student</label>
+            <select id="logStudent" required class="w-full border rounded-lg px-3 py-2 text-sm">
+              <option value="">Select</option>{allStudents.map(s => <option value={s.id}>{s.firstName} {s.lastName}</option>)}
+            </select></div>
+          <div class="grid grid-cols-2 gap-3">
+            <div><label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
+              <select id="logType" class="w-full border rounded-lg px-3 py-2 text-sm">
+                <option value="positive">Positive</option><option value="negative">Negative</option>
+              </select></div>
+            <div><label class="block text-sm font-medium text-gray-700 mb-1">Points</label>
+              <input type="number" id="logPoints" class="w-full border rounded-lg px-3 py-2 text-sm" value="1" /></div>
+          </div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+            <input type="text" id="logCategory" class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="e.g., Participation" /></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <textarea id="logDescription" rows="2" class="w-full border rounded-lg px-3 py-2 text-sm"></textarea></div>
+        </div>
+        <div class="flex justify-end gap-3 mt-6">
+          <button type="button" onclick="document.getElementById('logModal').classList.add('hidden')" class="px-4 py-2 border rounded-lg text-sm">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function switchTab(tab: string) {
+      document.getElementById('panel-plans')!.classList.toggle('hidden', tab !== 'plans');
+      document.getElementById('panel-logs')!.classList.toggle('hidden', tab !== 'logs');
+      document.getElementById('tab-plans')!.className = tab === 'plans' ? 'pb-2 px-1 text-sm font-medium border-b-2 border-primary-500 text-primary-600' : 'pb-2 px-1 text-sm font-medium border-b-2 border-transparent text-gray-500';
+      document.getElementById('tab-logs')!.className = tab === 'logs' ? 'pb-2 px-1 text-sm font-medium border-b-2 border-primary-500 text-primary-600' : 'pb-2 px-1 text-sm font-medium border-b-2 border-transparent text-gray-500';
+    }
+    async function submitPlan(e: Event) {
+      e.preventDefault();
+      await fetch('/api/dashboard/classroom', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+        type: 'lesson_plan',
+        title: (document.getElementById('planTitle') as HTMLInputElement).value,
+        courseId: (document.getElementById('planCourse') as HTMLSelectElement).value ? parseInt((document.getElementById('planCourse') as HTMLSelectElement).value) : null,
+        week: (document.getElementById('planWeek') as HTMLInputElement).value || null,
+        objectives: (document.getElementById('planObjectives') as HTMLTextAreaElement).value || null,
+      })});
+      location.reload();
+    }
+    async function submitLog(e: Event) {
+      e.preventDefault();
+      await fetch('/api/dashboard/classroom', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+        type: 'behavior_log',
+        studentId: parseInt((document.getElementById('logStudent') as HTMLSelectElement).value),
+        behaviorType: (document.getElementById('logType') as HTMLSelectElement).value,
+        points: parseInt((document.getElementById('logPoints') as HTMLInputElement).value),
+        category: (document.getElementById('logCategory') as HTMLInputElement).value || null,
+        description: (document.getElementById('logDescription') as HTMLTextAreaElement).value || null,
+      })});
+      location.reload();
+    }
+    async function deletePlan(id: number) {
+      if (!confirm('Delete this lesson plan?')) return;
+      await fetch('/api/dashboard/classroom', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, tableType: 'lesson_plan' }) });
+      location.reload();
+    }
+  </script>
+</DashboardLayout>

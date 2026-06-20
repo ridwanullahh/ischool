@@ -1,0 +1,98 @@
+---
+import '../../styles/global.css';
+import LanguageSelector from '../../components/LanguageSelector.astro';
+import SchoolBannerPopup from '../../components/SchoolBannerPopup.astro';
+import PublicAIChatWidget from '../../components/PublicAIChatWidget.astro';
+import { getSchoolNav, getSchoolContacts, getSchoolPalette } from '../../lib/school.ts';
+import { normalizeSocialUrl, getSocialIcon } from '../../lib/social.ts';
+
+interface Props { school: any; title?: string; }
+const { school, title } = Astro.props;
+const nav = getSchoolNav(school.id);
+const contacts = getSchoolContacts(school.id);
+const palette = getSchoolPalette(school);
+const pageTitle = title ? `${title} — ${school.name}` : school.name;
+const prefix = `/${school.slug}`;
+const { pathname } = Astro.url;
+const social = (school.socialHandles as Record<string, string>) || {};
+const socialEntries = Object.entries(social).filter(([, v]) => v && v !== '#');
+---
+<!doctype html>
+<html lang={school.locale || 'en'} dir={['ar','he','fa','ur'].includes(school.locale || 'en') ? 'rtl' : 'ltr'} class="light scroll-smooth">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="description" content={school.tagline || school.name} />
+  {school.faviconUrl && <link rel="icon" href={school.faviconUrl} />}
+  <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;600;700&display=swap" rel="stylesheet" />
+  <title>{pageTitle}</title>
+  <script is:inline>(function(){var s=localStorage.getItem('themeMode');var d=window.matchMedia('(prefers-color-scheme:dark)').matches;var dk=s==='dark'||(!s&&d);document.documentElement.classList.remove('light','dark');document.documentElement.classList.add(dk?'dark':'light')})();</script>
+  <style is:inline>{`
+    html.light{--bg:#f3f3f3;--surface:rgba(255,255,255,.7);--text:#1a1a1a;--muted:#616161;--border:rgba(0,0,0,.06);--accent:${palette.accent};--primary:${palette.primary}}
+    html.dark{--bg:#202020;--surface:rgba(44,44,44,.7);--text:#fff;--muted:#b0b0b0;--border:rgba(255,255,255,.08);--accent:${palette.accent};--primary:${palette.primary}}
+    :root{--tp:${palette.primary}}
+    .fluent-acrylic{backdrop-filter:blur(40px) saturate(180%);-webkit-backdrop-filter:blur(40px) saturate(180%);background:var(--surface)}
+    .fluent-card{background:var(--surface);backdrop-filter:blur(20px);border-radius:8px;border:1px solid var(--border);transition:box-shadow .2s}
+    .fluent-card:hover{box-shadow:0 8px 16px rgba(0,0,0,.08)}
+    .fluent-reveal{position:relative;overflow:hidden}
+    .fluent-reveal::after{content:'';position:absolute;inset:0;background:radial-gradient(600px circle at var(--x,50%) var(--y,50%),rgba(255,255,255,.06),transparent 40%);opacity:0;transition:opacity .3s;pointer-events:none}
+    .fluent-reveal:hover::after{opacity:1}
+    .fluent-pill{padding:6px 20px;border-radius:4px;font-size:13px;font-weight:600;transition:all .15s}
+  `}</style>
+</head>
+<body class="min-h-screen" style="background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif">
+  <header class="sticky top-0 z-40 fluent-acrylic">
+    <div class="px-4 lg:px-8 h-12 flex items-center justify-between">
+      <a href={`${prefix}/`} class="flex items-center gap-2">
+        {school.logoUrl ? <img src={school.logoUrl} class="h-6 w-auto" /> : (
+          <div class="w-6 h-6 rounded flex items-center justify-center text-white text-[10px] font-bold" style="background:var(--primary)">{school.name.charAt(0)}</div>
+        )}
+        <span class="text-sm font-semibold">{school.name}</span>
+      </a>
+      <nav class="hidden lg:flex items-center gap-0.5">
+        {nav.map(item => (
+          <a href={`${prefix}${item.url}`} class="fluent-reveal px-3 py-1.5 rounded text-sm font-medium transition-all" style={pathname === `${prefix}${item.url}` ? `background:color-mix(in srgb, var(--primary) 12%, transparent);color:var(--primary)` : `color:var(--muted)`}>{item.label}</a>
+        ))}
+      </nav>
+      <div class="flex items-center gap-2">
+        <LanguageSelector />
+        <button id="theme-toggle" class="w-7 h-7 rounded flex items-center justify-center" style="color:var(--muted)"><svg class="w-4 h-4 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg><svg class="w-4 h-4 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg></button>
+        <a href={`${prefix}/admissions`} class="hidden lg:inline-flex fluent-pill text-white text-xs" style="background:var(--primary)">Apply Now</a>
+        <button id="mob-tog" class="lg:hidden w-7 h-7 rounded flex items-center justify-center" style="color:var(--muted)"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+      </div>
+    </div>
+    <div id="mob-menu" class="hidden lg:hidden fluent-acrylic" style="border-top:1px solid var(--border)">
+      <div class="px-4 py-3 space-y-0.5">{nav.map(item => (<a href={`${prefix}${item.url}`} class="block px-4 py-2.5 rounded text-sm font-medium" style={pathname === `${prefix}${item.url}` ? `background:color-mix(in srgb, var(--primary) 12%, transparent);color:var(--primary)` : `color:var(--text)`}>{item.label}</a>))}</div>
+    </div>
+  </header>
+  <main><slot /></main>
+  <footer style="background:var(--surface);border-top:1px solid var(--border)">
+    <div class="max-w-6xl mx-auto px-4 lg:px-8 py-16">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div class="md:col-span-2">
+          <div class="flex items-center gap-2 mb-3">
+            <div class="w-7 h-7 rounded flex items-center justify-center text-white text-[10px] font-bold" style="background:var(--primary)">{school.name.charAt(0)}</div>
+            <span class="font-semibold">{school.name}</span>
+          </div>
+          {school.tagline && <p class="text-sm max-w-sm" style="color:var(--muted)">{school.tagline}</p>}
+        </div>
+        <div>
+          <h4 class="text-xs font-semibold uppercase tracking-wider mb-3" style="color:var(--primary)">Links</h4>
+          <ul class="space-y-2">{nav.slice(0,6).map(item => <li><a href={`${prefix}${item.url}`} class="text-sm hover:opacity-80" style="color:var(--muted)">{item.label}</a></li>)}</ul>
+        </div>
+        <div>
+          <h4 class="text-xs font-semibold uppercase tracking-wider mb-3" style="color:var(--primary)">Contact</h4>
+          <ul class="space-y-2">{contacts.slice(0,4).map(c => <li class="text-sm" style="color:var(--muted)">{c.label}: {c.value}</li>)}</ul>
+          {socialEntries.length > 0 && (<div class="flex gap-2 mt-3">{socialEntries.map(([p, h]) => (<a href={normalizeSocialUrl(h, p)} target="_blank" rel="noopener" class="w-8 h-8 rounded flex items-center justify-center" style="background:var(--border);color:var(--muted)"><svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d={getSocialIcon(p)}/></svg></a>))}</div>)}
+        </div>
+      </div>
+      <div class="mt-12 pt-6 text-center text-xs" style="border-top:1px solid var(--border);color:var(--muted)">&copy; {new Date().getFullYear()} {school.name} — Powered by <a href="/" class="hover:opacity-80">iSchool</a></div>
+    </div>
+  </footer>
+  <script>
+    document.getElementById('mob-tog')?.addEventListener('click',()=>document.getElementById('mob-menu')?.classList.toggle('hidden'));
+    document.getElementById('theme-toggle')?.addEventListener('click',()=>{const h=document.documentElement;const d=h.classList.contains('dark');h.classList.remove('light','dark');h.classList.add(d?'light':'dark');localStorage.setItem('themeMode',d?'light':'dark')});
+  </script>
+  <SchoolBannerPopup schoolId={school.id} />
+  <PublicAIChatWidget schoolSlug={school.slug} />
+</body>
+</html>

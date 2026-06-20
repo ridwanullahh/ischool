@@ -1,0 +1,77 @@
+---
+const { context, moduleId } = Astro.props;
+---
+
+<div class="ai-suggest-wrapper" data-context={context} data-module={moduleId}>
+  <button
+    type="button"
+    class="ai-suggest-btn inline-flex items-center gap-1.5 text-xs font-medium text-primary-600 bg-primary-50 hover:bg-primary-100 px-3 py-1.5 rounded-lg transition-colors"
+    onclick="handleAISuggest(this)"
+  >
+    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+    </svg>
+    AI Suggest
+  </button>
+  <div class="ai-suggest-result hidden mt-2 p-3 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 shadow-sm">
+    <div class="ai-suggest-loading hidden">
+      <div class="flex items-center gap-2">
+        <div class="w-4 h-4 border-2 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
+        <span class="text-gray-500">Generating suggestion...</span>
+      </div>
+    </div>
+    <div class="ai-suggest-content hidden"></div>
+  </div>
+</div>
+
+<style>
+  .ai-suggest-wrapper { display: inline-block; }
+</style>
+
+<script is:inline>
+  async function handleAISuggest(btn) {
+    const wrapper = btn.closest('.ai-suggest-wrapper');
+    const result = wrapper.querySelector('.ai-suggest-result');
+    const loading = wrapper.querySelector('.ai-suggest-loading');
+    const content = wrapper.querySelector('.ai-suggest-content');
+    const context = wrapper.dataset.context;
+    const module = wrapper.dataset.module;
+
+    result.classList.remove('hidden');
+    loading.classList.remove('hidden');
+    content.classList.add('hidden');
+
+    const prompts = {
+      lesson_plan: 'Create a concise lesson plan outline for a 45-minute class session. Include objectives, activities, and assessment.',
+      blog_post: 'Write a brief, engaging blog post introduction for a school newsletter about recent achievements.',
+      announcement: 'Draft a professional school announcement that is clear, concise, and informative.',
+      report_card: 'Write constructive feedback comments for a student report card that highlights strengths and areas for improvement.',
+      email_parent: 'Draft a professional email to a parent about their child\'s progress.',
+      course_description: 'Write an engaging course description that covers objectives, prerequisites, and expected outcomes.',
+      event_description: 'Write an exciting event description that encourages attendance and participation.',
+      default: 'Generate a helpful suggestion for this context: ' + context,
+    };
+
+    const message = prompts[module] || prompts.default;
+
+    try {
+      const res = await fetch('/api/dashboard/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message }),
+      });
+      loading.classList.add('hidden');
+      content.classList.remove('hidden');
+      if (res.ok) {
+        const data = await res.json();
+        content.textContent = data.response || 'No suggestion available.';
+      } else {
+        content.textContent = 'AI is not configured. Please contact admin.';
+      }
+    } catch {
+      loading.classList.add('hidden');
+      content.classList.remove('hidden');
+      content.textContent = 'Failed to get suggestion. Please try again.';
+    }
+  }
+</script>

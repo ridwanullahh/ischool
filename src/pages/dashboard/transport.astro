@@ -1,0 +1,232 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { getDb } from '../../lib/db/index.js';
+import { vehicles, transportRoutes, schoolMembers } from '../../lib/db/schema.js';
+import { eq } from 'drizzle-orm';
+
+const user = Astro.locals.user;
+if (!user) return Astro.redirect('/auth/login');
+
+const db = getDb();
+const membership = db.select().from(schoolMembers).where(eq(schoolMembers.userId, user.id)).get();
+const schoolId = membership?.schoolId;
+
+const allVehicles = schoolId ? db.select().from(vehicles).where(eq(vehicles.schoolId, schoolId)).all() : [];
+const allRoutes = schoolId ? db.select().from(transportRoutes).where(eq(transportRoutes.schoolId, schoolId)).all() : [];
+---
+
+<DashboardLayout title="Transport - iSchool">
+  <div class="space-y-6">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div>
+        <h2 class="text-2xl font-bold text-gray-900">Transport Management</h2>
+        <p class="text-sm text-gray-500 mt-1">Manage vehicles and routes</p>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="document.getElementById('addVehicleModal').classList.remove('hidden')" class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 font-medium text-sm">+ Add Vehicle</button>
+        <button onclick="document.getElementById('addRouteModal').classList.remove('hidden')" class="bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-800 font-medium text-sm">+ Add Route</button>
+        <button onclick="exportCsv('transport', 'exportType=vehicles')" class="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 font-medium text-sm">Export Vehicles</button>
+        <button onclick="exportCsv('transport', 'exportType=routes')" class="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 font-medium text-sm">Export Routes</button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="bg-white rounded-lg shadow p-5"><div class="text-sm text-gray-500">Vehicles</div><div class="text-2xl font-bold text-gray-900 mt-1">{allVehicles.length}</div></div>
+      <div class="bg-white rounded-lg shadow p-5"><div class="text-sm text-gray-500">Active</div><div class="text-2xl font-bold text-green-600 mt-1">{allVehicles.filter((v: any) => v.status === 'active').length}</div></div>
+      <div class="bg-white rounded-lg shadow p-5"><div class="text-sm text-gray-500">Routes</div><div class="text-2xl font-bold text-blue-600 mt-1">{allRoutes.length}</div></div>
+    </div>
+
+    <!-- Vehicles -->
+    <div class="bg-white rounded-lg shadow">
+      <div class="p-4 border-b border-gray-200"><h3 class="text-lg font-semibold">Vehicles</h3></div>
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead class="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Plate</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Capacity</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200">
+            {allVehicles.length === 0 ? (
+              <tr><td colspan="6" class="px-6 py-8 text-center text-gray-500">No vehicles registered.</td></tr>
+            ) : (
+              allVehicles.map((v: any) => (
+                <tr class="hover:bg-gray-50">
+                  <td class="px-6 py-4 text-sm font-medium text-gray-900">{v.name}</td>
+                  <td class="px-6 py-4 text-sm text-gray-600">{v.plateNumber || '-'}</td>
+                  <td class="px-6 py-4 text-sm text-gray-600 capitalize">{v.type}</td>
+                  <td class="px-6 py-4 text-sm text-gray-600">{v.capacity || '-'}</td>
+                  <td class="px-6 py-4">
+                    <span class={`px-2 py-1 text-xs font-medium rounded ${v.status === 'active' ? 'bg-green-100 text-green-700' : v.status === 'maintenance' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-700'}`}>{v.status}</span>
+                  </td>
+                  <td class="px-6 py-4 text-sm">
+                    <button onclick={`confirmDelete(${v.id}, '${v.name.replace(/'/g, "\\'")}')`} class="text-red-600 hover:text-red-700">Delete</button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Routes -->
+    <div class="bg-white rounded-lg shadow">
+      <div class="p-4 border-b border-gray-200"><h3 class="text-lg font-semibold">Routes</h3></div>
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead class="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vehicle</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stops</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200">
+            {allRoutes.length === 0 ? (
+              <tr><td colspan="4" class="px-6 py-8 text-center text-gray-500">No routes defined.</td></tr>
+            ) : (
+              allRoutes.map((r: any) => {
+                const vehicle = allVehicles.find((v: any) => v.id === r.vehicleId);
+                const stops = Array.isArray(r.stops) ? r.stops : [];
+                return (
+                  <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 text-sm font-medium text-gray-900">{r.name}</td>
+                    <td class="px-6 py-4 text-sm text-gray-600">{vehicle?.name || '-'}</td>
+                    <td class="px-6 py-4 text-sm text-gray-600">{stops.length}</td>
+                    <td class="px-6 py-4 text-sm">
+                      <button onclick={`confirmDeleteRoute(${r.id}, '${r.name.replace(/'/g, "\\'")}')`} class="text-red-600 hover:text-red-700">Delete</button>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Vehicle Modal -->
+  <div id="addVehicleModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4">
+      <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+        <h3 class="text-lg font-semibold">Add Vehicle</h3>
+        <button onclick="document.getElementById('addVehicleModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+      </div>
+      <form id="addVehicleForm" class="p-6 space-y-4">
+        <div class="grid grid-cols-2 gap-4">
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Name *</label><input name="name" required class="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Plate Number</label><input name="plateNumber" class="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
+            <select name="type" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+              <option value="bus">Bus</option><option value="van">Van</option><option value="car">Car</option>
+            </select>
+          </div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Capacity</label><input name="capacity" type="number" class="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+        </div>
+        <div id="addVehicleError" class="text-red-600 text-sm hidden"></div>
+        <div class="flex justify-end gap-3 pt-4 border-t border-gray-200">
+          <button type="button" onclick="document.getElementById('addVehicleModal').classList.add('hidden')" class="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">Add Vehicle</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add Route Modal -->
+  <div id="addRouteModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4">
+      <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+        <h3 class="text-lg font-semibold">Add Route</h3>
+        <button onclick="document.getElementById('addRouteModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+      </div>
+      <form id="addRouteForm" class="p-6 space-y-4">
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">Route Name *</label><input name="name" required class="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">Vehicle</label>
+          <select name="vehicleId" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+            <option value="">Select Vehicle</option>
+            {allVehicles.map((v: any) => <option value={v.id}>{v.name}</option>)}
+          </select>
+        </div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">Stops (JSON array)</label><textarea name="stops" rows="3" placeholder='["Stop 1","Stop 2","Stop 3"]' class="w-full px-3 py-2 border border-gray-300 rounded-lg"></textarea></div>
+        <div id="addRouteError" class="text-red-600 text-sm hidden"></div>
+        <div class="flex justify-end gap-3 pt-4 border-t border-gray-200">
+          <button type="button" onclick="document.getElementById('addRouteModal').classList.add('hidden')" class="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">Add Route</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete Modal -->
+  <div id="deleteModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4 p-6">
+      <h3 class="text-lg font-semibold text-gray-900 mb-2">Confirm Delete</h3>
+      <p class="text-gray-600 mb-6">Are you sure you want to delete <strong id="deleteName"></strong>?</p>
+      <div class="flex justify-end gap-3">
+        <button onclick="document.getElementById('deleteModal').classList.add('hidden')" class="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
+        <button id="confirmDeleteBtn" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('addVehicleForm')?.addEventListener('submit', async (e: Event) => {
+      e.preventDefault();
+      const form = e.target as HTMLFormElement;
+      const data = Object.fromEntries(new FormData(form));
+      if (data.capacity) data.capacity = Number(data.capacity);
+      const errEl = document.getElementById('addVehicleError')!;
+      errEl.classList.add('hidden');
+      try {
+        const res = await fetch('/api/dashboard/transport', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'vehicle', ...data }) });
+        if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Failed'); }
+        window.location.reload();
+      } catch (err: any) { errEl.textContent = err.message; errEl.classList.remove('hidden'); }
+    });
+
+    document.getElementById('addRouteForm')?.addEventListener('submit', async (e: Event) => {
+      e.preventDefault();
+      const form = e.target as HTMLFormElement;
+      const data = Object.fromEntries(new FormData(form));
+      if (data.vehicleId) data.vehicleId = Number(data.vehicleId);
+      if (data.stops) { try { data.stops = JSON.parse(data.stops as string); } catch { data.stops = '[]'; } } else { data.stops = '[]'; }
+      const errEl = document.getElementById('addRouteError')!;
+      errEl.classList.add('hidden');
+      try {
+        const res = await fetch('/api/dashboard/transport', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'route', ...data }) });
+        if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Failed'); }
+        window.location.reload();
+      } catch (err: any) { errEl.textContent = err.message; errEl.classList.remove('hidden'); }
+    });
+
+    let deleteTarget: { id: number; type: string } | null = null;
+    (window as any).confirmDelete = (id: number, name: string) => {
+      deleteTarget = { id, type: 'vehicle' };
+      document.getElementById('deleteName')!.textContent = name;
+      document.getElementById('deleteModal')!.classList.remove('hidden');
+    };
+    (window as any).confirmDeleteRoute = (id: number, name: string) => {
+      deleteTarget = { id, type: 'route' };
+      document.getElementById('deleteName')!.textContent = name;
+      document.getElementById('deleteModal')!.classList.remove('hidden');
+    };
+
+    document.getElementById('confirmDeleteBtn')?.addEventListener('click', async () => {
+      if (!deleteTarget) return;
+      try {
+        await fetch('/api/dashboard/transport', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: deleteTarget.id, type: deleteTarget.type }) });
+        window.location.reload();
+      } catch { document.getElementById('deleteModal')!.classList.add('hidden'); }
+    });
+  </script>
+</DashboardLayout>

@@ -1,0 +1,176 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { getDb } from '../../lib/db/index.js';
+import { hostels, hostelRooms, schoolMembers } from '../../lib/db/schema.js';
+import { eq } from 'drizzle-orm';
+
+const user = Astro.locals.user;
+if (!user) return Astro.redirect('/auth/login');
+
+const db = getDb();
+const membership = db.select().from(schoolMembers).where(eq(schoolMembers.userId, user.id)).get();
+const schoolId = membership?.schoolId;
+
+const allHostels = schoolId ? db.select().from(hostels).where(eq(hostels.schoolId, schoolId)).all() : [];
+const allRooms = allHostels.length > 0
+  ? db.select().from(hostelRooms).all().filter((r: any) => allHostels.some((h: any) => h.id === r.hostelId))
+  : [];
+---
+
+<DashboardLayout title="Hostel - iSchool">
+  <div class="space-y-6">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div>
+        <h2 class="text-2xl font-bold text-gray-900">Hostel Management</h2>
+        <p class="text-sm text-gray-500 mt-1">Manage dormitories, rooms, and allocations</p>
+      </div>
+      <button onclick="document.getElementById('addModal').classList.remove('hidden')" class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 font-medium">+ Add Hostel</button>
+      <button onclick="exportCsv('hostel')" class="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 font-medium text-sm">Export CSV</button>
+    </div>
+    </div> grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="bg-white rounded-lg shadow p-5"><div class="text-sm text-gray-500">Hostels</div><div class="text-2xl font-bold text-gray-900 mt-1">{allHostels.length}</div></div>
+      <div class="bg-white rounded-lg shadow p-5"><div class="text-sm text-gray-500">Total Rooms</div><div class="text-2xl font-bold text-gray-900 mt-1">{allRooms.length}</div></div>
+      <div class="bg-white rounded-lg shadow p-5"><div class="text-sm text-gray-500">Available</div><div class="text-2xl font-bold text-green-600 mt-1">{allRooms.filter((r: any) => r.status === 'available').length}</div></div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow">
+      <div class="p-4 border-b border-gray-200"><h3 class="text-lg font-semibold">Hostels</h3></div>
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead class="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rooms</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Beds</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200">
+            {allHostels.length === 0 ? (
+              <tr><td colspan="5" class="px-6 py-8 text-center text-gray-500">No hostels configured.</td></tr>
+            ) : (
+              allHostels.map((h: any) => (
+                <tr class="hover:bg-gray-50">
+                  <td class="px-6 py-4 text-sm font-medium text-gray-900">{h.name}</td>
+                  <td class="px-6 py-4 text-sm text-gray-600 capitalize">{h.type || 'mixed'}</td>
+                  <td class="px-6 py-4 text-sm text-gray-600">{h.totalRooms || 0}</td>
+                  <td class="px-6 py-4 text-sm text-gray-600">{h.totalBeds || 0}</td>
+                  <td class="px-6 py-4 text-sm">
+                    <button onclick={`confirmDelete(${h.id}, '${h.name.replace(/'/g, "\\'")}')`} class="text-red-600 hover:text-red-700">Delete</button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    {allRooms.length > 0 && (
+      <div class="bg-white rounded-lg shadow">
+        <div class="p-4 border-b border-gray-200"><h3 class="text-lg font-semibold">Rooms</h3></div>
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead class="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Room #</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hostel</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Floor</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Occupancy</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+              {allRooms.map((room: any) => {
+                const hostel = allHostels.find((h: any) => h.id === room.hostelId);
+                return (
+                  <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 text-sm font-medium text-gray-900">{room.roomNumber}</td>
+                    <td class="px-6 py-4 text-sm text-gray-600">{hostel?.name || '-'}</td>
+                    <td class="px-6 py-4 text-sm text-gray-600">{room.floor || '-'}</td>
+                    <td class="px-6 py-4 text-sm text-gray-600 capitalize">{room.type}</td>
+                    <td class="px-6 py-4 text-sm text-gray-600">{room.occupants}/{room.capacity}</td>
+                    <td class="px-6 py-4">
+                      <span class={`px-2 py-1 text-xs font-medium rounded ${room.status === 'available' ? 'bg-green-100 text-green-700' : room.status === 'full' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}>{room.status}</span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    )}
+  </div>
+
+  <div id="addModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4">
+      <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+        <h3 class="text-lg font-semibold">Add Hostel</h3>
+        <button onclick="document.getElementById('addModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+      </div>
+      <form id="addForm" class="p-6 space-y-4">
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">Name *</label><input name="name" required class="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+        <div class="grid grid-cols-3 gap-4">
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
+            <select name="type" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+              <option value="boys">Boys</option><option value="girls">Girls</option><option value="mixed">Mixed</option>
+            </select>
+          </div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Total Rooms</label><input name="totalRooms" type="number" value="0" class="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Total Beds</label><input name="totalBeds" type="number" value="0" class="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+        </div>
+        <div id="addError" class="text-red-600 text-sm hidden"></div>
+        <div class="flex justify-end gap-3 pt-4 border-t border-gray-200">
+          <button type="button" onclick="document.getElementById('addModal').classList.add('hidden')" class="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">Add Hostel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="deleteModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4 p-6">
+      <h3 class="text-lg font-semibold text-gray-900 mb-2">Confirm Delete</h3>
+      <p class="text-gray-600 mb-6">Are you sure you want to delete <strong id="deleteName"></strong>?</p>
+      <div class="flex justify-end gap-3">
+        <button onclick="document.getElementById('deleteModal').classList.add('hidden')" class="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
+        <button id="confirmDeleteBtn" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('addForm')?.addEventListener('submit', async (e: Event) => {
+      e.preventDefault();
+      const form = e.target as HTMLFormElement;
+      const data = Object.fromEntries(new FormData(form));
+      if (data.totalRooms) data.totalRooms = Number(data.totalRooms);
+      if (data.totalBeds) data.totalBeds = Number(data.totalBeds);
+      const errEl = document.getElementById('addError')!;
+      errEl.classList.add('hidden');
+      try {
+        const res = await fetch('/api/dashboard/hostel', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+        if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Failed'); }
+        window.location.reload();
+      } catch (err: any) { errEl.textContent = err.message; errEl.classList.remove('hidden'); }
+    });
+
+    let deleteTargetId: number | null = null;
+    (window as any).confirmDelete = (id: number, name: string) => {
+      deleteTargetId = id;
+      document.getElementById('deleteName')!.textContent = name;
+      document.getElementById('deleteModal')!.classList.remove('hidden');
+    };
+
+    document.getElementById('confirmDeleteBtn')?.addEventListener('click', async () => {
+      if (!deleteTargetId) return;
+      try {
+        await fetch('/api/dashboard/hostel', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: deleteTargetId }) });
+        window.location.reload();
+      } catch { document.getElementById('deleteModal')!.classList.add('hidden'); }
+    });
+  </script>
+</DashboardLayout>

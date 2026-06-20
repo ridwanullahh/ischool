@@ -1,0 +1,223 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import Input from '../../components/ui/Input.astro';
+import Button from '../../components/ui/Button.astro';
+import { getUserSchool } from '../../lib/school.js';
+import { generateDefaultPalette } from '../../lib/palette.js';
+import { socialPlatforms } from '../../lib/social.js';
+
+const user = Astro.locals.user!;
+const school = getUserSchool(user.id);
+const success = Astro.url.searchParams.get('success');
+
+const settings = (school?.settings as any) || {};
+const palette = settings.palette || {};
+const socialHandles = (school?.socialHandles as Record<string, string>) || {};
+const defaultPalette = generateDefaultPalette(school?.primaryColor || '#2563eb');
+---
+
+<DashboardLayout title="Settings - iSchool">
+  {success && (
+    <div class="mb-6 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">Settings saved successfully.</div>
+  )}
+
+  <form method="POST" action="/api/dashboard/settings" class="space-y-6">
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <h2 class="text-base font-semibold text-gray-900 mb-4">General</h2>
+      <div class="space-y-4">
+        <Input label="School Name" name="name" value={school?.name || ''} required />
+        <Input label="Tagline" name="tagline" value={school?.tagline || ''} placeholder="A short description of your school" />
+        <Input label="URL Slug" name="slug" value={school?.slug || ''} required />
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Default Language</label>
+          <select name="locale" class="w-full block rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-600 focus:outline-none focus:ring-1 focus:ring-primary-600">
+            <option value="en" selected={(school?.locale || 'en') === 'en'}>English</option>
+            <option value="ar" selected={school?.locale === 'ar'}>العربية (Arabic)</option>
+            <option value="fr" selected={school?.locale === 'fr'}>Français (French)</option>
+            <option value="es" selected={school?.locale === 'es'}>Español (Spanish)</option>
+            <option value="de" selected={school?.locale === 'de'}>Deutsch (German)</option>
+            <option value="ur" selected={school?.locale === 'ur'}>اردو (Urdu)</option>
+            <option value="tr" selected={school?.locale === 'tr'}>Türkçe (Turkish)</option>
+            <option value="id" selected={school?.locale === 'id'}>Bahasa Indonesia</option>
+            <option value="ha" selected={school?.locale === 'ha'}>Hausa</option>
+          </select>
+          <p class="text-xs text-gray-500 mt-1">Sets the default language and text direction for your school website</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <h2 class="text-base font-semibold text-gray-900 mb-4">Branding</h2>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Logo</label>
+          <div class="flex items-center gap-3">
+            <input type="text" name="logoUrl" id="logoUrl" value={school?.logoUrl || ''} placeholder="Upload or paste URL..." class="flex-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-600 focus:outline-none focus:ring-1 focus:ring-primary-600" />
+            <label class="cursor-pointer bg-gray-100 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-200 text-sm font-medium">
+              Upload
+              <input type="file" accept="image/*" class="hidden" onchange="uploadFile(this, 'logoUrl', 'branding')" />
+            </label>
+          </div>
+          {school?.logoUrl && <img src={school.logoUrl} alt="Logo" class="mt-2 h-12 object-contain rounded" />}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Favicon</label>
+          <div class="flex items-center gap-3">
+            <input type="text" name="faviconUrl" id="faviconUrl" value={school?.faviconUrl || ''} placeholder="Upload or paste URL..." class="flex-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-600 focus:outline-none focus:ring-1 focus:ring-primary-600" />
+            <label class="cursor-pointer bg-gray-100 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-200 text-sm font-medium">
+              Upload
+              <input type="file" accept="image/*" class="hidden" onchange="uploadFile(this, 'faviconUrl', 'branding')" />
+            </label>
+          </div>
+          {school?.faviconUrl && <img src={school.faviconUrl} alt="Favicon" class="mt-2 h-8 w-8 object-contain rounded" />}
+        </div>
+        <div class="space-y-1">
+          <label class="block text-sm font-medium text-gray-700">Primary Color</label>
+          <div class="flex items-center gap-3">
+            <input type="color" name="primaryColor" value={school?.primaryColor || '#2563eb'} class="w-10 h-10 rounded border border-gray-300 cursor-pointer" id="primaryColorPicker" />
+            <span class="text-sm text-gray-500" id="primaryColorLabel">{school?.primaryColor || '#2563eb'}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-base font-semibold text-gray-900">Color Palette</h2>
+        <button type="button" id="autoGeneratePalette" class="text-sm text-primary-600 hover:text-primary-700 font-medium">Auto-generate from primary</button>
+      </div>
+      <p class="text-xs text-gray-500 mb-4">Customize colors for light and dark modes. Leave blank to use auto-generated defaults.</p>
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        {[
+          { key: 'accent', label: 'Accent' },
+          { key: 'backgroundLight', label: 'Background (Light)' },
+          { key: 'backgroundDark', label: 'Background (Dark)' },
+          { key: 'surfaceLight', label: 'Surface (Light)' },
+          { key: 'surfaceDark', label: 'Surface (Dark)' },
+          { key: 'textLight', label: 'Text (Light)' },
+          { key: 'textDark', label: 'Text (Dark)' },
+          { key: 'mutedLight', label: 'Muted (Light)' },
+          { key: 'mutedDark', label: 'Muted (Dark)' },
+          { key: 'borderLight', label: 'Border (Light)' },
+          { key: 'borderDark', label: 'Border (Dark)' },
+        ].map(item => (
+          <div class="space-y-1">
+            <label class="block text-xs font-medium text-gray-600">{item.label}</label>
+            <div class="flex items-center gap-2">
+              <input type="color" name={`palette_${item.key}`} value={palette[item.key] || defaultPalette[item.key as keyof typeof defaultPalette] || '#000000'} class="w-8 h-8 rounded border border-gray-300 cursor-pointer" />
+              <span class="text-[11px] text-gray-400 truncate">{palette[item.key] || 'auto'}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <h2 class="text-base font-semibold text-gray-900 mb-4">Theme</h2>
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        {[
+          { name: 'harmony', icon: '🎵', desc: 'Modern glassmorphism' },
+          { name: 'scholar', icon: '📚', desc: 'Classical academic' },
+          { name: 'bloom', icon: '🌸', desc: 'Playful nature' },
+          { name: 'horizon', icon: '🏔️', desc: 'Ultra-minimal' },
+          { name: 'prestige', icon: '👑', desc: 'Luxury dark & gold' },
+          { name: 'spark', icon: '⚡', desc: 'Bold & energetic' },
+          { name: 'aurora', icon: '🌌', desc: 'Ethereal gradients' },
+          { name: 'serenity', icon: '🧘', desc: 'Zen minimalism' },
+          { name: 'heritage', icon: '🏛️', desc: 'Classical tradition' },
+          { name: 'campus', icon: '🎓', desc: 'Collegiate bold' },
+          { name: 'ember', icon: '🔥', desc: 'Warm earth tones' },
+          { name: 'prism', icon: '💎', desc: 'Creative geometric' },
+          { name: 'slate', icon: '📋', desc: 'Corporate clean' },
+          { name: 'oasis', icon: '🌿', desc: 'Nature fresh' },
+          { name: 'nova', icon: '🚀', desc: 'Futuristic tech' },
+          { name: 'mosaic', icon: '🎨', desc: 'Cultural vibrancy' },
+          { name: 'luxe', icon: '✨', desc: 'Elegant luxury gold' },
+          { name: 'vivid', icon: '🌈', desc: 'Bold vibrant gradients' },
+          { name: 'zenith', icon: '📐', desc: 'Sharp minimalism' },
+          { name: 'cascade', icon: '🌊', desc: 'Flowing organic' },
+          { name: 'pulse', icon: '💡', desc: 'Neon tech-forward' },
+        ].map(theme => {
+          const isActive = school?.theme === theme.name;
+          const primary = school?.primaryColor || '#2563eb';
+          return (
+            <label class:list={[
+              'relative flex flex-col items-center p-4 rounded-xl border-2 cursor-pointer transition-all',
+              isActive ? 'bg-opacity-5' : 'border-gray-200 hover:border-gray-300'
+            ]} style={isActive ? `border-color:${primary};background:${primary}10` : ''}>
+              <input type="radio" name="theme" value={theme.name} checked={isActive} class="sr-only" onchange="this.form.submit()" />
+              <div class="w-full h-16 rounded-lg mb-2 flex items-center justify-center text-2xl" style={`background:${primary}15`}>
+                {theme.icon}
+              </div>
+              <span class="text-sm font-medium text-gray-900 capitalize">{theme.name}</span>
+              <span class="text-xs text-gray-500">{theme.desc}</span>
+              {school?.slug && (
+                <a href={`/${school.slug}?preview_theme=${theme.name}`} target="_blank" class="mt-2 text-[11px] font-medium text-primary-600 hover:text-primary-700 underline">Preview</a>
+              )}
+              {isActive && (
+                <span class="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center" style={`background:${primary}`}>
+                  <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                </span>
+              )}
+            </label>
+          );
+        })}
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <h2 class="text-base font-semibold text-gray-900 mb-4">Social Handles</h2>
+      <p class="text-xs text-gray-500 mb-4">Enter usernames, handles, or full URLs. Leave blank to hide.</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {socialPlatforms.map(p => (
+          <Input
+            label={p.label}
+            name={`social_${p.key}`}
+            value={socialHandles[p.key] || ''}
+            placeholder={p.key === 'email' ? 'email@school.com' : p.key === 'whatsapp' ? '+1234567890' : `@handle or URL`}
+          />
+        ))}
+      </div>
+    </div>
+
+    <Button type="submit">Save Settings</Button>
+  </form>
+
+  <script>
+    async function uploadFile(input: HTMLInputElement, fieldId: string, folder: string) {
+      const file = input.files?.[0];
+      if (!file) return;
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('folder', folder);
+      const label = input.closest('label')!;
+      const origText = label.textContent;
+      label.textContent = 'Uploading...';
+      try {
+        const res = await fetch('/api/upload', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (res.ok && data[0]?.url) {
+          (document.getElementById(fieldId) as HTMLInputElement).value = data[0].url;
+        } else {
+          alert(data.error || 'Upload failed');
+        }
+      } catch { alert('Upload failed'); }
+      label.textContent = origText;
+    }
+
+    const btn = document.getElementById('autoGeneratePalette');
+    const primaryInput = document.getElementById('primaryColorPicker') as HTMLInputElement;
+    btn?.addEventListener('click', () => {
+      const form = btn.closest('form');
+      if (!form) return;
+      const paletteInputs = form.querySelectorAll('input[name^="palette_"]');
+      paletteInputs.forEach((input: any) => {
+        input.value = '';
+      });
+    });
+    primaryInput?.addEventListener('input', () => {
+      const label = document.getElementById('primaryColorLabel');
+      if (label) label.textContent = primaryInput.value;
+    });
+  </script>
+</DashboardLayout>

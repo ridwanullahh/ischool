@@ -1,0 +1,61 @@
+---
+import MarketingLayout from '../../layouts/MarketingLayout.astro';
+import { getDb } from '../../lib/db/index.js';
+import { platformDocs } from '../../lib/db/schema.js';
+import { eq, asc, and } from 'drizzle-orm';
+
+const db = getDb();
+const docs = db.select().from(platformDocs)
+  .where(eq(platformDocs.isPublished, true))
+  .orderBy(asc(platformDocs.sortOrder)).all();
+
+const categories = [...new Set(docs.map(d => d.category || 'Getting Started'))];
+---
+
+<MarketingLayout title="Documentation - iSchool">
+  <section class="py-20 bg-gray-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <h1 class="text-4xl font-bold text-gray-900">Documentation</h1>
+      <p class="mt-3 text-lg text-gray-600">Learn how to get the most out of iSchool for your school.</p>
+    </div>
+  </section>
+
+  <section class="py-16">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {docs.length === 0 ? (
+        <p class="text-gray-500 text-center py-12">Documentation is being prepared. Check back soon!</p>
+      ) : (
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          <aside class="lg:col-span-1">
+            <nav class="space-y-6">
+              {categories.map(cat => (
+                <div>
+                  <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-3">{cat}</h3>
+                  <div class="space-y-1">
+                    {docs.filter(d => (d.category || 'Getting Started') === cat).map(doc => (
+                      <a href={`/docs/${doc.slug}`} class="block px-3 py-2 text-sm text-gray-700 rounded-lg hover:bg-gray-100 transition-colors">
+                        {doc.title}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </nav>
+          </aside>
+
+          <div class="lg:col-span-3 space-y-6">
+            {docs.map(doc => (
+              <a href={`/docs/${doc.slug}`} class="block p-6 bg-white rounded-xl border border-gray-200 hover:shadow-md transition-shadow">
+                <div class="flex items-center gap-2 mb-2">
+                  <span class="text-xs font-medium bg-primary-50 text-primary-700 px-2 py-0.5 rounded-full">{doc.category}</span>
+                </div>
+                <h2 class="text-lg font-semibold text-gray-900 mb-1">{doc.title}</h2>
+                {doc.excerpt && <p class="text-sm text-gray-600">{doc.excerpt}</p>}
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  </section>
+</MarketingLayout>

@@ -1,0 +1,148 @@
+---
+interface Props {
+  schoolSlug: string;
+  schoolName?: string;
+}
+const { schoolSlug, schoolName = 'School Assistant' } = Astro.props;
+---
+
+<div id="public-ai-widget" class="fixed bottom-6 right-6 z-50">
+  <button id="public-ai-toggle" class="w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-105" style="background: var(--palette-primary, #2563eb);" title="Ask us anything">
+    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+  </button>
+
+  <div id="public-ai-panel" class="hidden absolute bottom-16 right-0 w-96 max-w-[calc(100vw-2rem)] bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden" style="height: 520px;">
+    <div class="px-4 py-3 flex items-center justify-between shrink-0 text-white rounded-t-2xl" style="background: var(--palette-primary, #2563eb);">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+        </div>
+        <div>
+          <p class="font-semibold text-sm" id="public-ai-name">School Assistant</p>
+          <p class="text-xs text-white/70">Ask anything about our school</p>
+        </div>
+      </div>
+      <button id="public-ai-close" class="p-1.5 hover:bg-white/20 rounded-lg transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+      </button>
+    </div>
+
+    <div id="public-ai-messages" class="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
+      <div class="flex justify-start">
+        <div class="bg-white rounded-2xl rounded-tl-sm px-4 py-2 max-w-[85%] shadow-sm text-sm text-gray-800" id="public-ai-welcome">
+          Hello! How can I help you today?
+        </div>
+      </div>
+      <div id="public-ai-suggestions" class="flex flex-wrap gap-2 pt-2"></div>
+    </div>
+
+    <div class="px-3 py-3 border-t border-gray-200 bg-white shrink-0">
+      <form id="public-ai-form" class="flex gap-2">
+        <input id="public-ai-input" type="text" placeholder="Type your question..." class="flex-1 px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2" style="focus:ring-color: var(--palette-primary, #2563eb);" autocomplete="off" />
+        <button type="submit" class="text-white px-4 py-2 rounded-xl transition-colors shrink-0" style="background: var(--palette-primary, #2563eb);">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  const slug = '{schoolSlug}';
+  const toggle = document.getElementById('public-ai-toggle')!;
+  const panel = document.getElementById('public-ai-panel')!;
+  const closeBtn = document.getElementById('public-ai-close')!;
+  const form = document.getElementById('public-ai-form')!;
+  const input = document.getElementById('public-ai-input') as HTMLInputElement;
+  const messagesEl = document.getElementById('public-ai-messages')!;
+  const welcomeEl = document.getElementById('public-ai-welcome')!;
+  const nameEl = document.getElementById('public-ai-name')!;
+  const suggestionsEl = document.getElementById('public-ai-suggestions')!;
+  let history: { role: string; content: string }[] = [];
+  let isLoading = false;
+  let initialized = false;
+
+  async function initWidget() {
+    if (initialized) return;
+    initialized = true;
+    try {
+      const res = await fetch(`/api/${slug}/ai-chat`);
+      if (res.ok) {
+        const cfg = await res.json();
+        if (cfg.welcomeMessage) welcomeEl.textContent = cfg.welcomeMessage;
+        if (cfg.chatbotName) nameEl.textContent = cfg.chatbotName;
+        if (cfg.suggestedQuestions) {
+          cfg.suggestedQuestions.forEach((q: string) => {
+            const btn = document.createElement('button');
+            btn.className = 'text-xs bg-white border border-gray-200 rounded-full px-3 py-1.5 text-gray-600 hover:bg-gray-100 transition-colors';
+            btn.textContent = q;
+            btn.addEventListener('click', () => { input.value = q; form.dispatchEvent(new Event('submit')); });
+            suggestionsEl.appendChild(btn);
+          });
+        }
+      }
+    } catch {}
+  }
+
+  toggle.addEventListener('click', () => {
+    panel.classList.toggle('hidden');
+    if (!panel.classList.contains('hidden')) { initWidget(); input.focus(); }
+  });
+  closeBtn.addEventListener('click', () => panel.classList.add('hidden'));
+
+  function addMsg(content: string, role: 'user' | 'assistant') {
+    const div = document.createElement('div');
+    div.className = role === 'user' ? 'flex justify-end' : 'flex justify-start';
+    const bubble = document.createElement('div');
+    bubble.className = role === 'user'
+      ? 'text-white rounded-2xl rounded-tr-sm px-4 py-2 max-w-[85%] text-sm whitespace-pre-wrap'
+      : 'bg-white rounded-2xl rounded-tl-sm px-4 py-2 max-w-[85%] shadow-sm text-sm text-gray-800 whitespace-pre-wrap';
+    if (role === 'user') bubble.style.background = 'var(--palette-primary, #2563eb)';
+    bubble.textContent = content;
+    div.appendChild(bubble);
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function addTyping() {
+    const div = document.createElement('div');
+    div.id = 'public-ai-typing';
+    div.className = 'flex justify-start';
+    div.innerHTML = '<div class="bg-white rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm"><div class="flex gap-1"><div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div><div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay:0.15s"></div><div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay:0.3s"></div></div></div>';
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (isLoading) return;
+    const msg = input.value.trim();
+    if (!msg) return;
+    input.value = '';
+    suggestionsEl.innerHTML = '';
+    addMsg(msg, 'user');
+    history.push({ role: 'user', content: msg });
+    isLoading = true;
+    addTyping();
+
+    try {
+      const res = await fetch(`/api/${slug}/ai-chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: msg, history: history.slice(-10) }),
+      });
+      document.getElementById('public-ai-typing')?.remove();
+      if (!res.ok) {
+        addMsg('Sorry, I\'m having trouble right now. Please try again later.', 'assistant');
+      } else {
+        const data = await res.json();
+        history.push({ role: 'assistant', content: data.response });
+        addMsg(data.response, 'assistant');
+      }
+    } catch {
+      document.getElementById('public-ai-typing')?.remove();
+      addMsg('Network error. Please try again.', 'assistant');
+    }
+    isLoading = false;
+  });
+</script>

@@ -1,0 +1,258 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { getDb } from '../../lib/db/index.js';
+import { libraryBooks, libraryLoans, schoolMembers } from '../../lib/db/schema.js';
+import { eq } from 'drizzle-orm';
+
+const user = Astro.locals.user;
+if (!user) return Astro.redirect('/auth/login');
+
+const db = getDb();
+const membership = db.select().from(schoolMembers).where(eq(schoolMembers.userId, user.id)).get();
+const schoolId = membership?.schoolId;
+
+const allBooks = schoolId ? db.select().from(libraryBooks).where(eq(libraryBooks.schoolId, schoolId)).all() : [];
+const allLoans = schoolId ? db.select().from(libraryLoans).where(eq(libraryLoans.schoolId, schoolId)).all() : [];
+---
+
+<DashboardLayout title="Library - iSchool">
+  <div class="space-y-6">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div>
+        <h2 class="text-2xl font-bold text-gray-900">Library</h2>
+        <p class="text-sm text-gray-500 mt-1">Manage library books and loans</p>
+      </div>
+      <button onclick="document.getElementById('addBookModal').classList.remove('hidden')" class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 font-medium">+ Add Book</button>
+      <button onclick="exportCsv('library')" class="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 font-medium text-sm">Export CSV</button>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div class="bg-white rounded-lg shadow p-5"><div class="text-sm text-gray-500">Total Books</div><div class="text-2xl font-bold text-gray-900 mt-1">{allBooks.length}</div></div>
+      <div class="bg-white rounded-lg shadow p-5"><div class="text-sm text-gray-500">Total Copies</div><div class="text-2xl font-bold text-gray-900 mt-1">{allBooks.reduce((sum: number, b: any) => sum + (b.totalCopies || 0), 0)}</div></div>
+      <div class="bg-white rounded-lg shadow p-5"><div class="text-sm text-gray-500">Active Loans</div><div class="text-2xl font-bold text-blue-600 mt-1">{allLoans.filter((l: any) => l.status === 'active').length}</div></div>
+      <div class="bg-white rounded-lg shadow p-5"><div class="text-sm text-gray-500">Overdue</div><div class="text-2xl font-bold text-red-600 mt-1">{allLoans.filter((l: any) => l.status === 'overdue').length}</div></div>
+    </div>
+
+    <!-- Books Table -->
+    <div class="bg-white rounded-lg shadow">
+      <div class="p-4 border-b border-gray-200 flex flex-col sm:flex-row gap-3 justify-between items-center">
+        <h3 class="text-lg font-semibold">Books</h3>
+        <input id="searchBooks" type="text" placeholder="Search by title or author..." class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" />
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead class="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Title</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Author</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ISBN</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Copies</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200">
+            {allBooks.length === 0 ? (
+              <tr><td colspan="6" class="px-6 py-8 text-center text-gray-500">No books in library.</td></tr>
+            ) : (
+              allBooks.map((book: any) => (
+                <tr class="hover:bg-gray-50 book-row" data-title={`${book.title} ${book.author || ''}`.toLowerCase()}>
+                  <td class="px-6 py-4 text-sm font-medium text-gray-900">{book.title}</td>
+                  <td class="px-6 py-4 text-sm text-gray-600">{book.author || '-'}</td>
+                  <td class="px-6 py-4 text-sm text-gray-600">{book.isbn || '-'}</td>
+                  <td class="px-6 py-4 text-sm text-gray-600">{book.category || '-'}</td>
+                  <td class="px-6 py-4 text-sm text-gray-600">{book.availableCopies}/{book.totalCopies}</td>
+                  <td class="px-6 py-4 text-sm flex gap-2">
+                    <button onclick={`editBook(${book.id}, '${book.title.replace(/'/g, "\\'")}', '${book.author || ''}', '${book.isbn || ''}', '${book.category || ''}', '${book.genre || ''}', ${book.totalCopies || 1}, ${book.availableCopies || 1})`} class="text-primary-600 hover:text-primary-700">Edit</button>
+                    <button onclick={`confirmDelete(${book.id}, '${book.title.replace(/'/g, "\\'")}')`} class="text-red-600 hover:text-red-700">Delete</button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Loans Table -->
+    <div class="bg-white rounded-lg shadow">
+      <div class="p-4 border-b border-gray-200"><h3 class="text-lg font-semibold">Active Loans</h3></div>
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead class="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Book</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Borrower</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Issue Date</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Due Date</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fine</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200">
+            {allLoans.length === 0 ? (
+              <tr><td colspan="6" class="px-6 py-8 text-center text-gray-500">No loans recorded.</td></tr>
+            ) : (
+              allLoans.map((loan: any) => {
+                const book = allBooks.find((b: any) => b.id === loan.bookId);
+                return (
+                  <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 text-sm font-medium text-gray-900">{book?.title || `Book #${loan.bookId}`}</td>
+                    <td class="px-6 py-4 text-sm text-gray-600">User #{loan.borrowerId}</td>
+                    <td class="px-6 py-4 text-sm text-gray-600">{loan.issueDate}</td>
+                    <td class="px-6 py-4 text-sm text-gray-600">{loan.dueDate}</td>
+                    <td class="px-6 py-4">
+                      <span class={`px-2 py-1 text-xs font-medium rounded ${loan.status === 'active' ? 'bg-blue-100 text-blue-700' : loan.status === 'returned' ? 'bg-green-100 text-green-700' : loan.status === 'overdue' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'}`}>{loan.status}</span>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-600">{loan.fine ? `$${(loan.fine / 100).toFixed(2)}` : '-'}</td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Book Modal -->
+  <div id="addBookModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+      <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+        <h3 class="text-lg font-semibold">Add Book</h3>
+        <button onclick="document.getElementById('addBookModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+      </div>
+      <form id="addBookForm" class="p-6 space-y-4">
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">Title *</label><input name="title" required class="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+        <div class="grid grid-cols-2 gap-4">
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Author</label><input name="author" class="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">ISBN</label><input name="isbn" class="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+        </div>
+        <div class="grid grid-cols-3 gap-4">
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Category</label><input name="category" class="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Genre</label><input name="genre" class="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Publisher</label><input name="publisher" class="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+        </div>
+        <div class="grid grid-cols-3 gap-4">
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Total Copies</label><input name="totalCopies" type="number" value="1" class="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Available</label><input name="availableCopies" type="number" value="1" class="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Shelf Location</label><input name="shelfLocation" class="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+        </div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">Description</label><textarea name="description" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg"></textarea></div>
+        <div id="addBookError" class="text-red-600 text-sm hidden"></div>
+        <div class="flex justify-end gap-3 pt-4 border-t border-gray-200">
+          <button type="button" onclick="document.getElementById('addBookModal').classList.add('hidden')" class="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">Add Book</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit Book Modal -->
+  <div id="editBookModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+      <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+        <h3 class="text-lg font-semibold">Edit Book</h3>
+        <button onclick="document.getElementById('editBookModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+      </div>
+      <form id="editBookForm" class="p-6 space-y-4">
+        <input type="hidden" name="id" id="editBookId" />
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">Title *</label><input name="title" id="editBookTitle" required class="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+        <div class="grid grid-cols-2 gap-4">
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Author</label><input name="author" id="editBookAuthor" class="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">ISBN</label><input name="isbn" id="editBookIsbn" class="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Category</label><input name="category" id="editBookCategory" class="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Genre</label><input name="genre" id="editBookGenre" class="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Total Copies</label><input name="totalCopies" id="editBookTotal" type="number" class="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Available</label><input name="availableCopies" id="editBookAvail" type="number" class="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+        </div>
+        <div id="editBookError" class="text-red-600 text-sm hidden"></div>
+        <div class="flex justify-end gap-3 pt-4 border-t border-gray-200">
+          <button type="button" onclick="document.getElementById('editBookModal').classList.add('hidden')" class="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete Modal -->
+  <div id="deleteModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4 p-6">
+      <h3 class="text-lg font-semibold text-gray-900 mb-2">Confirm Delete</h3>
+      <p class="text-gray-600 mb-6">Are you sure you want to delete <strong id="deleteName"></strong>?</p>
+      <div class="flex justify-end gap-3">
+        <button onclick="document.getElementById('deleteModal').classList.add('hidden')" class="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
+        <button id="confirmDeleteBtn" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('searchBooks')?.addEventListener('input', (e: Event) => {
+      const q = ((e.target as HTMLInputElement).value || '').toLowerCase();
+      document.querySelectorAll('.book-row').forEach((row: Element) => {
+        const el = row as HTMLElement;
+        el.style.display = !q || (el.dataset.title || '').includes(q) ? '' : 'none';
+      });
+    });
+
+    document.getElementById('addBookForm')?.addEventListener('submit', async (e: Event) => {
+      e.preventDefault();
+      const form = e.target as HTMLFormElement;
+      const data = Object.fromEntries(new FormData(form));
+      if (data.totalCopies) data.totalCopies = Number(data.totalCopies);
+      if (data.availableCopies) data.availableCopies = Number(data.availableCopies);
+      const errEl = document.getElementById('addBookError')!;
+      errEl.classList.add('hidden');
+      try {
+        const res = await fetch('/api/dashboard/library', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+        if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Failed'); }
+        window.location.reload();
+      } catch (err: any) { errEl.textContent = err.message; errEl.classList.remove('hidden'); }
+    });
+
+    (window as any).editBook = (id: number, title: string, author: string, isbn: string, category: string, genre: string, total: number, avail: number) => {
+      (document.getElementById('editBookId') as HTMLInputElement).value = String(id);
+      (document.getElementById('editBookTitle') as HTMLInputElement).value = title;
+      (document.getElementById('editBookAuthor') as HTMLInputElement).value = author;
+      (document.getElementById('editBookIsbn') as HTMLInputElement).value = isbn;
+      (document.getElementById('editBookCategory') as HTMLInputElement).value = category;
+      (document.getElementById('editBookGenre') as HTMLInputElement).value = genre;
+      (document.getElementById('editBookTotal') as HTMLInputElement).value = String(total);
+      (document.getElementById('editBookAvail') as HTMLInputElement).value = String(avail);
+      document.getElementById('editBookModal')!.classList.remove('hidden');
+    };
+
+    document.getElementById('editBookForm')?.addEventListener('submit', async (e: Event) => {
+      e.preventDefault();
+      const form = e.target as HTMLFormElement;
+      const data = Object.fromEntries(new FormData(form));
+      const errEl = document.getElementById('editBookError')!;
+      errEl.classList.add('hidden');
+      try {
+        const res = await fetch('/api/dashboard/library', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: Number(data.id), ...data }) });
+        if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Failed'); }
+        window.location.reload();
+      } catch (err: any) { errEl.textContent = err.message; errEl.classList.remove('hidden'); }
+    });
+
+    let deleteTargetId: number | null = null;
+    (window as any).confirmDelete = (id: number, name: string) => {
+      deleteTargetId = id;
+      document.getElementById('deleteName')!.textContent = name;
+      document.getElementById('deleteModal')!.classList.remove('hidden');
+    };
+
+    document.getElementById('confirmDeleteBtn')?.addEventListener('click', async () => {
+      if (!deleteTargetId) return;
+      try {
+        await fetch('/api/dashboard/library', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: deleteTargetId }) });
+        window.location.reload();
+      } catch { document.getElementById('deleteModal')!.classList.add('hidden'); }
+    });
+  </script>
+</DashboardLayout>

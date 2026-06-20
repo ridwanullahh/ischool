@@ -1,0 +1,114 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { getDb } from '../../lib/db/index.js';
+import { platformDocs } from '../../lib/db/schema.js';
+import { asc } from 'drizzle-orm';
+import { formatDate } from '../../lib/utils.js';
+
+const db = getDb();
+const docs = db.select().from(platformDocs).orderBy(asc(platformDocs.sortOrder)).all();
+---
+
+<AdminLayout title="Docs - iSchool">
+  <div class="flex items-center justify-between mb-6">
+    <p class="text-sm text-gray-500">{docs.length} doc{docs.length !== 1 ? 's' : ''}</p>
+    <button type="button" id="new-doc-btn" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors">+ New Doc</button>
+  </div>
+
+  <div id="doc-form" class="hidden bg-white rounded-xl border border-gray-200 p-6 mb-6">
+    <h2 class="text-lg font-semibold text-gray-900 mb-4">New Documentation</h2>
+    <form method="POST" action="/api/admin/docs" class="space-y-4">
+      <input type="hidden" name="action" value="create" />
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="space-y-1">
+          <label class="block text-sm font-medium text-gray-700">Title *</label>
+          <input type="text" name="title" required class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500" />
+        </div>
+        <div class="space-y-1">
+          <label class="block text-sm font-medium text-gray-700">Slug *</label>
+          <input type="text" name="slug" required class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500" />
+        </div>
+        <div class="space-y-1">
+          <label class="block text-sm font-medium text-gray-700">Category</label>
+          <input type="text" name="category" value="Getting Started" class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500" />
+        </div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="space-y-1">
+          <label class="block text-sm font-medium text-gray-700">Excerpt</label>
+          <input type="text" name="excerpt" class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500" />
+        </div>
+        <div class="space-y-1">
+          <label class="block text-sm font-medium text-gray-700">Sort Order</label>
+          <input type="number" name="sortOrder" value="0" class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500" />
+        </div>
+      </div>
+      <div class="space-y-1">
+        <label class="block text-sm font-medium text-gray-700">Content *</label>
+        <textarea name="content" required rows={12} class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"></textarea>
+      </div>
+      <div class="flex items-center gap-4">
+        <label class="flex items-center gap-2 text-sm">
+          <input type="checkbox" name="isPublished" value="true" checked class="rounded border-gray-300" />
+          Published
+        </label>
+        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">Save Doc</button>
+        <button type="button" id="cancel-doc" class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800">Cancel</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full">
+        <thead>
+          <tr class="bg-gray-50 border-b border-gray-200">
+            <th class="text-left text-xs font-medium text-gray-500 px-6 py-3">Title</th>
+            <th class="text-left text-xs font-medium text-gray-500 px-6 py-3">Category</th>
+            <th class="text-left text-xs font-medium text-gray-500 px-6 py-3">Order</th>
+            <th class="text-left text-xs font-medium text-gray-500 px-6 py-3">Status</th>
+            <th class="text-right text-xs font-medium text-gray-500 px-6 py-3">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          {docs.map(doc => (
+            <tr class="hover:bg-gray-50">
+              <td class="px-6 py-4">
+                <p class="text-sm font-medium text-gray-900">{doc.title}</p>
+                <p class="text-xs text-gray-500">/{doc.slug}</p>
+              </td>
+              <td class="px-6 py-4 text-sm text-gray-600">{doc.category}</td>
+              <td class="px-6 py-4 text-sm text-gray-500">{doc.sortOrder}</td>
+              <td class="px-6 py-4">
+                <span class:list={[
+                  'text-xs font-medium px-2.5 py-0.5 rounded-full',
+                  doc.isPublished ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+                ]}>
+                  {doc.isPublished ? 'Published' : 'Draft'}
+                </span>
+              </td>
+              <td class="px-6 py-4 text-right space-x-3">
+                <a href={`/docs/${doc.slug}`} target="_blank" class="text-xs text-primary-600 hover:text-primary-700">View</a>
+                <form method="POST" action="/api/admin/docs" class="inline">
+                  <input type="hidden" name="action" value="delete" />
+                  <input type="hidden" name="id" value={doc.id} />
+                  <button type="submit" class="text-xs text-red-500 hover:text-red-700" onclick="return confirm('Delete this doc?')">
+                    Delete
+                  </button>
+                </form>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+    {docs.length === 0 && (
+      <p class="p-12 text-sm text-gray-500 text-center">No documentation yet.</p>
+    )}
+  </div>
+
+  <script>
+    document.getElementById('new-doc-btn')?.addEventListener('click', () => document.getElementById('doc-form')?.classList.toggle('hidden'));
+    document.getElementById('cancel-doc')?.addEventListener('click', () => document.getElementById('doc-form')?.classList.add('hidden'));
+  </script>
+</AdminLayout>

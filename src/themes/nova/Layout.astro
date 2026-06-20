@@ -1,0 +1,124 @@
+---
+import '../../styles/global.css';
+import LanguageSelector from '../../components/LanguageSelector.astro';
+import SchoolBannerPopup from '../../components/SchoolBannerPopup.astro';
+import PublicAIChatWidget from '../../components/PublicAIChatWidget.astro';
+import { getSchoolNav, getSchoolContacts, getSchoolPalette } from '../../lib/school.ts';
+import { normalizeSocialUrl, getSocialIcon } from '../../lib/social.ts';
+
+interface Props { school: any; title?: string; }
+const { school, title } = Astro.props;
+const nav = getSchoolNav(school.id);
+const contacts = getSchoolContacts(school.id);
+const palette = getSchoolPalette(school);
+const pageTitle = title ? `${title} — ${school.name}` : school.name;
+const prefix = `/${school.slug}`;
+const { pathname } = Astro.url;
+const social = (school.socialHandles as Record<string, string>) || {};
+const socialEntries = Object.entries(social).filter(([, v]) => v && v !== '#');
+---
+<!doctype html>
+<html lang={school.locale || 'en'} dir={['ar','he','fa','ur'].includes(school.locale || 'en') ? 'rtl' : 'ltr'} class="dark scroll-smooth">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="description" content={school.tagline || school.name} />
+  {school.faviconUrl && <link rel="icon" href={school.faviconUrl} />}
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet" />
+  <title>{pageTitle}</title>
+  <script is:inline>
+    (function(){var s=localStorage.getItem('themeMode');var hasDefault=s===null;if(hasDefault){document.documentElement.classList.remove('light','dark');document.documentElement.classList.add('dark')}else{var d=window.matchMedia('(prefers-color-scheme:dark)').matches;var dk=s==='dark'||(!s&&d);document.documentElement.classList.remove('light','dark');document.documentElement.classList.add(dk?'dark':'light')}})();
+  </script>
+  <style is:inline>{`
+    html.light{--bg:${palette.backgroundLight};--surface:${palette.surfaceLight};--text:${palette.textLight};--muted:${palette.mutedLight};--border:${palette.borderLight};--accent:${palette.accent};--primary:${palette.primary}}
+    html.dark{--bg:${palette.backgroundDark};--surface:${palette.surfaceDark};--text:${palette.textDark};--muted:${palette.mutedDark};--border:${palette.borderDark};--accent:${palette.accent};--primary:${palette.primary}}
+    :root{--tp:${palette.primary};--glow:0 0 20px color-mix(in srgb, var(--primary) 30%, transparent)}
+    .nv-heading{font-family:'Chakra Petch',sans-serif}
+    .nv-mono{font-family:'Fira Code',monospace}
+    .nv-glow{box-shadow:var(--glow)}
+    .nv-grid-bg{background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:40px 40px}
+  `}</style>
+</head>
+<body class="min-h-screen nv-heading" style="background:var(--bg);color:var(--text)">
+  <header class="sticky top-0 z-50" style="background:color-mix(in srgb, var(--bg) 95%, transparent);border-bottom:1px solid var(--border);backdrop-filter:blur(12px)">
+    <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <a href={`${prefix}/`} class="flex items-center gap-3">
+        {school.logoUrl ? <img src={school.logoUrl} alt={school.name} class="h-8 w-auto" /> : (
+          <div class="h-8 flex items-center gap-1">
+            <span class="text-xl font-bold tracking-tight tp">{'<'}</span>
+            <span class="text-xl font-bold tracking-tight" style="color:var(--text)">{school.name.split(' ').map((w:string)=>w[0]).join('')}</span>
+            <span class="text-xl font-bold tracking-tight tp">{'/>'}</span>
+          </div>
+        )}
+        <span class="hidden sm:block text-xs nv-mono" style="color:var(--muted)">{school.name}</span>
+      </a>
+      <div class="hidden lg:flex items-center gap-1">
+        {nav.map(item => (
+          <a href={`${prefix}${item.url}`} class:list={[
+            'px-4 py-2 text-xs font-semibold uppercase tracking-wider nv-mono transition-all rounded',
+            pathname === `${prefix}${item.url}` ? 'tp nv-glow' : ''
+          ]} style={pathname === `${prefix}${item.url}` ? `background:color-mix(in srgb, var(--primary) 15%, transparent);border:1px solid color-mix(in srgb, var(--primary) 30%, transparent)` : `color:var(--muted);border:1px solid transparent`}>{item.label}</a>
+        ))}
+      </div>
+      <div class="flex items-center gap-3">
+        <LanguageSelector />
+          <button id="theme-toggle" class="px-3 py-1.5 rounded text-xs font-bold nv-mono transition-all" style="border:1px solid var(--border);color:var(--primary)" aria-label="Toggle dark mode">
+          <span class="hidden dark:inline">[LIGHT]</span>
+          <span class="inline dark:hidden">[DARK]</span>
+        </button>
+        <a href={`${prefix}/admissions`} class="hidden lg:inline-flex px-4 py-2 text-xs font-bold uppercase tracking-wider text-white nv-mono tbg nv-glow hover:opacity-90 transition-opacity rounded">Enroll</a>
+        <button id="mob-tog" class="lg:hidden p-2" style="color:var(--primary)"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+      </div>
+    </nav>
+    <div id="mob-menu" class="hidden lg:hidden" style="border-top:1px solid var(--border);background:var(--bg)">
+      <div class="px-4 py-4 space-y-1">
+        {nav.map(item => (
+          <a href={`${prefix}${item.url}`} class:list={['block px-4 py-3 text-xs font-semibold uppercase tracking-wider nv-mono rounded', pathname === `${prefix}${item.url}` ? 'tp' : '']} style={pathname === `${prefix}${item.url}` ? `background:color-mix(in srgb, var(--primary) 15%, transparent)` : `color:var(--muted)`}>{item.label}</a>
+        ))}
+      </div>
+    </div>
+  </header>
+  <main><slot /></main>
+  <footer class="nv-grid-bg" style="border-top:1px solid var(--border)">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16" style="background:color-mix(in srgb, var(--bg) 90%, transparent)">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-10">
+        <div class="md:col-span-2">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="text-lg font-bold tp">{'<'}</span>
+            <span class="text-lg font-bold" style="color:var(--text)">{school.name}</span>
+            <span class="text-lg font-bold tp">{'/>'}</span>
+          </div>
+          {school.tagline && <p class="text-sm nv-mono" style="color:var(--muted)">{school.tagline}</p>}
+          <div class="mt-4 h-px w-32" style="background:linear-gradient(to right,var(--primary),transparent)"></div>
+        </div>
+        <div>
+          <h4 class="nv-mono text-[10px] font-bold uppercase tracking-[0.2em] mb-4 tp">NAV_LINKS</h4>
+          <ul class="space-y-2">{nav.slice(0,6).map(item => <li><a href={`${prefix}${item.url}`} class="text-sm nv-mono hover:opacity-80 transition-colors" style="color:var(--muted)">{item.label}</a></li>)}</ul>
+        </div>
+        <div>
+          <h4 class="nv-mono text-[10px] font-bold uppercase tracking-[0.2em] mb-4 tp">CONNECT</h4>
+          <ul class="space-y-2">{contacts.slice(0,3).map(c => <li class="text-xs nv-mono" style="color:var(--muted)">{c.value}</li>)}</ul>
+          {socialEntries.length > 0 && (
+            <div class="flex items-center gap-2 mt-4 pt-4" style="border-top:1px solid var(--border)">
+              {socialEntries.map(([platform, handle]) => (
+                <a href={normalizeSocialUrl(handle, platform)} aria-label={platform} target="_blank" rel="noopener" class="w-8 h-8 flex items-center justify-center rounded transition-all hover:opacity-80 nv-glow" style="border:1px solid color-mix(in srgb, var(--primary) 30%, transparent);color:var(--primary)">
+                  <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d={getSocialIcon(platform)}/></svg>
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+      <div class="mt-12 pt-6 nv-mono text-[10px] flex justify-between" style="border-top:1px solid var(--border);color:var(--muted)">
+        <span>&copy; {new Date().getFullYear()} {school.name}</span>
+        <span>iSchool.v2</span>
+      </div>
+    </div>
+  </footer>
+  <script>
+    document.getElementById('mob-tog')?.addEventListener('click',()=>document.getElementById('mob-menu')?.classList.toggle('hidden'));
+    document.getElementById('theme-toggle')?.addEventListener('click',()=>{const h=document.documentElement;const d=h.classList.contains('dark');h.classList.remove('light','dark');h.classList.add(d?'light':'dark');localStorage.setItem('themeMode',d?'light':'dark')});
+  </script>
+    <SchoolBannerPopup schoolId={school.id} />
+  <PublicAIChatWidget schoolSlug={school.slug} />
+</body>
+</html>

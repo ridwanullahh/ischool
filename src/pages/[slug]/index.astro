@@ -1,0 +1,183 @@
+---
+import { getThemeLayout } from '../../themes/index.js';
+import { getDb } from '../../lib/db/index.js';
+import { schools, aboutPages, announcements, blogPosts, programs } from '../../lib/db/schema.js';
+import { eq, desc } from 'drizzle-orm';
+import { themeList } from '../../themes/index.js';
+
+const slug = Astro.params.slug!;
+const db = getDb();
+const school = db.select().from(schools).where(eq(schools.slug, slug)).get();
+if (!school) return Astro.redirect('/404');
+
+const previewTheme = Astro.url.searchParams.get('preview_theme');
+const user = Astro.locals.user;
+const isPreviewing = previewTheme && themeList.includes(previewTheme) && user;
+const activeTheme = isPreviewing ? previewTheme : (school.theme || 'harmony');
+
+const Layout = getThemeLayout(activeTheme);
+
+const about = db.select().from(aboutPages).where(eq(aboutPages.schoolId, school.id)).get();
+const features: Array<{ title: string; description: string }> = Array.isArray(about?.features) ? about!.features as any : [];
+const stats: Array<{ label: string; value: string }> = Array.isArray(about?.stats) ? about!.stats as any : [];
+
+const recentAnnouncements = db.select().from(announcements)
+  .where(eq(announcements.schoolId, school.id)).orderBy(desc(announcements.createdAt)).limit(3).all();
+
+const recentPosts = db.select().from(blogPosts)
+  .where(eq(blogPosts.schoolId, school.id)).orderBy(desc(blogPosts.createdAt)).limit(3).all();
+
+const schoolPrograms = db.select().from(programs)
+  .where(eq(programs.schoolId, school.id)).all();
+---
+
+<Layout school={school}>
+  {isPreviewing && (
+    <div class="bg-blue-600 text-white py-2 px-4 text-center text-sm font-medium sticky top-0 z-[100] flex items-center justify-center gap-4">
+      <span>Previewing <strong>{previewTheme}</strong> theme</span>
+      <form method="POST" action="/api/dashboard/settings" class="inline">
+        <input type="hidden" name="name" value={school.name} />
+        <input type="hidden" name="slug" value={school.slug} />
+        <input type="hidden" name="primaryColor" value={school.primaryColor || '#2563eb'} />
+        <input type="hidden" name="theme" value={previewTheme} />
+        <input type="hidden" name="tagline" value={school.tagline || ''} />
+        <input type="hidden" name="logoUrl" value={school.logoUrl || ''} />
+        <input type="hidden" name="faviconUrl" value={school.faviconUrl || ''} />
+        <button type="submit" class="bg-white text-blue-600 px-3 py-1 rounded font-bold text-xs hover:bg-blue-50">Apply</button>
+      </form>
+      <a href={`/${slug}`} class="underline text-xs hover:text-blue-200">Close</a>
+    </div>
+  )}
+  <section class="relative overflow-hidden">
+    <div class="absolute inset-0" style="background:linear-gradient(to bottom right, var(--bg), color-mix(in srgb, var(--border) 30%, var(--bg)))"></div>
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28 lg:py-36">
+      <div class="max-w-3xl">
+        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-tight tracking-tight text-[var(--text)]">
+          {school.name}
+        </h1>
+        {school.tagline && (
+          <p class="mt-4 text-xl leading-relaxed text-[var(--muted)]">{school.tagline}</p>
+        )}
+        <div class="mt-8 flex flex-col sm:flex-row gap-4">
+          <a href={`/${slug}/admissions`} class="inline-flex items-center justify-center px-6 py-3 text-base font-semibold text-white rounded-xl bg-[var(--primary)] hover:opacity-90 shadow-lg transition-all">
+            Apply for Admission
+          </a>
+          <a href={`/${slug}/about`} class="inline-flex items-center justify-center px-6 py-3 text-base font-semibold rounded-xl border bg-[var(--surface)] border-[var(--border)] text-[var(--text)] hover:bg-[var(--bg)] transition-colors">
+            Learn More
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {recentAnnouncements.length > 0 && (
+    <a href={`/${slug}/announcements/${recentAnnouncements[0].slug}`} class="block hover:bg-amber-100/50 transition-colors">
+      <section class="bg-amber-50 border-b border-amber-100">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div class="flex items-center gap-3 overflow-x-auto">
+            <svg class="w-5 h-5 text-amber-600 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
+            <span class="text-sm font-medium text-amber-800 shrink-0">Latest:</span>
+            <span class="text-sm text-amber-700 truncate">{recentAnnouncements[0].title}</span>
+            <svg class="w-4 h-4 text-amber-500 shrink-0 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+          </div>
+        </div>
+      </section>
+    </a>
+  )}
+
+  {about?.valueProposition && (
+    <section class="py-20 bg-[var(--surface)]">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-3xl mx-auto text-center">
+          <h2 class="text-3xl font-bold text-[var(--text)] mb-6">Why Choose {school.name}?</h2>
+          <p class="text-lg leading-relaxed text-[var(--muted)]">{about.valueProposition}</p>
+        </div>
+      </div>
+    </section>
+  )}
+
+  {features.length > 0 && (
+    <section class="py-20 bg-[var(--bg)]">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-3xl font-bold text-[var(--text)] text-center mb-12">Our Highlights</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {features.map(f => (
+            <div class="bg-[var(--surface)] rounded-xl p-6 border border-[var(--border)] shadow-sm hover:shadow-md transition-shadow">
+              <div class="w-10 h-10 bg-[var(--primary)] rounded-lg flex items-center justify-center mb-4 opacity-10"></div>
+              <h3 class="text-lg font-semibold text-[var(--text)] mb-2">{f.title}</h3>
+              <p class="leading-relaxed text-[var(--muted)]">{f.description}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  {schoolPrograms.length > 0 && (
+    <section class="py-20 bg-[var(--surface)]">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-3xl font-bold text-[var(--text)] text-center mb-4">Our Programs</h2>
+        <p class="text-center mb-12 max-w-2xl mx-auto text-[var(--muted)]">Comprehensive educational programs designed to nurture every student's potential.</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {schoolPrograms.map(p => (
+            <div class="p-6 rounded-xl border border-[var(--border)] hover:border-[var(--muted)] transition-colors">
+              <h3 class="text-lg font-semibold text-[var(--text)] mb-2">{p.name}</h3>
+              {p.level && <p class="text-sm text-[var(--primary)] font-medium mb-2">{p.level}</p>}
+              {p.description && <p class="text-sm line-clamp-3 text-[var(--muted)]">{p.description}</p>}
+              {p.duration && <p class="text-xs mt-3 text-[var(--muted)]">{p.duration}</p>}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  {stats.length > 0 && (
+    <section class="py-16 bg-[var(--primary)]">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
+          {stats.map(s => (
+            <div class="text-center">
+              <p class="text-3xl sm:text-4xl font-bold text-white">{s.value}</p>
+              <p class="text-sm text-white/80 mt-1">{s.label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  {recentPosts.length > 0 && (
+    <section class="py-20 bg-[var(--bg)]">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between mb-12">
+          <h2 class="text-3xl font-bold text-[var(--text)]">Latest News</h2>
+          <a href={`/${slug}/blog`} class="text-sm font-medium text-[var(--primary)] hover:underline">View all</a>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {recentPosts.map(post => (
+            <a href={`/${slug}/blog/${post.slug}`} class="bg-[var(--surface)] rounded-xl border border-[var(--border)] overflow-hidden hover:shadow-lg transition-shadow group">
+              {post.coverImageUrl && (
+                <img src={post.coverImageUrl} alt={post.title} class="w-full h-48 object-cover" loading="lazy" />
+              )}
+              <div class="p-6">
+                <h3 class="font-semibold text-[var(--text)] mb-2 group-hover:text-[var(--primary)] transition-colors">{post.title}</h3>
+                <p class="text-sm line-clamp-2 text-[var(--muted)]">{post.excerpt || post.content}</p>
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <section class="py-20 bg-[var(--surface)]">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <h2 class="text-3xl font-bold text-[var(--text)] mb-4">Ready to Join {school.name}?</h2>
+      <p class="mb-8 max-w-2xl mx-auto text-[var(--muted)]">We'd love to welcome your family to our community. Start the admissions process today.</p>
+      <a href={`/${slug}/admissions`} class="inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold text-white rounded-xl bg-[var(--primary)] hover:opacity-90 shadow-lg transition-all">
+        Start Application
+      </a>
+    </div>
+  </section>
+</Layout>

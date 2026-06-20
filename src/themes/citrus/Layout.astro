@@ -1,0 +1,194 @@
+---
+import { getDb } from '../../lib/db/index.js';
+import { schools, announcements, programs, classes, faqs, contactInfo, events, galleryItems, aboutPages, blogPosts, navigationItems, banners, popups as popupsSchema } from '../../lib/db/schema.js';
+import { eq, and, desc } from 'drizzle-orm';
+import PublicAIChatWidget from '../../components/PublicAIChatWidget.astro';
+
+interface Props { school: any; }
+const { school } = Astro.props;
+const db = getDb();
+const about = db.select().from(aboutPages).where(eq(aboutPages.schoolId, school.id)).get();
+const anns = db.select().from(announcements).where(and(eq(announcements.schoolId, school.id), eq(announcements.published, true))).orderBy(desc(announcements.createdAt)).limit(6).all();
+const progs = db.select().from(programs).where(eq(programs.schoolId, school.id)).limit(8).all();
+const cls = db.select().from(classes).where(eq(classes.schoolId, school.id)).limit(8).all();
+const faqList = db.select().from(faqs).where(eq(faqs.schoolId, school.id)).limit(10).all();
+const contacts = db.select().from(contactInfo).where(eq(contactInfo.schoolId, school.id)).all();
+const gallery = db.select().from(galleryItems).where(eq(galleryItems.schoolId, school.id)).limit(8).all();
+const upcomingEvents = db.select().from(events).where(eq(events.schoolId, school.id)).limit(5).all();
+const posts = db.select().from(blogPosts).where(and(eq(blogPosts.schoolId, school.id), eq(blogPosts.isPublished, true))).orderBy(desc(blogPosts.createdAt)).limit(4).all();
+const navItems = db.select().from(navigationItems).where(eq(navigationItems.schoolId, school.id)).all();
+---
+<!DOCTYPE html>
+<html lang={school.locale || 'en'} dir={['ar','he','fa','ur'].includes(school.locale || 'en') ? 'rtl' : 'ltr'}>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>{school.name}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif; background: #fffef5; color: #422006; -webkit-font-smoothing: antialiased; }
+    .mobile-frame { max-width: 430px; margin: 0 auto; min-height: 100vh; position: relative; }
+    .top-bar { background: #fff8e1; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50; backdrop-filter: blur(20px); border-bottom: 1px solid #fde68a33; }
+    .top-bar .logo { font-size: 18px; font-weight: 700; color: #f59e0b; }
+    .top-bar .menu-btn { width: 36px; height: 36px; border-radius: 10px; background: #fde68a44; display: flex; align-items: center; justify-content: center; }
+    .hero { padding: 32px 20px 24px; background: linear-gradient(135deg, #f59e0b18, #fde68a30); }
+    .hero h1 { font-size: 26px; font-weight: 800; line-height: 1.2; margin-bottom: 8px; }
+    .hero p { font-size: 14px; opacity: 0.7; line-height: 1.5; }
+    .section { padding: 20px 16px; }
+    .section-title { font-size: 16px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .section-title::before { content: ''; width: 3px; height: 16px; background: #f59e0b; border-radius: 2px; }
+    .card { background: #fff8e1; border-radius: 16px; padding: 16px; margin-bottom: 12px; transition: transform 0.2s; }
+    .card:active { transform: scale(0.98); }
+    .card h3 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+    .card p { font-size: 13px; opacity: 0.7; line-height: 1.4; }
+    .card-row { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 8px; scrollbar-width: none; }
+    .card-row::-webkit-scrollbar { display: none; }
+    .card-row .card { min-width: 200px; flex-shrink: 0; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; background: #f59e0b; color: white; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; }
+    .pill { display: inline-block; padding: 4px 10px; background: #fde68a44; color: #f59e0b; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 430px; background: #fff8e1; border-top: 1px solid #fde68a33; display: flex; padding: 8px 16px; padding-bottom: max(8px, env(safe-area-inset-bottom)); z-index: 50; }
+    .bottom-nav a { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 10px; color: #422006; opacity: 0.5; text-decoration: none; padding: 4px; }
+    .bottom-nav a.active { opacity: 1; color: #f59e0b; }
+    .bottom-nav a svg { width: 22px; height: 22px; }
+    .footer { padding: 24px 16px 100px; text-align: center; font-size: 12px; opacity: 0.5; }
+    .contact-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #fde68a22; font-size: 13px; }
+    .faq-item { border-bottom: 1px solid #fde68a22; }
+    .faq-item summary { padding: 12px 0; font-size: 14px; font-weight: 500; cursor: pointer; }
+    .faq-item p { padding: 0 0 12px; font-size: 13px; opacity: 0.7; }
+    @media (min-width: 768px) { .mobile-frame { max-width: 100%; } .section { padding: 24px 32px; } }
+  </style>
+</head>
+<body>
+  <div class="mobile-frame">
+    <div class="top-bar">
+      <div class="logo">{school.name}</div>
+      <div class="menu-btn"><svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg></div>
+    </div>
+
+    <div class="hero">
+      <h1>{school.name}</h1>
+      {school.tagline && <p>{school.tagline}</p>}
+      {about?.mission && <p style="margin-top: 8px; font-style: italic; opacity: 0.6;">{about.mission}</p>}
+    </div>
+
+    {anns.length > 0 && (
+      <div class="section">
+        <div class="section-title">Announcements</div>
+        <div class="card-row">
+          {anns.map((a: any) => (
+            <div class="card">
+              <span class="pill">{a.isPinned ? 'Pinned' : 'New'}</span>
+              <h3 style="margin-top: 6px;">{a.title}</h3>
+              <p>{a.excerpt || ''}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+
+    {progs.length > 0 && (
+      <div class="section">
+        <div class="section-title">Programs</div>
+        <div class="grid-2">
+          {progs.map((p: any) => (
+            <div class="card">
+              <h3>{p.name}</h3>
+              <p>{p.duration || ''}</p>
+              <p>{p.description?.substring(0, 60) || ''}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+
+    {cls.length > 0 && (
+      <div class="section">
+        <div class="section-title">Classes</div>
+        <div class="card-row">
+          {cls.map((c: any) => (
+            <div class="card">
+              <h3>{c.name}</h3>
+              <p>{c.gradeLevel ? 'Grade ' + c.gradeLevel : ''}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+
+    {gallery.length > 0 && (
+      <div class="section">
+        <div class="section-title">Gallery</div>
+        <div class="grid-2">
+          {gallery.map((g: any) => (
+            <div class="card" style="padding: 0; overflow: hidden;">
+              <img src={g.imageUrl} alt={g.title || ''} style="width: 100%; height: 120px; object-fit: cover;" />
+              <div style="padding: 8px 12px;"><p>{g.title || ''}</p></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+
+    {upcomingEvents.length > 0 && (
+      <div class="section">
+        <div class="section-title">Events</div>
+        {upcomingEvents.map((e: any) => (
+          <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <h3>{e.title}</h3>
+              <span class="pill">{e.category}</span>
+            </div>
+            <p>{e.startDate}{e.venue ? ' at ' + e.venue : ''}</p>
+          </div>
+        ))}
+      </div>
+    )}
+
+    {posts.length > 0 && (
+      <div class="section">
+        <div class="section-title">Blog</div>
+        {posts.map((p: any) => (
+          <div class="card">
+            <h3>{p.title}</h3>
+            <p>{p.excerpt || ''}</p>
+          </div>
+        ))}
+      </div>
+    )}
+
+    {faqList.length > 0 && (
+      <div class="section">
+        <div class="section-title">FAQs</div>
+        {faqList.map((f: any) => (
+          <details class="faq-item">
+            <summary>{f.question}</summary>
+            <p>{f.answer}</p>
+          </details>
+        ))}
+      </div>
+    )}
+
+    {contacts.length > 0 && (
+      <div class="section">
+        <div class="section-title">Contact</div>
+        {contacts.map((c: any) => (
+          <div class="contact-item"><strong>{c.label}:</strong> {c.value}</div>
+        ))}
+      </div>
+    )}
+
+    <div class="footer">
+      <p>&copy; {new Date().getFullYear()} {school.name}. All rights reserved.</p>
+    </div>
+
+    <nav class="bottom-nav">
+      <a href="/" class="active"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0h4"/></svg>Home</a>
+      <a href="/about"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>About</a>
+      <a href="/blog"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/></svg>Blog</a>
+      <a href="/contact"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>Contact</a>
+    </nav>
+  </div>
+  <PublicAIChatWidget schoolSlug={school.slug} />
+</body>
+</html>

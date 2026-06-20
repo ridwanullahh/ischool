@@ -1,0 +1,112 @@
+---
+import PortalLayout from '../../layouts/PortalLayout.astro';
+import { getDb } from '../../lib/db/index.js';
+import { students, schoolMembers, attendance, invoices, assignments, grades, courses, notifications } from '../../lib/db/schema.js';
+import { eq, and, desc, sql } from 'drizzle-orm';
+
+const user = (Astro.locals as any).user;
+if (!user) return Astro.redirect('/auth/login');
+
+const db = getDb();
+const membership = db.select().from(schoolMembers).where(eq(schoolMembers.userId, user.id)).get();
+const schoolId = membership?.schoolId;
+
+let stats = { attendanceRate: 0, totalCourses: 0, pendingAssignments: 0, outstandingFees: 0 };
+let recentNotifications: any[] = [];
+
+if (schoolId) {
+  const student = db.select().from(students).where(and(eq(students.schoolId, schoolId), eq(students.userId, user.id))).get();
+
+  if (student) {
+    const totalDays = db.select({ c: sql<number>`count(*)` }).from(attendance).where(eq(attendance.studentId, student.id)).get()?.c || 0;
+    const presentDays = db.select({ c: sql<number>`count(*)` }).from(attendance).where(and(eq(attendance.studentId, student.id), eq(attendance.status, 'present'))).get()?.c || 0;
+    stats.attendanceRate = totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 0;
+
+    stats.totalCourses = db.select({ c: sql<number>`count(*)` }).from(courses).where(eq(courses.schoolId, schoolId)).get()?.c || 0;
+    stats.pendingAssignments = db.select({ c: sql<number>`count(*)` }).from(assignments).where(and(eq(assignments.schoolId, schoolId), sql`${assignments.dueDate} >= date('now')`)).get()?.c || 0;
+
+    const invoicesForStudent = db.select({ balance: invoices.balance }).from(invoices).where(and(eq(invoices.schoolId, schoolId), eq(invoices.studentId, student.id), sql`${invoices.status} != 'paid'`)).all();
+    stats.outstandingFees = invoicesForStudent.reduce((sum, inv) => sum + (inv.balance || 0), 0);
+  }
+
+  recentNotifications = db.select().from(notifications)
+    .where(eq(notifications.schoolId, schoolId))
+    .orderBy(desc(notifications.createdAt))
+    .limit(5)
+    .all();
+}
+---
+
+<PortalLayout title="Portal Home">
+  <div class="mb-8">
+    <h1 class="text-2xl font-bold text-gray-900">Welcome back, {user.name}</h1>
+    <p class="text-gray-500 mt-1">Here's your academic overview</p>
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <div class="bg-white rounded-xl border border-gray-200 p-5">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm text-gray-500">Attendance Rate</p>
+          <p class="text-2xl font-bold text-gray-900 mt-1">{stats.attendanceRate}%</p>
+        </div>
+        <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+          <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        </div>
+      </div>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 p-5">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm text-gray-500">Total Courses</p>
+          <p class="text-2xl font-bold text-gray-900 mt-1">{stats.totalCourses}</p>
+        </div>
+        <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+          <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+        </div>
+      </div>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 p-5">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm text-gray-500">Pending Assignments</p>
+          <p class="text-2xl font-bold text-gray-900 mt-1">{stats.pendingAssignments}</p>
+        </div>
+        <div class="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
+          <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+        </div>
+      </div>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 p-5">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm text-gray-500">Outstanding Fees</p>
+          <p class="text-2xl font-bold text-gray-900 mt-1">${stats.outstandingFees.toFixed(2)}</p>
+        </div>
+        <div class="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
+          <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-xl border border-gray-200 p-6">
+    <h2 class="text-lg font-semibold text-gray-900 mb-4">Recent Notifications</h2>
+    {recentNotifications.length === 0 ? (
+      <p class="text-gray-500 text-sm">No notifications yet.</p>
+    ) : (
+      <div class="space-y-3">
+        {recentNotifications.map((n: any) => (
+          <div class="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50">
+            <div class:list={['w-2 h-2 rounded-full mt-2', n.isRead ? 'bg-gray-300' : 'bg-primary-500']}></div>
+            <div>
+              <p class="text-sm font-medium text-gray-900">{n.title}</p>
+              <p class="text-sm text-gray-500">{n.body}</p>
+              <p class="text-xs text-gray-400 mt-1">{new Date(n.createdAt).toLocaleDateString()}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+</PortalLayout>

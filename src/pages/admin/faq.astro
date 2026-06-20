@@ -1,0 +1,85 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { getDb } from '../../lib/db/index.js';
+import { platformFaqs } from '../../lib/db/schema.js';
+
+const db = getDb();
+const faqs = db.select().from(platformFaqs).orderBy(platformFaqs.sortOrder).all();
+const categories = [...new Set(faqs.map(f => f.category))];
+---
+
+<AdminLayout title="Platform FAQ - iSchool">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h2 class="text-xl font-bold text-gray-900">Platform FAQ</h2>
+      <p class="text-sm text-gray-500 mt-1">{faqs.length} FAQ entries across {categories.length} categories</p>
+    </div>
+    <button onclick="document.getElementById('create-faq-modal').classList.remove('hidden')" class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+      Add FAQ
+    </button>
+  </div>
+
+  <div class="space-y-6">
+    {categories.map(cat => (
+      <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div class="px-6 py-3 bg-gray-50 border-b border-gray-200">
+          <h3 class="text-sm font-semibold text-gray-700">{cat}</h3>
+        </div>
+        <div class="divide-y divide-gray-100">
+          {faqs.filter(f => f.category === cat).map(faq => (
+            <div class="px-6 py-4 flex items-start justify-between gap-4">
+              <div class="flex-1">
+                <p class="text-sm font-medium text-gray-900">{faq.question}</p>
+                <p class="text-sm text-gray-500 mt-1">{faq.answer}</p>
+              </div>
+              <div class="flex gap-2 shrink-0">
+                <span class:list={['text-xs font-medium px-2 py-0.5 rounded-full', faq.isPublished ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500']}>{faq.isPublished ? 'Published' : 'Draft'}</span>
+                <button onclick={`deleteFaq(${faq.id})`} class="text-xs text-red-500 hover:text-red-700 px-2 py-0.5">Delete</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    ))}
+  </div>
+
+  <div id="create-faq-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center">
+    <div class="absolute inset-0 bg-black/50" onclick="this.parentElement.classList.add('hidden')"></div>
+    <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-lg p-8">
+      <h3 class="text-lg font-bold text-gray-900 mb-6">Add FAQ Entry</h3>
+      <form id="faq-form" class="space-y-4">
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">Question</label><input name="question" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /></div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">Answer</label><textarea name="answer" required rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"></textarea></div>
+        <div class="grid grid-cols-2 gap-4">
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Category</label><input name="category" value="General" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Sort Order</label><input name="sortOrder" type="number" value="0" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /></div>
+        </div>
+        <div><label class="flex items-center gap-2 text-sm"><input name="isPublished" type="checkbox" checked class="rounded border-gray-300 text-primary-600" /> Published</label></div>
+        <div class="flex gap-3 pt-4">
+          <button type="submit" class="flex-1 px-4 py-2.5 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700">Add FAQ</button>
+          <button type="button" onclick="document.getElementById('create-faq-modal').classList.add('hidden')" class="px-4 py-2.5 border border-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('faq-form')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target as HTMLFormElement);
+      const res = await fetch('/api/admin/faq', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+        question: fd.get('question'), answer: fd.get('answer'), category: fd.get('category'),
+        sortOrder: Number(fd.get('sortOrder')), isPublished: fd.get('isPublished') === 'on',
+      })});
+      if (res.ok) window.location.reload();
+      else alert('Failed');
+    });
+
+    async function deleteFaq(id: number) {
+      if (!confirm('Delete this FAQ?')) return;
+      await fetch(`/api/admin/faq?id=${id}`, { method: 'DELETE' });
+      window.location.reload();
+    }
+  </script>
+</AdminLayout>

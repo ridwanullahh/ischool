@@ -1,0 +1,26 @@
+---
+import OnboardingLayout from '../../layouts/OnboardingLayout.astro';
+import { getUserSchool } from '../../lib/school.js';
+
+const user = Astro.locals.user!;
+const school = getUserSchool(user.id);
+---
+<OnboardingLayout title="Setup Complete - iSchool" step={4}>
+  <div class="bg-white rounded-xl border border-gray-200 p-8 text-center">
+    <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+      <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+    </div>
+    <h1 class="text-2xl font-bold text-gray-900 mb-2">You're All Set!</h1>
+    <p class="text-gray-600 mb-8">Your school website is ready to go.</p>
+    <div class="flex flex-col sm:flex-row gap-3 justify-center">
+      {school && (
+        <a href={`/${school.slug}`} class="inline-flex items-center justify-center px-6 py-3 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition-colors">
+          View Your Site
+        </a>
+      )}
+      <a href="/dashboard" class="inline-flex items-center justify-center px-6 py-3 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition-colors">
+        Go to Dashboard
+      </a>
+    </div>
+  </div>
+</OnboardingLayout>

@@ -1,0 +1,217 @@
+---
+import '../styles/global.css';
+import LanguageSelector from '../components/LanguageSelector.astro';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const { title = 'iSchool - The Complete School Management Platform', description = 'All-in-one school management software with 16 powerful modules. SIS, LMS, Finance, HR, Library, Exams, and more.' } = Astro.props;
+const user = Astro.locals.user;
+
+const modules = [
+  { slug: 'sis', name: 'Student Information', icon: 'users', desc: 'Complete student records & enrollment' },
+  { slug: 'lms', name: 'Learning Management', icon: 'book-open', desc: 'Courses, lessons & assignments' },
+  { slug: 'timetable', name: 'Timetable & Scheduling', icon: 'calendar', desc: 'Smart scheduling & bell management' },
+  { slug: 'exams', name: 'Examinations & Results', icon: 'clipboard-check', desc: 'Exam management & report cards' },
+  { slug: 'finance', name: 'Finance & Fees', icon: 'dollar-sign', desc: 'Fee collection & invoicing' },
+  { slug: 'hr', name: 'HR & Staff Management', icon: 'briefcase', desc: 'Staff records, leave & payroll' },
+  { slug: 'communication', name: 'Communication Hub', icon: 'message-circle', desc: 'Messaging & notifications' },
+  { slug: 'library', name: 'Library Management', icon: 'book', desc: 'Books, loans & catalog' },
+  { slug: 'hostel', name: 'Hostel & Dormitory', icon: 'home', desc: 'Room allocation & management' },
+  { slug: 'transport', name: 'Transport Management', icon: 'truck', desc: 'Routes, vehicles & tracking' },
+  { slug: 'inventory', name: 'Inventory & Assets', icon: 'package', desc: 'Asset tracking & inventory' },
+  { slug: 'events', name: 'Events & Calendar', icon: 'calendar-days', desc: 'School events & scheduling' },
+  { slug: 'classroom', name: 'Classroom Tools', icon: 'presentation', desc: 'Lesson plans & behavior logs' },
+  { slug: 'analytics', name: 'Reports & Analytics', icon: 'bar-chart', desc: 'Insights & custom reports' },
+  { slug: 'it-admin', name: 'IT & System Admin', icon: 'shield', desc: 'Audit logs & module control' },
+  { slug: 'cbt', name: 'e-Exam & CBT', icon: 'monitor', desc: 'Computer-based testing' },
+];
+---
+
+<!doctype html>
+<html lang="en" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <title>{title}</title>
+  </head>
+  <body class="min-h-screen bg-white antialiased">
+    <div class="bg-gradient-to-r from-primary-600 to-primary-800 text-white text-center py-2 px-4 text-sm font-medium">
+      Launching soon: AI-powered analytics and automated report generation. <a href="/auth/register" class="underline font-semibold hover:text-primary-100">Start your free trial today</a>
+    </div>
+
+    <header class="sticky top-0 z-50 bg-white/90 backdrop-blur-xl border-b border-gray-100 shadow-sm">
+      <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <a href="/" class="flex items-center gap-2.5">
+          <div class="w-9 h-9 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center shadow-lg shadow-primary-200">
+            <span class="text-white font-black text-sm">iS</span>
+          </div>
+          <span class="text-xl font-extrabold text-gray-900 tracking-tight">iSchool</span>
+        </a>
+
+        <div class="hidden lg:flex items-center gap-1">
+          <div class="relative group">
+            <button class="flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-700 hover:text-primary-600 rounded-lg hover:bg-primary-50 transition-all">
+              Modules
+              <svg class="w-4 h-4 text-gray-400 group-hover:text-primary-500 transition-transform group-hover:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            </button>
+            <div class="absolute top-full left-1/2 -translate-x-1/2 pt-2 hidden group-hover:block">
+              <div class="bg-white rounded-2xl shadow-2xl border border-gray-100 p-4 w-[680px] grid grid-cols-2 gap-1">
+                {modules.map(m => (
+                  <a href={`/modules/${m.slug}`} class="flex items-start gap-3 p-3 rounded-xl hover:bg-primary-50 transition-colors group/item">
+                    <div class="w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center shrink-0 group-hover/item:bg-primary-600 transition-colors">
+                      <span class="text-primary-600 group-hover/item:text-white text-xs font-bold transition-colors">{m.name.charAt(0)}</span>
+                    </div>
+                    <div>
+                      <p class="text-sm font-semibold text-gray-900 group-hover/item:text-primary-700">{m.name}</p>
+                      <p class="text-xs text-gray-500 leading-tight">{m.desc}</p>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            </div>
+          </div>
+          <a href="/pricing" class="px-3 py-2 text-sm font-medium text-gray-700 hover:text-primary-600 rounded-lg hover:bg-primary-50 transition-all">Pricing</a>
+          <a href="/blog" class="px-3 py-2 text-sm font-medium text-gray-700 hover:text-primary-600 rounded-lg hover:bg-primary-50 transition-all">Blog</a>
+          <a href="/docs" class="px-3 py-2 text-sm font-medium text-gray-700 hover:text-primary-600 rounded-lg hover:bg-primary-50 transition-all">Docs</a>
+          <a href="/faq" class="px-3 py-2 text-sm font-medium text-gray-700 hover:text-primary-600 rounded-lg hover:bg-primary-50 transition-all">FAQ</a>
+          <a href="/about" class="px-3 py-2 text-sm font-medium text-gray-700 hover:text-primary-600 rounded-lg hover:bg-primary-50 transition-all">About</a>
+          <a href="/contact" class="px-3 py-2 text-sm font-medium text-gray-700 hover:text-primary-600 rounded-lg hover:bg-primary-50 transition-all">Contact</a>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <LanguageSelector />
+          {user ? (
+            <div class="flex items-center gap-3">
+              <a href={user.role === 'super_admin' ? '/admin' : '/dashboard'} class="inline-flex items-center gap-2 text-sm font-semibold text-primary-600 hover:text-primary-700 bg-primary-50 px-3 py-1.5 rounded-lg">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+                Dashboard
+              </a>
+              <form method="POST" action="/api/auth/logout">
+                <button type="submit" class="text-sm text-gray-500 hover:text-gray-700">Logout</button>
+              </form>
+            </div>
+          ) : (
+            <div class="hidden sm:flex items-center gap-2">
+              <a href="/auth/login" class="text-sm font-medium text-gray-600 hover:text-gray-900 px-3 py-2">Sign In</a>
+              <a href="/auth/register" class="inline-flex items-center justify-center px-5 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-primary-600 to-primary-700 rounded-xl hover:from-primary-700 hover:to-primary-800 shadow-lg shadow-primary-200 transition-all hover:shadow-xl">
+                Start Free
+              </a>
+            </div>
+          )}
+        </div>
+
+        <button id="mobile-menu-btn" class="lg:hidden p-2 text-gray-600 rounded-lg hover:bg-gray-100" aria-label="Menu">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+      </nav>
+
+      <div id="mobile-menu" class="hidden lg:hidden border-t border-gray-100 bg-white px-4 py-4 max-h-[80vh] overflow-y-auto">
+        <div class="space-y-1">
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 py-2">Platform</p>
+          <a href="/pricing" class="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-primary-50 rounded-lg">Pricing</a>
+          <a href="/about" class="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-primary-50 rounded-lg">About</a>
+          <a href="/contact" class="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-primary-50 rounded-lg">Contact</a>
+          <a href="/blog" class="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-primary-50 rounded-lg">Blog</a>
+          <a href="/docs" class="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-primary-50 rounded-lg">Documentation</a>
+          <a href="/faq" class="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-primary-50 rounded-lg">FAQ</a>
+        </div>
+        <hr class="my-3 border-gray-100" />
+        <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 py-2">Modules</p>
+        <div class="grid grid-cols-2 gap-1">
+          {modules.map(m => (
+            <a href={`/modules/${m.slug}`} class="block px-3 py-2 text-xs font-medium text-gray-700 hover:bg-primary-50 rounded-lg">{m.name}</a>
+          ))}
+        </div>
+        <hr class="my-3 border-gray-100" />
+        {user ? (
+          <a href={user.role === 'super_admin' ? '/admin' : '/dashboard'} class="block px-3 py-2.5 text-sm font-semibold text-primary-600 bg-primary-50 rounded-lg text-center">Dashboard</a>
+        ) : (
+          <div class="space-y-2">
+            <a href="/auth/login" class="block px-3 py-2.5 text-sm font-medium text-gray-700 text-center border border-gray-200 rounded-lg">Sign In</a>
+            <a href="/auth/register" class="block px-3 py-2.5 text-sm font-semibold text-white bg-primary-600 rounded-lg text-center">Start Free Trial</a>
+          </div>
+        )}
+      </div>
+    </header>
+
+    <main>
+      <slot />
+    </main>
+
+    <footer class="bg-gray-950 text-gray-400">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-8">
+          <div class="col-span-2 md:col-span-1">
+            <div class="flex items-center gap-2 mb-4">
+              <div class="w-9 h-9 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center">
+                <span class="text-white font-black text-sm">iS</span>
+              </div>
+              <span class="text-xl font-extrabold text-white">iSchool</span>
+            </div>
+            <p class="text-sm leading-relaxed text-gray-500">The complete school management platform. 16 modules, one dashboard, infinite possibilities.</p>
+            <div class="flex gap-3 mt-6">
+              <a href="#" class="w-9 h-9 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-primary-600 transition-colors"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/></svg></a>
+              <a href="#" class="w-9 h-9 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-primary-600 transition-colors"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg></a>
+              <a href="#" class="w-9 h-9 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-primary-600 transition-colors"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg></a>
+            </div>
+          </div>
+          <div>
+            <h4 class="text-sm font-bold text-white mb-4">Product</h4>
+            <ul class="space-y-2.5">
+              <li><a href="/#features" class="text-sm hover:text-white transition-colors">Features</a></li>
+              <li><a href="/pricing" class="text-sm hover:text-white transition-colors">Pricing</a></li>
+              <li><a href="/modules/sis" class="text-sm hover:text-white transition-colors">Modules</a></li>
+              <li><a href="/about" class="text-sm hover:text-white transition-colors">About</a></li>
+            </ul>
+          </div>
+          <div>
+            <h4 class="text-sm font-bold text-white mb-4">Resources</h4>
+            <ul class="space-y-2.5">
+              <li><a href="/docs" class="text-sm hover:text-white transition-colors">Documentation</a></li>
+              <li><a href="/blog" class="text-sm hover:text-white transition-colors">Blog</a></li>
+              <li><a href="/faq" class="text-sm hover:text-white transition-colors">FAQ</a></li>
+              <li><a href="/contact" class="text-sm hover:text-white transition-colors">Support</a></li>
+            </ul>
+          </div>
+          <div>
+            <h4 class="text-sm font-bold text-white mb-4">Modules</h4>
+            <ul class="space-y-2.5">
+              <li><a href="/modules/sis" class="text-sm hover:text-white transition-colors">Student Info</a></li>
+              <li><a href="/modules/lms" class="text-sm hover:text-white transition-colors">Learning (LMS)</a></li>
+              <li><a href="/modules/finance" class="text-sm hover:text-white transition-colors">Finance & Fees</a></li>
+              <li><a href="/modules/exams" class="text-sm hover:text-white transition-colors">Exams & Results</a></li>
+              <li><a href="/modules/cbt" class="text-sm hover:text-white transition-colors">e-Exam & CBT</a></li>
+            </ul>
+          </div>
+          <div>
+            <h4 class="text-sm font-bold text-white mb-4">Legal</h4>
+            <ul class="space-y-2.5">
+              <li><a href="#" class="text-sm hover:text-white transition-colors">Privacy Policy</a></li>
+              <li><a href="#" class="text-sm hover:text-white transition-colors">Terms of Service</a></li>
+              <li><a href="#" class="text-sm hover:text-white transition-colors">Cookie Policy</a></li>
+              <li><a href="#" class="text-sm hover:text-white transition-colors">GDPR</a></li>
+            </ul>
+          </div>
+        </div>
+        <div class="mt-12 pt-8 border-t border-gray-800 flex flex-col md:flex-row items-center justify-between gap-4">
+          <p class="text-sm text-gray-500">&copy; {new Date().getFullYear()} iSchool. All rights reserved.</p>
+          <p class="text-xs text-gray-600">Built with care for schools worldwide.</p>
+        </div>
+      </div>
+    </footer>
+
+    <script>
+      document.getElementById('mobile-menu-btn')?.addEventListener('click', () => {
+        document.getElementById('mobile-menu')?.classList.toggle('hidden');
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,60 @@
+---
+import { getThemeLayout } from '../../../themes/index.js';
+import { getDb } from '../../../lib/db/index.js';
+import { schools, announcements } from '../../../lib/db/schema.js';
+import { eq, and } from 'drizzle-orm';
+import { formatDate } from '../../../lib/utils.js';
+
+const slug = Astro.params.slug!;
+const announcementSlug = Astro.params.announcement!;
+const db = getDb();
+const school = db.select().from(schools).where(eq(schools.slug, slug)).get();
+if (!school) return Astro.redirect('/404');
+
+const Layout = getThemeLayout(school.theme || 'harmony');
+
+const item = db.select().from(announcements)
+  .where(and(eq(announcements.schoolId, school.id), eq(announcements.slug, announcementSlug), eq(announcements.published, true)))
+  .get();
+if (!item) return Astro.redirect(`/${slug}/announcements`);
+---
+
+<Layout school={school} title={item.title}>
+  <article class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <a href={`/${slug}/announcements`} class="text-sm text-[var(--primary)] hover:underline mb-6 inline-block">&larr; Back to Announcements</a>
+
+    {item.bannerImageUrl && (
+      <img src={item.bannerImageUrl} alt={item.title} class="w-full h-64 sm:h-80 object-cover rounded-xl mb-8" />
+    )}
+
+    <header class="mb-8">
+      <div class="flex items-center gap-3 mb-3">
+        {item.isPinned && (
+          <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">Pinned</span>
+        )}
+        <span class="text-sm text-[var(--muted)]">{formatDate(item.createdAt)}</span>
+      </div>
+      <h1 class="text-3xl sm:text-4xl font-bold text-[var(--text)] leading-tight">{item.title}</h1>
+      {item.excerpt && (
+        <p class="mt-4 text-lg text-[var(--muted)]">{item.excerpt}</p>
+      )}
+    </header>
+
+    <div class="prose max-w-none">
+      {item.content.split('\n').map(para => para.trim()).filter(Boolean).map(para => (
+        <p class="leading-relaxed mb-4 text-[var(--text)]">{para}</p>
+      ))}
+    </div>
+
+    {item.ctaText && item.ctaUrl && (
+      <div class="mt-10 p-6 bg-[var(--bg)] rounded-xl border border-[var(--border)] text-center">
+        <a
+          href={item.ctaUrl.startsWith('http') ? item.ctaUrl : `/${slug}${item.ctaUrl}`}
+          class="inline-flex items-center justify-center px-8 py-3 text-base font-semibold text-white bg-[var(--primary)] rounded-lg hover:opacity-90 transition-colors shadow-sm"
+        >
+          {item.ctaText}
+        </a>
+      </div>
+    )}
+  </article>
+</Layout>

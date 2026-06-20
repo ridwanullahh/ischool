@@ -1,0 +1,67 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { getDb } from '../../lib/db/index.js';
+import { schools, users, contactSubmissions } from '../../lib/db/schema.js';
+import { sql } from 'drizzle-orm';
+
+const db = getDb();
+const schoolsCount = db.select({ count: sql<number>`count(*)` }).from(schools).get()?.count || 0;
+const usersCount = db.select({ count: sql<number>`count(*)` }).from(users).get()?.count || 0;
+const activeSchools = db.select({ count: sql<number>`count(*)` }).from(schools).where(sql`status = 'active'`).get()?.count || 0;
+const submissions = db.select({ count: sql<number>`count(*)` }).from(contactSubmissions).where(sql`status = 'new'`).get()?.count || 0;
+
+const recentSchools = db.select({
+  id: schools.id,
+  name: schools.name,
+  slug: schools.slug,
+  status: schools.status,
+  createdAt: schools.createdAt,
+}).from(schools).orderBy(sql`created_at DESC`).limit(5).all();
+---
+
+<AdminLayout title="Dashboard - iSchool">
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    {[
+      { label: 'Total Schools', value: schoolsCount, color: 'bg-blue-500' },
+      { label: 'Active Schools', value: activeSchools, color: 'bg-green-500' },
+      { label: 'Total Users', value: usersCount, color: 'bg-purple-500' },
+      { label: 'New Submissions', value: submissions, color: 'bg-orange-500' },
+    ].map(stat => (
+      <div class="bg-white rounded-xl border border-gray-200 p-6">
+        <div class="flex items-center gap-3 mb-3">
+          <div class={`w-3 h-3 rounded-full ${stat.color}`}></div>
+          <span class="text-sm text-gray-500">{stat.label}</span>
+        </div>
+        <p class="text-3xl font-bold text-gray-900">{stat.value}</p>
+      </div>
+    ))}
+  </div>
+
+  <div class="bg-white rounded-xl border border-gray-200">
+    <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+      <h2 class="text-base font-semibold text-gray-900">Recent Schools</h2>
+      <a href="/admin/schools" class="text-sm text-primary-600 hover:text-primary-700">View all</a>
+    </div>
+    <div class="divide-y divide-gray-100">
+      {recentSchools.length === 0 && (
+        <p class="p-6 text-sm text-gray-500 text-center">No schools yet.</p>
+      )}
+      {recentSchools.map(school => (
+        <div class="px-6 py-4 flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-900">{school.name}</p>
+            <p class="text-xs text-gray-500">/{school.slug}</p>
+          </div>
+          <span class:list={[
+            'text-xs font-medium px-2.5 py-0.5 rounded-full',
+            school.status === 'active' ? 'bg-green-100 text-green-700' :
+            school.status === 'suspended' ? 'bg-red-100 text-red-700' :
+            'bg-yellow-100 text-yellow-700'
+          ]}>
+            {school.status}
+          </span>
+        </div>
+      ))}
+    </div>
+  </div>
+</AdminLayout>

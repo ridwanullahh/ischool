@@ -1,0 +1,257 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { getDb } from '../../lib/db/index.js';
+import { aiProviders, aiApiKeys, aiModels } from '../../lib/db/schema.js';
+import { eq } from 'drizzle-orm';
+
+const user = Astro.locals.user!;
+if (!user || user.role !== 'super_admin') return Astro.redirect('/auth/login');
+
+const db = getDb();
+const providers = db.select().from(aiProviders).all();
+const keys = db.select({
+  id: aiApiKeys.id, providerId: aiApiKeys.providerId, keyName: aiApiKeys.keyName,
+  isActive: aiApiKeys.isActive, usageCount: aiApiKeys.usageCount,
+  rateLimitPerMinute: aiApiKeys.rateLimitPerMinute, providerName: aiProviders.name,
+}).from(aiApiKeys).leftJoin(aiProviders, eq(aiApiKeys.providerId, aiProviders.id)).all();
+const models = db.select({
+  id: aiModels.id, providerId: aiModels.providerId, modelId: aiModels.modelId,
+  displayName: aiModels.displayName, maxTokens: aiModels.maxTokens,
+  supportsTools: aiModels.supportsTools, isActive: aiModels.isActive,
+  providerName: aiProviders.name,
+}).from(aiModels).leftJoin(aiProviders, eq(aiModels.providerId, aiProviders.id)).all();
+---
+
+<AdminLayout title="AI Configuration - iSchool Admin">
+  <div class="space-y-8">
+    <div>
+      <h2 class="text-2xl font-bold text-gray-900">AI Configuration</h2>
+      <p class="text-sm text-gray-500 mt-1">Manage AI providers, API keys, and models for the platform.</p>
+    </div>
+
+    <!-- Providers Section -->
+    <div>
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-semibold text-gray-900">Providers</h3>
+        <button onclick="document.getElementById('addProviderModal').classList.remove('hidden')" class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 text-sm font-medium">+ Add Provider</button>
+      </div>
+      <div class="bg-white rounded-lg shadow overflow-hidden">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 border-b"><tr>
+            <th class="px-4 py-3 text-left font-medium text-gray-600">Name</th>
+            <th class="px-4 py-3 text-left font-medium text-gray-600">Base URL</th>
+            <th class="px-4 py-3 text-left font-medium text-gray-600">Status</th>
+            <th class="px-4 py-3 text-left font-medium text-gray-600">Actions</th>
+          </tr></thead>
+          <tbody class="divide-y">
+            {providers.length === 0 && <tr><td colspan="4" class="px-4 py-8 text-center text-gray-500">No providers configured</td></tr>}
+            {providers.map(p => (
+              <tr>
+                <td class="px-4 py-3 font-medium">{p.name}</td>
+                <td class="px-4 py-3 text-gray-500 font-mono text-xs">{p.baseUrl}</td>
+                <td class="px-4 py-3"><span class={`px-2 py-1 rounded-full text-xs font-medium ${p.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{p.isActive ? 'Active' : 'Inactive'}</span></td>
+                <td class="px-4 py-3 flex gap-2">
+                  <button onclick={`toggleProvider(${p.id}, ${!p.isActive})`} class="text-primary-600 hover:text-primary-800 text-xs font-medium">{p.isActive ? 'Disable' : 'Enable'}</button>
+                  <button onclick={`deleteItem('provider', ${p.id})`} class="text-red-600 hover:text-red-800 text-xs font-medium">Delete</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- API Keys Section -->
+    <div>
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-semibold text-gray-900">API Keys</h3>
+        <button onclick="document.getElementById('addKeyModal').classList.remove('hidden')" class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 text-sm font-medium">+ Add Key</button>
+      </div>
+      <div class="bg-white rounded-lg shadow overflow-hidden">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 border-b"><tr>
+            <th class="px-4 py-3 text-left font-medium text-gray-600">Key Name</th>
+            <th class="px-4 py-3 text-left font-medium text-gray-600">Provider</th>
+            <th class="px-4 py-3 text-left font-medium text-gray-600">Usage</th>
+            <th class="px-4 py-3 text-left font-medium text-gray-600">Rate Limit</th>
+            <th class="px-4 py-3 text-left font-medium text-gray-600">Status</th>
+            <th class="px-4 py-3 text-left font-medium text-gray-600">Actions</th>
+          </tr></thead>
+          <tbody class="divide-y">
+            {keys.length === 0 && <tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">No API keys configured</td></tr>}
+            {keys.map(k => (
+              <tr>
+                <td class="px-4 py-3 font-medium">{k.keyName}</td>
+                <td class="px-4 py-3 text-gray-500">{k.providerName}</td>
+                <td class="px-4 py-3">{k.usageCount} requests</td>
+                <td class="px-4 py-3">{k.rateLimitPerMinute}/min</td>
+                <td class="px-4 py-3"><span class={`px-2 py-1 rounded-full text-xs font-medium ${k.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{k.isActive ? 'Active' : 'Inactive'}</span></td>
+                <td class="px-4 py-3">
+                  <button onclick={`deleteItem('key', ${k.id})`} class="text-red-600 hover:text-red-800 text-xs font-medium">Delete</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Models Section -->
+    <div>
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-semibold text-gray-900">Models</h3>
+        <button onclick="document.getElementById('addModelModal').classList.remove('hidden')" class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 text-sm font-medium">+ Add Model</button>
+      </div>
+      <div class="bg-white rounded-lg shadow overflow-hidden">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 border-b"><tr>
+            <th class="px-4 py-3 text-left font-medium text-gray-600">Display Name</th>
+            <th class="px-4 py-3 text-left font-medium text-gray-600">Model ID</th>
+            <th class="px-4 py-3 text-left font-medium text-gray-600">Provider</th>
+            <th class="px-4 py-3 text-left font-medium text-gray-600">Max Tokens</th>
+            <th class="px-4 py-3 text-left font-medium text-gray-600">Tools</th>
+            <th class="px-4 py-3 text-left font-medium text-gray-600">Status</th>
+            <th class="px-4 py-3 text-left font-medium text-gray-600">Actions</th>
+          </tr></thead>
+          <tbody class="divide-y">
+            {models.length === 0 && <tr><td colspan="7" class="px-4 py-8 text-center text-gray-500">No models configured</td></tr>}
+            {models.map(m => (
+              <tr>
+                <td class="px-4 py-3 font-medium">{m.displayName}</td>
+                <td class="px-4 py-3 text-gray-500 font-mono text-xs">{m.modelId}</td>
+                <td class="px-4 py-3 text-gray-500">{m.providerName}</td>
+                <td class="px-4 py-3">{m.maxTokens?.toLocaleString()}</td>
+                <td class="px-4 py-3">{m.supportsTools ? 'Yes' : 'No'}</td>
+                <td class="px-4 py-3"><span class={`px-2 py-1 rounded-full text-xs font-medium ${m.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{m.isActive ? 'Active' : 'Inactive'}</span></td>
+                <td class="px-4 py-3">
+                  <button onclick={`deleteItem('model', ${m.id})`} class="text-red-600 hover:text-red-800 text-xs font-medium">Delete</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Provider Modal -->
+  <div id="addProviderModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl p-6 w-full max-w-md mx-4">
+      <h3 class="text-lg font-bold mb-4">Add AI Provider</h3>
+      <form id="providerForm" class="space-y-4">
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">Provider Name *</label>
+          <input name="name" required placeholder="e.g., OpenAI, Anthropic" class="w-full border rounded-lg px-3 py-2 text-sm" /></div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">Base URL *</label>
+          <input name="baseUrl" required placeholder="https://api.openai.com/v1" class="w-full border rounded-lg px-3 py-2 text-sm" /></div>
+        <div id="providerError" class="text-red-600 text-sm hidden"></div>
+        <div class="flex justify-end gap-3">
+          <button type="button" onclick="document.getElementById('addProviderModal').classList.add('hidden')" class="px-4 py-2 border rounded-lg text-sm">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700">Add</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add Key Modal -->
+  <div id="addKeyModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl p-6 w-full max-w-md mx-4">
+      <h3 class="text-lg font-bold mb-4">Add API Key</h3>
+      <form id="keyForm" class="space-y-4">
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">Key Name *</label>
+          <input name="keyName" required placeholder="e.g., Primary Key" class="w-full border rounded-lg px-3 py-2 text-sm" /></div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">Provider *</label>
+          <select name="providerId" required class="w-full border rounded-lg px-3 py-2 text-sm">
+            <option value="">Select provider</option>
+            {providers.map(p => <option value={p.id}>{p.name}</option>)}
+          </select></div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">API Key *</label>
+          <input name="apiKey" required type="password" placeholder="sk-..." class="w-full border rounded-lg px-3 py-2 text-sm" /></div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">Rate Limit (per minute)</label>
+          <input name="rateLimitPerMinute" type="number" value="60" class="w-full border rounded-lg px-3 py-2 text-sm" /></div>
+        <div id="keyError" class="text-red-600 text-sm hidden"></div>
+        <div class="flex justify-end gap-3">
+          <button type="button" onclick="document.getElementById('addKeyModal').classList.add('hidden')" class="px-4 py-2 border rounded-lg text-sm">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700">Add</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add Model Modal -->
+  <div id="addModelModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl p-6 w-full max-w-md mx-4">
+      <h3 class="text-lg font-bold mb-4">Add AI Model</h3>
+      <form id="modelForm" class="space-y-4">
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">Display Name *</label>
+          <input name="displayName" required placeholder="e.g., GPT-4o" class="w-full border rounded-lg px-3 py-2 text-sm" /></div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">Model ID *</label>
+          <input name="modelId" required placeholder="e.g., gpt-4o" class="w-full border rounded-lg px-3 py-2 text-sm" /></div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">Provider *</label>
+          <select name="providerId" required class="w-full border rounded-lg px-3 py-2 text-sm">
+            <option value="">Select provider</option>
+            {providers.map(p => <option value={p.id}>{p.name}</option>)}
+          </select></div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">Max Tokens</label>
+          <input name="maxTokens" type="number" value="4096" class="w-full border rounded-lg px-3 py-2 text-sm" /></div>
+        <div class="flex items-center gap-2">
+          <input name="supportsTools" type="checkbox" checked id="supportsTools" class="rounded" />
+          <label for="supportsTools" class="text-sm text-gray-700">Supports tool calling</label>
+        </div>
+        <div id="modelError" class="text-red-600 text-sm hidden"></div>
+        <div class="flex justify-end gap-3">
+          <button type="button" onclick="document.getElementById('addModelModal').classList.add('hidden')" class="px-4 py-2 border rounded-lg text-sm">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700">Add</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('providerForm')?.addEventListener('submit', async (e: Event) => {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(e.target as HTMLFormElement));
+      const err = document.getElementById('providerError')!;
+      err.classList.add('hidden');
+      try {
+        const res = await fetch('/api/admin/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...data, type: 'provider' }) });
+        if (!res.ok) throw new Error((await res.json()).error);
+        location.reload();
+      } catch (e: any) { err.textContent = e.message; err.classList.remove('hidden'); }
+    });
+
+    document.getElementById('keyForm')?.addEventListener('submit', async (e: Event) => {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(e.target as HTMLFormElement));
+      const err = document.getElementById('keyError')!;
+      err.classList.add('hidden');
+      try {
+        const res = await fetch('/api/admin/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...data, type: 'key', providerId: Number(data.providerId), rateLimitPerMinute: Number(data.rateLimitPerMinute) }) });
+        if (!res.ok) throw new Error((await res.json()).error);
+        location.reload();
+      } catch (e: any) { err.textContent = e.message; err.classList.remove('hidden'); }
+    });
+
+    document.getElementById('modelForm')?.addEventListener('submit', async (e: Event) => {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(e.target as HTMLFormElement));
+      const err = document.getElementById('modelError')!;
+      err.classList.add('hidden');
+      try {
+        const res = await fetch('/api/admin/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...data, type: 'model', providerId: Number(data.providerId), maxTokens: Number(data.maxTokens), supportsTools: (document.getElementById('supportsTools') as HTMLInputElement).checked }) });
+        if (!res.ok) throw new Error((await res.json()).error);
+        location.reload();
+      } catch (e: any) { err.textContent = e.message; err.classList.remove('hidden'); }
+    });
+
+    async function toggleProvider(id: number, isActive: boolean) {
+      await fetch('/api/admin/ai', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, type: 'provider', isActive }) });
+      location.reload();
+    }
+
+    async function deleteItem(type: string, id: number) {
+      if (!confirm('Are you sure?')) return;
+      await fetch('/api/admin/ai', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type, id }) });
+      location.reload();
+    }
+  </script>
+</AdminLayout>

@@ -1,0 +1,105 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { getDb } from '../../lib/db/index.js';
+import { coupons, couponRedemptions } from '../../lib/db/schema.js';
+import { sql } from 'drizzle-orm';
+
+const db = getDb();
+const allCoupons = db.select().from(coupons).orderBy(sql`created_at DESC`).all();
+const totalRedemptions = db.select({ count: sql<number>`COALESCE(SUM(current_uses), 0)` }).from(coupons).get()?.count || 0;
+---
+
+<AdminLayout title="Coupons - iSchool">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h2 class="text-xl font-bold text-gray-900">Coupons & Vouchers</h2>
+      <p class="text-sm text-gray-500 mt-1">{allCoupons.length} coupons created | {totalRedemptions} total redemptions</p>
+    </div>
+    <button onclick="document.getElementById('create-coupon-modal').classList.remove('hidden')" class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+      Create Coupon
+    </button>
+  </div>
+
+  <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <table class="w-full text-sm">
+      <thead class="bg-gray-50"><tr>
+        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Code</th>
+        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Value</th>
+        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Uses</th>
+        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Expires</th>
+        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+      </tr></thead>
+      <tbody class="divide-y divide-gray-100">
+        {allCoupons.length === 0 && <tr><td colspan="8" class="px-6 py-8 text-center text-gray-500">No coupons created yet</td></tr>}
+        {allCoupons.map(c => (
+          <tr class="hover:bg-gray-50">
+            <td class="px-6 py-4 font-mono text-sm font-bold text-primary-700">{c.code}</td>
+            <td class="px-6 py-4 text-gray-900">{c.name}</td>
+            <td class="px-6 py-4 text-gray-600 capitalize">{c.type}</td>
+            <td class="px-6 py-4 text-gray-900 font-medium">{c.type === 'percentage' ? `${c.value}%` : c.type === 'fixed' ? `$${(c.value / 100).toFixed(2)}` : 'Free Trial'}</td>
+            <td class="px-6 py-4 text-gray-600">{c.currentUses}{c.maxUses ? ` / ${c.maxUses}` : ''}</td>
+            <td class="px-6 py-4 text-gray-600">{c.endDate ? new Date(c.endDate).toLocaleDateString() : 'Never'}</td>
+            <td class="px-6 py-4"><span class:list={['text-xs font-medium px-2.5 py-0.5 rounded-full', c.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500']}>{c.isActive ? 'Active' : 'Inactive'}</span></td>
+            <td class="px-6 py-4 text-right">
+              <button onclick={`toggleCoupon(${c.id}, ${!c.isActive})`} class:list={['text-xs font-medium px-2 py-1 rounded', c.isActive ? 'text-red-600 hover:bg-red-50' : 'text-green-600 hover:bg-green-50']}>{c.isActive ? 'Deactivate' : 'Activate'}</button>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+
+  <div id="create-coupon-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center">
+    <div class="absolute inset-0 bg-black/50" onclick="this.parentElement.classList.add('hidden')"></div>
+    <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-lg p-8">
+      <h3 class="text-lg font-bold text-gray-900 mb-6">Create Coupon</h3>
+      <form id="coupon-form" class="space-y-4">
+        <div class="grid grid-cols-2 gap-4">
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Code</label><input name="code" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm uppercase" placeholder="SAVE20" /></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Name</label><input name="name" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="20% Off" /></div>
+        </div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">Description</label><textarea name="description" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"></textarea></div>
+        <div class="grid grid-cols-3 gap-4">
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Type</label><select name="type" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"><option value="percentage">Percentage</option><option value="fixed">Fixed Amount</option><option value="free_trial">Free Trial</option></select></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Value</label><input name="value" type="number" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Max Uses</label><input name="maxUses" type="number" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="Unlimited" /></div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label><input name="startDate" type="date" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">End Date</label><input name="endDate" type="date" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /></div>
+        </div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">Max Discount (cents, optional)</label><input name="maxDiscount" type="number" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /></div>
+        <div class="flex gap-3 pt-4">
+          <button type="submit" class="flex-1 px-4 py-2.5 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700">Create Coupon</button>
+          <button type="button" onclick="document.getElementById('create-coupon-modal').classList.add('hidden')" class="px-4 py-2.5 border border-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('coupon-form')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target as HTMLFormElement;
+      const fd = new FormData(form);
+      const data = {
+        code: (fd.get('code') as string).toUpperCase(), name: fd.get('name'), description: fd.get('description'),
+        type: fd.get('type'), value: Number(fd.get('value')), maxUses: fd.get('maxUses') ? Number(fd.get('maxUses')) : null,
+        startDate: fd.get('startDate'), endDate: fd.get('endDate') || null,
+        maxDiscount: fd.get('maxDiscount') ? Number(fd.get('maxDiscount')) : null,
+      };
+      const res = await fetch('/api/admin/coupons', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+      if (res.ok) window.location.reload();
+      else alert('Failed to create coupon');
+    });
+
+    async function toggleCoupon(id: number, active: boolean) {
+      await fetch(`/api/admin/coupons?id=${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ isActive: active }) });
+      window.location.reload();
+    }
+  </script>
+</AdminLayout>

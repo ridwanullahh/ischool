@@ -1,0 +1,26 @@
+---
+import OnboardingLayout from '../../layouts/OnboardingLayout.astro';
+import Input from '../../components/ui/Input.astro';
+import Button from '../../components/ui/Button.astro';
+---
+<OnboardingLayout title="School Info - iSchool Setup" step={1}>
+  <div class="bg-white rounded-xl border border-gray-200 p-8">
+    <h1 class="text-xl font-bold text-gray-900 mb-1">Your School</h1>
+    <p class="text-sm text-gray-500 mb-6">Tell us about your school to create your website.</p>
+    <form method="POST" action="/api/onboarding/school" class="space-y-4">
+      <Input label="School Name" name="name" required placeholder="e.g. Al-Noor Islamic Academy" />
+      <Input label="Tagline" name="tagline" placeholder="A short description of your school" />
+      <Input label="URL Slug" name="slug" required placeholder="e.g. alnoor" />
+      <div class="space-y-1">
+        <label class="block text-sm font-medium text-gray-700">Primary Color</label>
+        <div class="flex items-center gap-3">
+          <input type="color" name="primaryColor" value="#2563eb" class="w-10 h-10 rounded border border-gray-300 cursor-pointer" />
+          <span class="text-sm text-gray-500">#2563eb</span>
+        </div>
+      </div>
+      <div class="pt-4">
+        <Button type="submit">Continue</Button>
+      </div>
+    </form>
+  </div>
+</OnboardingLayout>

@@ -1,0 +1,127 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { getUserSchoolId } from '../../lib/school.js';
+import { getDb } from '../../lib/db/index.js';
+import { messages, users, schoolMembers } from '../../lib/db/schema.js';
+import { eq, desc } from 'drizzle-orm';
+
+const user = Astro.locals.user!;
+if (!user) return Astro.redirect('/auth/login');
+const schoolId = getUserSchoolId(user.id);
+
+let records: any[] = [];
+let allUsers: any[] = [];
+let stats = { total: 0, unread: 0 };
+
+if (schoolId) {
+  const db = getDb();
+  const memberships = db.select({ userId: schoolMembers.userId }).from(schoolMembers).where(eq(schoolMembers.schoolId, schoolId)).all();
+  const userIds = memberships.map(m => m.userId);
+  allUsers = userIds.length > 0 ? db.select().from(users).all().filter(u => userIds.includes(u.id)) : [];
+  records = db.select({
+    id: messages.id, senderId: messages.senderId, recipientId: messages.recipientId,
+    subject: messages.subject, content: messages.content, isRead: messages.isRead,
+    parentMessageId: messages.parentMessageId, createdAt: messages.createdAt,
+    senderName: users.name,
+  }).from(messages)
+    .leftJoin(users, eq(messages.senderId, users.id))
+    .where(eq(messages.schoolId, schoolId))
+    .orderBy(desc(messages.createdAt)).limit(100).all();
+  stats = { total: records.length, unread: records.filter(r => !r.isRead).length };
+}
+---
+
+<DashboardLayout title="Messages - iSchool">
+  <div class="space-y-6">
+    <div class="flex justify-between items-center">
+      <div><h2 class="text-2xl font-bold text-gray-900">Messages</h2><p class="text-sm text-gray-500 mt-1">Internal messaging and communication</p></div>
+      <button onclick="document.getElementById('addModal').classList.remove('hidden')" class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 font-medium text-sm">+ Compose</button>
+      <button onclick="exportCsv('messages')" class="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 font-medium text-sm">Export CSV</button>
+    </div>
+    <div class="grid grid-cols-2 gap-4">
+      <div class="bg-white rounded-lg border p-4"><p class="text-sm text-gray-500">Total Messages</p><p class="text-2xl font-bold">{stats.total}</p></div>
+      <div class="bg-white rounded-lg border p-4"><p class="text-sm text-gray-500">Unread</p><p class="text-2xl font-bold text-blue-600">{stats.unread}</p></div>
+    </div>
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+      <div class="p-4 border-b"><input type="text" id="searchInput" placeholder="Search messages..." class="border rounded-lg px-3 py-2 text-sm w-full" oninput="filterTable()" /></div>
+      <div class="divide-y" id="msgList">
+        {records.length === 0 && <div class="p-8 text-center text-gray-500">No messages</div>}
+        {records.map(r => (
+          <div class={`p-4 hover:bg-gray-50 ${!r.isRead ? 'bg-blue-50/50' : ''}`} data-search={`${r.subject || ''} ${r.senderName || ''} ${r.content}`.toLowerCase()}>
+            <div class="flex items-start justify-between">
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2">
+                  <span class="font-medium text-sm">{r.senderName || 'System'}</span>
+                  {!r.isRead && <span class="w-2 h-2 bg-blue-500 rounded-full"></span>}
+                  <span class="text-xs text-gray-400">{new Date(r.createdAt).toLocaleDateString()}</span>
+                </div>
+                <p class="text-sm font-medium text-gray-900 mt-1">{r.subject || '(No subject)'}</p>
+                <p class="text-sm text-gray-600 mt-1 truncate">{r.content}</p>
+              </div>
+              <div class="flex gap-2 ml-4">
+                {!r.isRead && <button onclick={`markRead(${r.id})`} class="text-primary-600 text-xs">Mark Read</button>}
+                <button onclick={`replyTo(${r.id}, '${(r.subject || '').replace(/'/g, "\\'")}')`} class="text-primary-600 text-xs">Reply</button>
+                <button onclick={`deleteMsg(${r.id})`} class="text-red-600 text-xs">Delete</button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+
+  <div id="addModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl p-6 w-full max-w-md mx-4">
+      <h3 class="text-lg font-bold mb-4">Compose Message</h3>
+      <form onsubmit="sendMsg(event)">
+        <input type="hidden" id="parentMsgId" value="" />
+        <div class="space-y-3">
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">To</label>
+            <select id="recipientId" class="w-full border rounded-lg px-3 py-2 text-sm">
+              <option value="">All (Announcement)</option>
+              {allUsers.map(u => <option value={u.id}>{u.name} ({u.email})</option>)}
+            </select></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+            <input type="text" id="subject" class="w-full border rounded-lg px-3 py-2 text-sm" /></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Message</label>
+            <textarea id="content" required rows="5" class="w-full border rounded-lg px-3 py-2 text-sm"></textarea></div>
+        </div>
+        <div class="flex justify-end gap-3 mt-6">
+          <button type="button" onclick="document.getElementById('addModal').classList.add('hidden')" class="px-4 py-2 border rounded-lg text-sm">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700">Send</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function filterTable() {
+      const s = (document.getElementById('searchInput') as HTMLInputElement).value.toLowerCase();
+      document.querySelectorAll('#msgList > div[data-search]').forEach(r => { (r as HTMLElement).style.display = !s || (r as HTMLElement).dataset.search!.includes(s) ? '' : 'none'; });
+    }
+    function replyTo(id: number, subject: string) {
+      (document.getElementById('parentMsgId') as HTMLInputElement).value = String(id);
+      (document.getElementById('subject') as HTMLInputElement).value = subject.startsWith('Re:') ? subject : `Re: ${subject}`;
+      document.getElementById('addModal')!.classList.remove('hidden');
+    }
+    async function sendMsg(e: Event) {
+      e.preventDefault();
+      await fetch('/api/dashboard/messages', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+        recipientId: (document.getElementById('recipientId') as HTMLSelectElement).value ? parseInt((document.getElementById('recipientId') as HTMLSelectElement).value) : null,
+        subject: (document.getElementById('subject') as HTMLInputElement).value || null,
+        content: (document.getElementById('content') as HTMLTextAreaElement).value,
+        parentMessageId: (document.getElementById('parentMsgId') as HTMLInputElement).value ? parseInt((document.getElementById('parentMsgId') as HTMLInputElement).value) : null,
+      })});
+      location.reload();
+    }
+    async function markRead(id: number) {
+      await fetch('/api/dashboard/messages', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, isRead: true }) });
+      location.reload();
+    }
+    async function deleteMsg(id: number) {
+      if (!confirm('Delete this message?')) return;
+      await fetch('/api/dashboard/messages', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
+      location.reload();
+    }
+  </script>
+</DashboardLayout>

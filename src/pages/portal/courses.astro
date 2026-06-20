@@ -1,0 +1,56 @@
+---
+import PortalLayout from '../../layouts/PortalLayout.astro';
+import { getDb } from '../../lib/db/index.js';
+import { courses, courseUnits, schoolMembers } from '../../lib/db/schema.js';
+import { eq, and } from 'drizzle-orm';
+
+const user = (Astro.locals as any).user;
+if (!user) return Astro.redirect('/auth/login');
+
+const db = getDb();
+const membership = db.select().from(schoolMembers).where(eq(schoolMembers.userId, user.id)).get();
+const schoolId = membership?.schoolId;
+
+let courseList: any[] = [];
+if (schoolId) {
+  courseList = db.select({
+    id: courses.id,
+    title: courses.title,
+    subject: courses.subject,
+    status: courses.status,
+    description: courses.description,
+    code: courses.code,
+  }).from(courses).where(eq(courses.schoolId, schoolId)).all();
+}
+---
+
+<PortalLayout title="My Courses">
+  <div class="mb-8">
+    <h1 class="text-2xl font-bold text-gray-900">My Courses</h1>
+    <p class="text-gray-500 mt-1">Browse your enrolled courses</p>
+  </div>
+
+  {courseList.length === 0 ? (
+    <div class="bg-white rounded-xl border border-gray-200 p-12 text-center">
+      <p class="text-gray-500">No courses available yet.</p>
+    </div>
+  ) : (
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {courseList.map((c: any) => (
+        <div class="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow">
+          <div class="flex items-start justify-between mb-3">
+            <span class:list={['text-xs font-medium px-2 py-1 rounded-full',
+              c.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+            ]}>
+              {c.status}
+            </span>
+          </div>
+          <h3 class="font-semibold text-gray-900">{c.title}</h3>
+          {c.subject && <p class="text-sm text-gray-500 mt-1">{c.subject}</p>}
+          {c.code && <p class="text-xs text-gray-400 mt-1">Code: {c.code}</p>}
+          {c.description && <p class="text-sm text-gray-600 mt-2 line-clamp-2">{c.description}</p>}
+        </div>
+      ))}
+    </div>
+  )}
+</PortalLayout>

@@ -1,0 +1,175 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { getUserSchoolId } from '../../lib/school.js';
+import { getDb } from '../../lib/db/index.js';
+import { attendance, students, classes } from '../../lib/db/schema.js';
+import { eq, and, desc, sql } from 'drizzle-orm';
+
+const user = Astro.locals.user!;
+if (!user) return Astro.redirect('/auth/login');
+const schoolId = getUserSchoolId(user.id);
+
+let records: any[] = [];
+let allStudents: any[] = [];
+let allClasses: any[] = [];
+let stats = { total: 0, present: 0, absent: 0, late: 0 };
+
+if (schoolId) {
+  const db = getDb();
+  allStudents = db.select().from(students).where(eq(students.schoolId, schoolId)).all();
+  allClasses = db.select().from(classes).where(eq(classes.schoolId, schoolId)).all();
+  records = db.select({
+    id: attendance.id, studentId: attendance.studentId, date: attendance.date,
+    period: attendance.period, status: attendance.status, notes: attendance.notes,
+    createdAt: attendance.createdAt,
+    studentName: sql`${students.firstName} || ' ' || ${students.lastName}`.as('student_name'),
+    studentIdentifier: students.studentId,
+  }).from(attendance)
+    .leftJoin(students, eq(attendance.studentId, students.id))
+    .where(eq(attendance.schoolId, schoolId))
+    .orderBy(desc(attendance.date)).limit(100).all();
+
+  const today = new Date().toISOString().split('T')[0];
+  const todayRecords = records.filter(r => r.date === today);
+  stats = {
+    total: todayRecords.length,
+    present: todayRecords.filter(r => r.status === 'present').length,
+    absent: todayRecords.filter(r => r.status === 'absent').length,
+    late: todayRecords.filter(r => r.status === 'late').length,
+  };
+}
+---
+
+<DashboardLayout title="Attendance - iSchool">
+  <div class="space-y-6">
+    <div class="flex justify-between items-center">
+      <div>
+        <h2 class="text-2xl font-bold text-gray-900">Attendance</h2>
+        <p class="text-sm text-gray-500 mt-1">Track and manage student attendance</p>
+      </div>
+      <button onclick="document.getElementById('addModal').classList.remove('hidden')" class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 font-medium text-sm">+ Mark Attendance</button>
+      <button onclick="exportCsv('attendance')" class="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 font-medium text-sm">Export CSV</button>
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="bg-white rounded-lg border p-4"><p class="text-sm text-gray-500">Today's Records</p><p class="text-2xl font-bold text-gray-900">{stats.total}</p></div>
+      <div class="bg-white rounded-lg border p-4"><p class="text-sm text-gray-500">Present</p><p class="text-2xl font-bold text-green-600">{stats.present}</p></div>
+      <div class="bg-white rounded-lg border p-4"><p class="text-sm text-gray-500">Absent</p><p class="text-2xl font-bold text-red-600">{stats.absent}</p></div>
+      <div class="bg-white rounded-lg border p-4"><p class="text-sm text-gray-500">Late</p><p class="text-2xl font-bold text-yellow-600">{stats.late}</p></div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+      <div class="p-4 border-b flex gap-3">
+        <input type="text" id="searchInput" placeholder="Search by student name..." class="border rounded-lg px-3 py-2 text-sm flex-1" oninput="filterTable()" />
+        <input type="date" id="dateFilter" class="border rounded-lg px-3 py-2 text-sm" onchange="filterTable()" />
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm" id="dataTable">
+          <thead class="bg-gray-50"><tr>
+            <th class="px-4 py-3 text-left font-medium text-gray-600">Student</th>
+            <th class="px-4 py-3 text-left font-medium text-gray-600">ID</th>
+            <th class="px-4 py-3 text-left font-medium text-gray-600">Date</th>
+            <th class="px-4 py-3 text-left font-medium text-gray-600">Period</th>
+            <th class="px-4 py-3 text-left font-medium text-gray-600">Status</th>
+            <th class="px-4 py-3 text-left font-medium text-gray-600">Actions</th>
+          </tr></thead>
+          <tbody class="divide-y">
+            {records.length === 0 && <tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">No attendance records found</td></tr>}
+            {records.map(r => (
+              <tr data-search={`${r.studentName} ${r.studentIdentifier}`.toLowerCase()} data-date={r.date}>
+                <td class="px-4 py-3 font-medium">{r.studentName}</td>
+                <td class="px-4 py-3 text-gray-500">{r.studentIdentifier}</td>
+                <td class="px-4 py-3">{r.date}</td>
+                <td class="px-4 py-3">{r.period || 'Full Day'}</td>
+                <td class="px-4 py-3">
+                  <span class={`px-2 py-1 rounded-full text-xs font-medium ${r.status === 'present' ? 'bg-green-100 text-green-700' : r.status === 'absent' ? 'bg-red-100 text-red-700' : r.status === 'late' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-700'}`}>{r.status}</span>
+                </td>
+                <td class="px-4 py-3 flex gap-2">
+                  <button onclick={`editRecord(${r.id}, '${r.studentId}', '${r.date}', '${r.status}', '${r.period || ''}')`} class="text-primary-600 hover:text-primary-800 text-xs font-medium">Edit</button>
+                  <button onclick={`deleteRecord(${r.id})`} class="text-red-600 hover:text-red-800 text-xs font-medium">Delete</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="addModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl p-6 w-full max-w-md mx-4">
+      <h3 class="text-lg font-bold mb-4" id="modalTitle">Mark Attendance</h3>
+      <form id="attendForm" onsubmit="submitForm(event)">
+        <input type="hidden" id="editId" value="" />
+        <div class="space-y-3">
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Student</label>
+            <select id="studentId" required class="w-full border rounded-lg px-3 py-2 text-sm">
+              <option value="">Select student</option>
+              {allStudents.map(s => <option value={s.id}>{s.firstName} {s.lastName} ({s.studentId})</option>)}
+            </select></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+            <input type="date" id="attendDate" required class="w-full border rounded-lg px-3 py-2 text-sm" value={new Date().toISOString().split('T')[0]} /></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Period (optional)</label>
+            <input type="text" id="attendPeriod" class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="e.g., Period 1" /></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+            <select id="attendStatus" required class="w-full border rounded-lg px-3 py-2 text-sm">
+              <option value="present">Present</option><option value="absent">Absent</option>
+              <option value="late">Late</option><option value="excused">Excused</option>
+              <option value="early_departure">Early Departure</option>
+            </select></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Notes (optional)</label>
+            <input type="text" id="attendNotes" class="w-full border rounded-lg px-3 py-2 text-sm" /></div>
+        </div>
+        <div class="flex justify-end gap-3 mt-6">
+          <button type="button" onclick="document.getElementById('addModal').classList.add('hidden')" class="px-4 py-2 border rounded-lg text-sm">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function filterTable() {
+      const search = (document.getElementById('searchInput') as HTMLInputElement).value.toLowerCase();
+      const dateVal = (document.getElementById('dateFilter') as HTMLInputElement).value;
+      document.querySelectorAll('#dataTable tbody tr[data-search]').forEach(row => {
+        const el = row as HTMLElement;
+        const matchSearch = !search || el.dataset.search!.includes(search);
+        const matchDate = !dateVal || el.dataset.date === dateVal;
+        el.style.display = matchSearch && matchDate ? '' : 'none';
+      });
+    }
+
+    function editRecord(id: number, studentId: string, date: string, status: string, period: string) {
+      (document.getElementById('editId') as HTMLInputElement).value = String(id);
+      (document.getElementById('studentId') as HTMLSelectElement).value = studentId;
+      (document.getElementById('attendDate') as HTMLInputElement).value = date;
+      (document.getElementById('attendPeriod') as HTMLInputElement).value = period;
+      (document.getElementById('attendStatus') as HTMLSelectElement).value = status;
+      document.getElementById('modalTitle')!.textContent = 'Edit Attendance';
+      document.getElementById('addModal')!.classList.remove('hidden');
+    }
+
+    async function submitForm(e: Event) {
+      e.preventDefault();
+      const editId = (document.getElementById('editId') as HTMLInputElement).value;
+      const body: any = {
+        studentId: parseInt((document.getElementById('studentId') as HTMLSelectElement).value),
+        date: (document.getElementById('attendDate') as HTMLInputElement).value,
+        period: (document.getElementById('attendPeriod') as HTMLInputElement).value || null,
+        status: (document.getElementById('attendStatus') as HTMLSelectElement).value,
+        notes: (document.getElementById('attendNotes') as HTMLInputElement).value || null,
+      };
+      const method = editId ? 'PUT' : 'POST';
+      if (editId) body.id = parseInt(editId);
+      await fetch('/api/dashboard/attendance', { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      location.reload();
+    }
+
+    async function deleteRecord(id: number) {
+      if (!confirm('Delete this attendance record?')) return;
+      await fetch('/api/dashboard/attendance', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
+      location.reload();
+    }
+  </script>
+</DashboardLayout>

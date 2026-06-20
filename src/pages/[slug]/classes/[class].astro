@@ -1,0 +1,59 @@
+---
+import { getThemeLayout } from '../../../themes/index.js';
+import { getDb } from '../../../lib/db/index.js';
+import { schools, classes } from '../../../lib/db/schema.js';
+import { eq, and } from 'drizzle-orm';
+
+const slug = Astro.params.slug!;
+const classSlug = Astro.params.class!;
+const db = getDb();
+const school = db.select().from(schools).where(eq(schools.slug, slug)).get();
+if (!school) return Astro.redirect('/404');
+
+const Layout = getThemeLayout(school.theme || 'harmony');
+
+const item = db.select().from(classes)
+  .where(and(eq(classes.schoolId, school.id), eq(classes.slug, classSlug)))
+  .get();
+if (!item) return Astro.redirect(`/${slug}/classes`);
+---
+
+<Layout school={school} title={item.name}>
+  <article class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <a href={`/${slug}/classes`} class="text-sm text-[var(--primary)] hover:underline mb-6 inline-block">&larr; Back to Classes</a>
+
+    {item.imageUrl && (
+      <img src={item.imageUrl} alt={item.name} class="w-full h-64 sm:h-80 object-cover rounded-xl mb-8" />
+    )}
+
+    <header class="mb-8">
+      <h1 class="text-3xl sm:text-4xl font-bold text-[var(--text)] leading-tight">{item.name}</h1>
+      <div class="flex flex-wrap gap-3 mt-4">
+        {item.gradeLevel && <span class="text-sm px-3 py-1 rounded-full font-medium" style="background:color-mix(in srgb, var(--primary) 12%, transparent);color:var(--primary)">{item.gradeLevel}</span>}
+        {item.teacherName && <span class="text-sm bg-[var(--bg)] px-3 py-1 rounded-full text-[var(--muted)]">Teacher: {item.teacherName}</span>}
+        {item.capacity && <span class="text-sm bg-[var(--bg)] px-3 py-1 rounded-full text-[var(--muted)]">Max {item.capacity} students</span>}
+      </div>
+    </header>
+
+    {item.description && (
+      <div class="mb-8">
+        <p class="text-lg leading-relaxed text-[var(--muted)]">{item.description}</p>
+      </div>
+    )}
+
+    {item.content && (
+      <div class="prose max-w-none">
+        {item.content.split('\n').map(para => para.trim()).filter(Boolean).map(para => (
+          <p class="leading-relaxed mb-4 text-[var(--text)]">{para}</p>
+        ))}
+      </div>
+    )}
+
+    <div class="mt-10 p-6 bg-[var(--bg)] rounded-xl border border-[var(--border)] text-center">
+      <p class="mb-4 text-[var(--muted)]">Want to enroll your child in this class?</p>
+      <a href={`/${slug}/admissions`} class="inline-flex items-center justify-center px-8 py-3 text-base font-semibold text-white bg-[var(--primary)] rounded-lg hover:opacity-90 transition-colors shadow-sm">
+        Apply for Admission
+      </a>
+    </div>
+  </article>
+</Layout>

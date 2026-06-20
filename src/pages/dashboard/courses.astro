@@ -1,0 +1,252 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { getDb } from '../../lib/db/index.js';
+import { courses, schoolMembers } from '../../lib/db/schema.js';
+import { eq } from 'drizzle-orm';
+
+const user = Astro.locals.user;
+if (!user) return Astro.redirect('/auth/login');
+
+const db = getDb();
+const membership = db.select().from(schoolMembers).where(eq(schoolMembers.userId, user.id)).get();
+const schoolId = membership?.schoolId;
+
+const allCourses = schoolId
+  ? db.select().from(courses).where(eq(courses.schoolId, schoolId)).all()
+  : [];
+---
+
+<DashboardLayout title="Courses - iSchool">
+  <div class="space-y-6">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div>
+        <h2 class="text-2xl font-bold text-gray-900">Courses</h2>
+        <p class="text-sm text-gray-500 mt-1">Manage courses and curriculum</p>
+      </div>
+      <button onclick="document.getElementById('addModal').classList.remove('hidden')" class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 font-medium">
+        + Add Course
+      </button>
+    </div>
+
+    <div class="p-4 bg-white rounded-lg shadow flex flex-col sm:flex-row gap-3">
+      <input id="searchInput" type="text" placeholder="Search courses..." class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" />
+      <select id="statusFilter" class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500">
+        <option value="">All Status</option>
+        <option value="draft">Draft</option>
+        <option value="published">Published</option>
+        <option value="archived">Archived</option>
+      </select>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="coursesGrid">
+      {allCourses.length === 0 ? (
+        <div class="col-span-full bg-white rounded-lg shadow p-8 text-center text-gray-500">
+          No courses found. Create your first course to get started.
+        </div>
+      ) : (
+        allCourses.map((course) => (
+          <div class="bg-white rounded-lg shadow hover:shadow-md transition-shadow course-card" data-title={course.title.toLowerCase()} data-status={course.status}>
+            <div class="p-6">
+              <div class="flex justify-between items-start mb-2">
+                <h3 class="text-lg font-semibold text-gray-900">{course.title}</h3>
+                <span class={`px-2 py-1 text-xs font-medium rounded ${course.status === 'published' ? 'bg-green-100 text-green-700' : course.status === 'archived' ? 'bg-gray-100 text-gray-700' : 'bg-yellow-100 text-yellow-700'}`}>{course.status}</span>
+              </div>
+              <p class="text-sm text-gray-600 mb-3">{course.description || 'No description'}</p>
+              <div class="flex items-center gap-3 text-xs text-gray-500 mb-4">
+                {course.subject && <span class="bg-blue-50 text-blue-700 px-2 py-1 rounded">{course.subject}</span>}
+                {course.gradeLevel && <span class="bg-purple-50 text-purple-700 px-2 py-1 rounded">Grade {course.gradeLevel}</span>}
+              </div>
+              <div class="flex justify-end gap-2 pt-3 border-t border-gray-100">
+                <button onclick={`editCourse(${course.id}, '${course.title.replace(/'/g, "\\'")}', '${course.slug}', '${course.description?.replace(/'/g, "\\'") || ''}', '${course.subject || ''}', '${course.gradeLevel || ''}', '${course.status}')`} class="text-primary-600 hover:text-primary-700 text-sm font-medium">Edit</button>
+                <button onclick={`confirmDelete(${course.id}, '${course.title.replace(/'/g, "\\'")}')`} class="text-red-600 hover:text-red-700 text-sm font-medium">Delete</button>
+              </div>
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  </div>
+
+  <!-- Add Course Modal -->
+  <div id="addModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+      <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+        <h3 class="text-lg font-semibold">Add Course</h3>
+        <button onclick="document.getElementById('addModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+      </div>
+      <form id="addForm" class="p-6 space-y-4">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Title *</label>
+            <input name="title" required class="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Slug *</label>
+            <input name="slug" required class="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+          <textarea name="description" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg"></textarea>
+        </div>
+        <div class="grid grid-cols-3 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+            <input name="subject" class="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Grade Level</label>
+            <input name="gradeLevel" class="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+            <select name="status" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+              <option value="draft">Draft</option>
+              <option value="published">Published</option>
+              <option value="archived">Archived</option>
+            </select>
+          </div>
+        </div>
+        <div id="addError" class="text-red-600 text-sm hidden"></div>
+        <div class="flex justify-end gap-3 pt-4 border-t border-gray-200">
+          <button type="button" onclick="document.getElementById('addModal').classList.add('hidden')" class="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">Add Course</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit Course Modal -->
+  <div id="editModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+      <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+        <h3 class="text-lg font-semibold">Edit Course</h3>
+        <button onclick="document.getElementById('editModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+      </div>
+      <form id="editForm" class="p-6 space-y-4">
+        <input type="hidden" name="id" id="editId" />
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Title *</label>
+            <input name="title" id="editTitle" required class="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Slug</label>
+            <input name="slug" id="editSlug" class="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+          <textarea name="description" id="editDescription" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg"></textarea>
+        </div>
+        <div class="grid grid-cols-3 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+            <input name="subject" id="editSubject" class="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Grade Level</label>
+            <input name="gradeLevel" id="editGradeLevel" class="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+            <select name="status" id="editStatus" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+              <option value="draft">Draft</option>
+              <option value="published">Published</option>
+              <option value="archived">Archived</option>
+            </select>
+          </div>
+        </div>
+        <div id="editError" class="text-red-600 text-sm hidden"></div>
+        <div class="flex justify-end gap-3 pt-4 border-t border-gray-200">
+          <button type="button" onclick="document.getElementById('editModal').classList.add('hidden')" class="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete Modal -->
+  <div id="deleteModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4 p-6">
+      <h3 class="text-lg font-semibold text-gray-900 mb-2">Confirm Delete</h3>
+      <p class="text-gray-600 mb-6">Are you sure you want to delete <strong id="deleteName"></strong>? This action cannot be undone.</p>
+      <div class="flex justify-end gap-3">
+        <button onclick="document.getElementById('deleteModal').classList.add('hidden')" class="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
+        <button id="confirmDeleteBtn" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const searchInput = document.getElementById('searchInput') as HTMLInputElement;
+    const statusFilter = document.getElementById('statusFilter') as HTMLSelectElement;
+
+    function filterCards() {
+      const query = searchInput.value.toLowerCase();
+      const status = statusFilter.value;
+      document.querySelectorAll('.course-card').forEach((card: Element) => {
+        const el = card as HTMLElement;
+        const title = el.dataset.title || '';
+        const cardStatus = el.dataset.status || '';
+        const matchSearch = !query || title.includes(query);
+        const matchStatus = !status || cardStatus === status;
+        el.style.display = matchSearch && matchStatus ? '' : 'none';
+      });
+    }
+    searchInput?.addEventListener('input', filterCards);
+    statusFilter?.addEventListener('change', filterCards);
+
+    document.getElementById('addForm')?.addEventListener('submit', async (e: Event) => {
+      e.preventDefault();
+      const form = e.target as HTMLFormElement;
+      const data = Object.fromEntries(new FormData(form));
+      const errEl = document.getElementById('addError')!;
+      errEl.classList.add('hidden');
+      try {
+        const res = await fetch('/api/dashboard/courses', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+        if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Failed'); }
+        window.location.reload();
+      } catch (err: any) { errEl.textContent = err.message; errEl.classList.remove('hidden'); }
+    });
+
+    (window as any).editCourse = (id: number, title: string, slug: string, description: string, subject: string, gradeLevel: string, status: string) => {
+      (document.getElementById('editId') as HTMLInputElement).value = String(id);
+      (document.getElementById('editTitle') as HTMLInputElement).value = title;
+      (document.getElementById('editSlug') as HTMLInputElement).value = slug;
+      (document.getElementById('editDescription') as HTMLTextAreaElement).value = description;
+      (document.getElementById('editSubject') as HTMLInputElement).value = subject;
+      (document.getElementById('editGradeLevel') as HTMLInputElement).value = gradeLevel;
+      (document.getElementById('editStatus') as HTMLSelectElement).value = status;
+      document.getElementById('editModal')!.classList.remove('hidden');
+    };
+
+    document.getElementById('editForm')?.addEventListener('submit', async (e: Event) => {
+      e.preventDefault();
+      const form = e.target as HTMLFormElement;
+      const data = Object.fromEntries(new FormData(form));
+      const errEl = document.getElementById('editError')!;
+      errEl.classList.add('hidden');
+      try {
+        const res = await fetch('/api/dashboard/courses', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: Number(data.id), ...data }) });
+        if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Failed'); }
+        window.location.reload();
+      } catch (err: any) { errEl.textContent = err.message; errEl.classList.remove('hidden'); }
+    });
+
+    let deleteTargetId: number | null = null;
+    (window as any).confirmDelete = (id: number, name: string) => {
+      deleteTargetId = id;
+      document.getElementById('deleteName')!.textContent = name;
+      document.getElementById('deleteModal')!.classList.remove('hidden');
+    };
+
+    document.getElementById('confirmDeleteBtn')?.addEventListener('click', async () => {
+      if (!deleteTargetId) return;
+      try {
+        await fetch('/api/dashboard/courses', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: deleteTargetId }) });
+        window.location.reload();
+      } catch { document.getElementById('deleteModal')!.classList.add('hidden'); }
+    });
+  </script>
+</DashboardLayout>

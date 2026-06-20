@@ -1,0 +1,362 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { getDb } from '../../lib/db/index.js';
+import { students, schoolMembers } from '../../lib/db/schema.js';
+import { eq } from 'drizzle-orm';
+
+const user = Astro.locals.user;
+if (!user) return Astro.redirect('/auth/login');
+
+const db = getDb();
+const membership = db.select().from(schoolMembers).where(eq(schoolMembers.userId, user.id)).get();
+const schoolId = membership?.schoolId;
+
+const allStudents = schoolId
+  ? db.select().from(students).where(eq(students.schoolId, schoolId)).all()
+  : [];
+---
+
+<DashboardLayout title="Students - iSchool">
+  <div class="space-y-6">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div>
+        <h2 class="text-2xl font-bold text-gray-900">Students</h2>
+        <p class="text-sm text-gray-500 mt-1">Manage student records and enrollment</p>
+      </div>
+      <button onclick="document.getElementById('addModal').classList.remove('hidden')" class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 font-medium">
+        + Add Student
+      </button>
+      <button onclick="exportCsv('students')" class="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 font-medium text-sm">Export CSV</button>
+      <button onclick="document.getElementById('importFile').click()" class="bg-purple-600 text-white px-3 py-2 rounded-lg hover:bg-purple-700 font-medium text-sm">Import CSV</button>
+      <input type="file" id="importFile" accept=".csv" class="hidden" />
+    </div>
+
+    <div class="bg-white rounded-lg shadow">
+      <div class="p-4 border-b border-gray-200 flex flex-col sm:flex-row gap-3">
+        <input id="searchInput" type="text" placeholder="Search by name or ID..." class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" />
+        <select id="statusFilter" class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500">
+          <option value="">All Status</option>
+          <option value="active">Active</option>
+          <option value="transferred">Transferred</option>
+          <option value="graduated">Graduated</option>
+          <option value="withdrawn">Withdrawn</option>
+          <option value="suspended">Suspended</option>
+        </select>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead class="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student ID</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Gender</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="studentsTableBody" class="divide-y divide-gray-200">
+            {allStudents.length === 0 ? (
+              <tr>
+                <td colspan="6" class="px-6 py-8 text-center text-gray-500">No students found. Add your first student.</td>
+              </tr>
+            ) : (
+              allStudents.map((student) => (
+                <tr class="hover:bg-gray-50 student-row" data-name={`${student.firstName} ${student.lastName}`.toLowerCase()} data-id={student.studentId} data-status={student.status}>
+                  <td class="px-6 py-4 text-sm text-gray-900 font-medium">{student.studentId}</td>
+                  <td class="px-6 py-4 text-sm text-gray-900">{student.firstName} {student.lastName}</td>
+                  <td class="px-6 py-4 text-sm text-gray-600 capitalize">{student.gender || '-'}</td>
+                  <td class="px-6 py-4 text-sm text-gray-600">{student.email || '-'}</td>
+                  <td class="px-6 py-4">
+                    <span class={`px-2 py-1 text-xs font-medium rounded ${student.status === 'active' ? 'bg-green-100 text-green-700' : student.status === 'suspended' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'}`}>{student.status}</span>
+                  </td>
+                  <td class="px-6 py-4 text-sm flex gap-2">
+                    <button onclick={`editStudent(${student.id}, '${student.firstName}', '${student.lastName}', '${student.studentId}', '${student.email || ''}', '${student.phone || ''}', '${student.gender || ''}', '${student.status}')`} class="text-primary-600 hover:text-primary-700">Edit</button>
+                    <button onclick={`confirmDelete(${student.id}, '${student.firstName} ${student.lastName}')`} class="text-red-600 hover:text-red-700">Delete</button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Student Modal -->
+  <div id="addModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+      <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+        <h3 class="text-lg font-semibold">Add Student</h3>
+        <button onclick="document.getElementById('addModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+      </div>
+      <form id="addForm" class="p-6 space-y-4">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Student ID *</label>
+            <input name="studentId" required class="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Gender</label>
+            <select name="gender" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+              <option value="">Select</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
+            <input name="firstName" required class="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
+            <input name="lastName" required class="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <input name="email" type="email" class="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+            <input name="phone" class="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
+            <input name="dateOfBirth" type="date" class="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Enrollment Date</label>
+            <input name="enrollmentDate" type="date" class="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Address</label>
+          <textarea name="address" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg"></textarea>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Emergency Contact Name</label>
+            <input name="emergencyContactName" class="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Emergency Contact Phone</label>
+            <input name="emergencyContactPhone" class="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Photo / Document</label>
+          <div class="flex items-center gap-3">
+            <input type="hidden" name="photoUrl" id="addPhotoUrl" />
+            <label class="cursor-pointer bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 text-sm font-medium inline-flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              Upload File
+              <input type="file" accept="image/*,.pdf" class="hidden" onchange="uploadStudentFile(this)" />
+            </label>
+            <span id="addFileName" class="text-sm text-gray-500">No file selected</span>
+          </div>
+        </div>
+        <div id="addError" class="text-red-600 text-sm hidden"></div>
+        <div class="flex justify-end gap-3 pt-4 border-t border-gray-200">
+          <button type="button" onclick="document.getElementById('addModal').classList.add('hidden')" class="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">Add Student</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit Student Modal -->
+  <div id="editModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+      <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+        <h3 class="text-lg font-semibold">Edit Student</h3>
+        <button onclick="document.getElementById('editModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+      </div>
+      <form id="editForm" class="p-6 space-y-4">
+        <input type="hidden" name="id" id="editId" />
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Student ID</label>
+            <input name="studentId" id="editStudentId" class="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Gender</label>
+            <select name="gender" id="editGender" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+              <option value="">Select</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
+            <input name="firstName" id="editFirstName" required class="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
+            <input name="lastName" id="editLastName" required class="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <input name="email" id="editEmail" type="email" class="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+            <input name="phone" id="editPhone" class="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+          <select name="status" id="editStatus" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+            <option value="active">Active</option>
+            <option value="transferred">Transferred</option>
+            <option value="graduated">Graduated</option>
+            <option value="withdrawn">Withdrawn</option>
+            <option value="suspended">Suspended</option>
+          </select>
+        </div>
+        <div id="editError" class="text-red-600 text-sm hidden"></div>
+        <div class="flex justify-end gap-3 pt-4 border-t border-gray-200">
+          <button type="button" onclick="document.getElementById('editModal').classList.add('hidden')" class="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div id="deleteModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4 p-6">
+      <h3 class="text-lg font-semibold text-gray-900 mb-2">Confirm Delete</h3>
+      <p class="text-gray-600 mb-6">Are you sure you want to delete <strong id="deleteName"></strong>? This action cannot be undone.</p>
+      <div class="flex justify-end gap-3">
+        <button onclick="document.getElementById('deleteModal').classList.add('hidden')" class="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
+        <button id="confirmDeleteBtn" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function uploadStudentFile(input: HTMLInputElement) {
+      const file = input.files?.[0];
+      if (!file) return;
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('folder', 'students');
+      const label = input.closest('label')!;
+      const origText = label.innerHTML;
+      label.innerHTML = 'Uploading...';
+      try {
+        const res = await fetch('/api/upload', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (res.ok && data[0]?.url) {
+          (document.getElementById('addPhotoUrl') as HTMLInputElement).value = data[0].url;
+          document.getElementById('addFileName')!.textContent = file.name;
+        } else { alert(data.error || 'Upload failed'); }
+      } catch { alert('Upload failed'); }
+      label.innerHTML = origText;
+    }
+
+    const searchInput = document.getElementById('searchInput') as HTMLInputElement;
+    const statusFilter = document.getElementById('statusFilter') as HTMLSelectElement;
+
+    function filterRows() {
+      const query = searchInput.value.toLowerCase();
+      const status = statusFilter.value;
+      document.querySelectorAll('.student-row').forEach((row: Element) => {
+        const el = row as HTMLElement;
+        const name = el.dataset.name || '';
+        const id = (el.dataset.id || '').toLowerCase();
+        const rowStatus = el.dataset.status || '';
+        const matchSearch = !query || name.includes(query) || id.includes(query);
+        const matchStatus = !status || rowStatus === status;
+        el.style.display = matchSearch && matchStatus ? '' : 'none';
+      });
+    }
+    searchInput?.addEventListener('input', filterRows);
+    statusFilter?.addEventListener('change', filterRows);
+
+    document.getElementById('addForm')?.addEventListener('submit', async (e: Event) => {
+      e.preventDefault();
+      const form = e.target as HTMLFormElement;
+      const data = Object.fromEntries(new FormData(form));
+      const errEl = document.getElementById('addError')!;
+      errEl.classList.add('hidden');
+      try {
+        const res = await fetch('/api/dashboard/students', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+        if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Failed'); }
+        window.location.reload();
+      } catch (err: any) { errEl.textContent = err.message; errEl.classList.remove('hidden'); }
+    });
+
+    (window as any).editStudent = (id: number, firstName: string, lastName: string, studentId: string, email: string, phone: string, gender: string, status: string) => {
+      (document.getElementById('editId') as HTMLInputElement).value = String(id);
+      (document.getElementById('editFirstName') as HTMLInputElement).value = firstName;
+      (document.getElementById('editLastName') as HTMLInputElement).value = lastName;
+      (document.getElementById('editStudentId') as HTMLInputElement).value = studentId;
+      (document.getElementById('editEmail') as HTMLInputElement).value = email;
+      (document.getElementById('editPhone') as HTMLInputElement).value = phone;
+      (document.getElementById('editGender') as HTMLSelectElement).value = gender;
+      (document.getElementById('editStatus') as HTMLSelectElement).value = status;
+      document.getElementById('editModal')!.classList.remove('hidden');
+    };
+
+    document.getElementById('editForm')?.addEventListener('submit', async (e: Event) => {
+      e.preventDefault();
+      const form = e.target as HTMLFormElement;
+      const data = Object.fromEntries(new FormData(form));
+      const errEl = document.getElementById('editError')!;
+      errEl.classList.add('hidden');
+      try {
+        const res = await fetch('/api/dashboard/students', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: Number(data.id), ...data }) });
+        if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Failed'); }
+        window.location.reload();
+      } catch (err: any) { errEl.textContent = err.message; errEl.classList.remove('hidden'); }
+    });
+
+    let deleteTargetId: number | null = null;
+    (window as any).confirmDelete = (id: number, name: string) => {
+      deleteTargetId = id;
+      document.getElementById('deleteName')!.textContent = name;
+      document.getElementById('deleteModal')!.classList.remove('hidden');
+    };
+
+    document.getElementById('confirmDeleteBtn')?.addEventListener('click', async () => {
+      if (!deleteTargetId) return;
+      try {
+        await fetch('/api/dashboard/students', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: deleteTargetId }) });
+        window.location.reload();
+      } catch { document.getElementById('deleteModal')!.classList.add('hidden'); }
+    });
+
+    document.getElementById('importFile')?.addEventListener('change', async (e: Event) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      const text = await file.text();
+      try {
+        const res = await fetch('/api/dashboard/students', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'bulk_import', csvContent: text }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert(`Imported ${data.imported} students.${data.errors?.length ? '\nErrors: ' + data.errors.slice(0, 5).join('\n') : ''}`);
+          location.reload();
+        } else {
+          alert('Import failed: ' + JSON.stringify(data.error));
+        }
+      } catch (err: any) { alert('Import error: ' + err.message); }
+    });
+  </script>
+</DashboardLayout>

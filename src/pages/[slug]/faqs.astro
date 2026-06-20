@@ -1,0 +1,48 @@
+---
+import { getThemeLayout } from '../../themes/index.js';
+import { getDb } from '../../lib/db/index.js';
+import { schools, faqs } from '../../lib/db/schema.js';
+import { eq, asc } from 'drizzle-orm';
+
+const slug = Astro.params.slug!;
+const db = getDb();
+const school = db.select().from(schools).where(eq(schools.slug, slug)).get();
+if (!school) return Astro.redirect('/404');
+
+const Layout = getThemeLayout(school.theme || 'harmony');
+
+const items = db.select().from(faqs).where(eq(faqs.schoolId, school.id)).orderBy(asc(faqs.sortOrder)).all();
+const categories = [...new Set(items.map(f => f.category || 'General'))];
+---
+
+<Layout school={school} title="FAQ">
+  <section class="py-16 bg-[var(--bg)]">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <h1 class="text-4xl font-bold text-[var(--text)]">Frequently Asked Questions</h1>
+      <p class="mt-2 text-[var(--muted)]">Find answers to common questions about {school.name}</p>
+    </div>
+  </section>
+
+  <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-12">
+    {items.length === 0 ? (
+      <p class="text-center py-12 text-[var(--muted)]">FAQs coming soon.</p>
+    ) : (
+      categories.map(cat => (
+        <div>
+          <h2 class="text-xl font-semibold text-[var(--text)] mb-6">{cat}</h2>
+          <div class="space-y-4">
+            {items.filter(f => (f.category || 'General') === cat).map(faq => (
+              <details class="group bg-[var(--surface)] rounded-xl border border-[var(--border)] overflow-hidden">
+                <summary class="px-6 py-4 cursor-pointer flex items-center justify-between font-medium text-[var(--text)] hover:bg-[var(--bg)] transition-colors">
+                  {faq.question}
+                  <svg class="w-5 h-5 group-open:rotate-180 transition-transform text-[var(--muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </summary>
+                <div class="px-6 pb-4 leading-relaxed text-[var(--muted)]">{faq.answer}</div>
+              </details>
+            ))}
+          </div>
+        </div>
+      ))
+    )}
+  </div>
+</Layout>

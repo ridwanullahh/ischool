@@ -1,0 +1,90 @@
+---
+import PortalLayout from '../../layouts/PortalLayout.astro';
+import { getDb } from '../../lib/db/index.js';
+import { attendance, students, schoolMembers } from '../../lib/db/schema.js';
+import { eq, and, desc, sql } from 'drizzle-orm';
+
+const user = (Astro.locals as any).user;
+if (!user) return Astro.redirect('/auth/login');
+
+const db = getDb();
+const membership = db.select().from(schoolMembers).where(eq(schoolMembers.userId, user.id)).get();
+const schoolId = membership?.schoolId;
+
+let records: any[] = [];
+let summary = { total: 0, present: 0, absent: 0, late: 0, rate: 0 };
+
+if (schoolId) {
+  const student = db.select().from(students).where(and(eq(students.schoolId, schoolId), eq(students.userId, user.id))).get();
+  if (student) {
+    records = db.select().from(attendance).where(eq(attendance.studentId, student.id)).orderBy(desc(attendance.date)).limit(50).all();
+
+    const total = records.length;
+    const present = records.filter(r => r.status === 'present').length;
+    const absent = records.filter(r => r.status === 'absent').length;
+    const late = records.filter(r => r.status === 'late').length;
+    summary = { total, present, absent, late, rate: total > 0 ? Math.round((present / total) * 100) : 0 };
+  }
+}
+---
+
+<PortalLayout title="My Attendance">
+  <div class="mb-8">
+    <h1 class="text-2xl font-bold text-gray-900">My Attendance</h1>
+    <p class="text-gray-500 mt-1">Track your attendance records</p>
+  </div>
+
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white rounded-xl border p-4 text-center">
+      <p class="text-2xl font-bold text-gray-900">{summary.total}</p>
+      <p class="text-xs text-gray-500">Total Days</p>
+    </div>
+    <div class="bg-white rounded-xl border p-4 text-center">
+      <p class="text-2xl font-bold text-green-600">{summary.present}</p>
+      <p class="text-xs text-gray-500">Present</p>
+    </div>
+    <div class="bg-white rounded-xl border p-4 text-center">
+      <p class="text-2xl font-bold text-red-600">{summary.absent}</p>
+      <p class="text-xs text-gray-500">Absent</p>
+    </div>
+    <div class="bg-white rounded-xl border p-4 text-center">
+      <p class="text-2xl font-bold text-primary-600">{summary.rate}%</p>
+      <p class="text-xs text-gray-500">Rate</p>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <table class="w-full text-sm">
+      <thead class="bg-gray-50 border-b">
+        <tr>
+          <th class="px-4 py-3 text-left font-medium text-gray-500">Date</th>
+          <th class="px-4 py-3 text-left font-medium text-gray-500">Period</th>
+          <th class="px-4 py-3 text-left font-medium text-gray-500">Status</th>
+          <th class="px-4 py-3 text-left font-medium text-gray-500">Notes</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        {records.length === 0 ? (
+          <tr><td colspan="4" class="px-4 py-8 text-center text-gray-500">No attendance records yet.</td></tr>
+        ) : (
+          records.map((r: any) => (
+            <tr class="hover:bg-gray-50">
+              <td class="px-4 py-3 text-gray-900">{r.date}</td>
+              <td class="px-4 py-3 text-gray-600">{r.period || 'Full Day'}</td>
+              <td class="px-4 py-3">
+                <span class:list={['text-xs font-medium px-2 py-1 rounded-full',
+                  r.status === 'present' ? 'bg-green-100 text-green-700' :
+                  r.status === 'absent' ? 'bg-red-100 text-red-700' :
+                  r.status === 'late' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'
+                ]}>
+                  {r.status}
+                </span>
+              </td>
+              <td class="px-4 py-3 text-gray-500">{r.notes || '-'}</td>
+            </tr>
+          ))
+        )}
+      </tbody>
+    </table>
+  </div>
+</PortalLayout>

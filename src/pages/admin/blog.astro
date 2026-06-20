@@ -1,0 +1,120 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { getDb } from '../../lib/db/index.js';
+import { platformBlogPosts } from '../../lib/db/schema.js';
+import { desc } from 'drizzle-orm';
+import { formatDate } from '../../lib/utils.js';
+
+const db = getDb();
+const posts = db.select().from(platformBlogPosts).orderBy(desc(platformBlogPosts.createdAt)).all();
+---
+
+<AdminLayout title="Blog - iSchool">
+  <div class="flex items-center justify-between mb-6">
+    <p class="text-sm text-gray-500">{posts.length} post{posts.length !== 1 ? 's' : ''}</p>
+    <button type="button" id="new-post-btn" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors">+ New Post</button>
+  </div>
+
+  <div id="post-form" class="hidden bg-white rounded-xl border border-gray-200 p-6 mb-6">
+    <h2 class="text-lg font-semibold text-gray-900 mb-4">New Blog Post</h2>
+    <form method="POST" action="/api/admin/blog" class="space-y-4">
+      <input type="hidden" name="action" value="create" />
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="space-y-1">
+          <label class="block text-sm font-medium text-gray-700">Title *</label>
+          <input type="text" name="title" required class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500" />
+        </div>
+        <div class="space-y-1">
+          <label class="block text-sm font-medium text-gray-700">Slug *</label>
+          <input type="text" name="slug" required class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500" />
+        </div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="space-y-1">
+          <label class="block text-sm font-medium text-gray-700">Category</label>
+          <input type="text" name="category" value="News" class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500" />
+        </div>
+        <div class="space-y-1">
+          <label class="block text-sm font-medium text-gray-700">Cover Image URL</label>
+          <input type="text" name="coverImageUrl" class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500" />
+        </div>
+      </div>
+      <div class="space-y-1">
+        <label class="block text-sm font-medium text-gray-700">Excerpt</label>
+        <textarea name="excerpt" rows={2} class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"></textarea>
+      </div>
+      <div class="space-y-1">
+        <label class="block text-sm font-medium text-gray-700">Content *</label>
+        <textarea name="content" required rows={10} class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"></textarea>
+      </div>
+      <div class="flex items-center gap-4">
+        <label class="flex items-center gap-2 text-sm">
+          <input type="checkbox" name="isPublished" value="true" class="rounded border-gray-300" />
+          Publish immediately
+        </label>
+        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">Save Post</button>
+        <button type="button" id="cancel-post" class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800">Cancel</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full">
+        <thead>
+          <tr class="bg-gray-50 border-b border-gray-200">
+            <th class="text-left text-xs font-medium text-gray-500 px-6 py-3">Title</th>
+            <th class="text-left text-xs font-medium text-gray-500 px-6 py-3">Category</th>
+            <th class="text-left text-xs font-medium text-gray-500 px-6 py-3">Status</th>
+            <th class="text-left text-xs font-medium text-gray-500 px-6 py-3">Date</th>
+            <th class="text-right text-xs font-medium text-gray-500 px-6 py-3">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          {posts.map(post => (
+            <tr class="hover:bg-gray-50">
+              <td class="px-6 py-4">
+                <p class="text-sm font-medium text-gray-900">{post.title}</p>
+                <p class="text-xs text-gray-500">/{post.slug}</p>
+              </td>
+              <td class="px-6 py-4 text-sm text-gray-600">{post.category}</td>
+              <td class="px-6 py-4">
+                <span class:list={[
+                  'text-xs font-medium px-2.5 py-0.5 rounded-full',
+                  post.isPublished ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+                ]}>
+                  {post.isPublished ? 'Published' : 'Draft'}
+                </span>
+              </td>
+              <td class="px-6 py-4 text-sm text-gray-500">{formatDate(post.createdAt)}</td>
+              <td class="px-6 py-4 text-right space-x-3">
+                <form method="POST" action="/api/admin/blog" class="inline">
+                  <input type="hidden" name="action" value={post.isPublished ? 'unpublish' : 'publish'} />
+                  <input type="hidden" name="id" value={post.id} />
+                  <button type="submit" class="text-xs text-gray-500 hover:text-gray-700">
+                    {post.isPublished ? 'Unpublish' : 'Publish'}
+                  </button>
+                </form>
+                <form method="POST" action="/api/admin/blog" class="inline">
+                  <input type="hidden" name="action" value="delete" />
+                  <input type="hidden" name="id" value={post.id} />
+                  <button type="submit" class="text-xs text-red-500 hover:text-red-700" onclick="return confirm('Delete this post?')">
+                    Delete
+                  </button>
+                </form>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+    {posts.length === 0 && (
+      <p class="p-12 text-sm text-gray-500 text-center">No blog posts yet.</p>
+    )}
+  </div>
+
+  <script>
+    document.getElementById('new-post-btn')?.addEventListener('click', () => document.getElementById('post-form')?.classList.toggle('hidden'));
+    document.getElementById('cancel-post')?.addEventListener('click', () => document.getElementById('post-form')?.classList.add('hidden'));
+  </script>
+</AdminLayout>

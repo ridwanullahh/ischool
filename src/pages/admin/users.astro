@@ -1,0 +1,74 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { getDb } from '../../lib/db/index.js';
+import { users } from '../../lib/db/schema.js';
+
+const db = getDb();
+const allUsers = db.select({
+  id: users.id,
+  name: users.name,
+  email: users.email,
+  role: users.role,
+  createdAt: users.createdAt,
+}).from(users).all();
+---
+
+<AdminLayout title="Users - iSchool">
+  <div class="flex items-center justify-between mb-6">
+    <p class="text-sm text-gray-500">{allUsers.length} user{allUsers.length !== 1 ? 's' : ''} registered</p>
+  </div>
+
+  <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full">
+        <thead>
+          <tr class="bg-gray-50 border-b border-gray-200">
+            <th class="text-left text-xs font-medium text-gray-500 px-6 py-3">User</th>
+            <th class="text-left text-xs font-medium text-gray-500 px-6 py-3">Email</th>
+            <th class="text-left text-xs font-medium text-gray-500 px-6 py-3">Role</th>
+            <th class="text-right text-xs font-medium text-gray-500 px-6 py-3">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          {allUsers.map(u => (
+            <tr class="hover:bg-gray-50">
+              <td class="px-6 py-4">
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-sm font-medium text-gray-600">
+                    {u.name.charAt(0)}
+                  </div>
+                  <p class="text-sm font-medium text-gray-900">{u.name}</p>
+                </div>
+              </td>
+              <td class="px-6 py-4 text-sm text-gray-600">{u.email}</td>
+              <td class="px-6 py-4">
+                <span class:list={[
+                  'text-xs font-medium px-2.5 py-0.5 rounded-full',
+                  u.role === 'super_admin' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-700'
+                ]}>
+                  {u.role === 'super_admin' ? 'Super Admin' : 'School Admin'}
+                </span>
+              </td>
+              <td class="px-6 py-4 text-right">
+                <form method="POST" action="/api/admin/users" class="inline">
+                  <input type="hidden" name="userId" value={u.id} />
+                  <input type="hidden" name="action" value="toggleRole" />
+                  <button type="submit" class="text-xs text-gray-500 hover:text-gray-700">
+                    {u.role === 'super_admin' ? 'Make School Admin' : 'Make Super Admin'}
+                  </button>
+                </form>
+                <form method="POST" action="/api/admin/users" class="inline ml-3">
+                  <input type="hidden" name="userId" value={u.id} />
+                  <input type="hidden" name="action" value="delete" />
+                  <button type="submit" class="text-xs text-red-500 hover:text-red-700" onclick="return confirm('Delete this user?')">
+                    Delete
+                  </button>
+                </form>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</AdminLayout>

@@ -1,0 +1,49 @@
+---
+import { getThemeLayout } from '../../themes/index.js';
+import { getDb } from '../../lib/db/index.js';
+import { schools, programs } from '../../lib/db/schema.js';
+import { eq, asc } from 'drizzle-orm';
+
+const slug = Astro.params.slug!;
+const db = getDb();
+const school = db.select().from(schools).where(eq(schools.slug, slug)).get();
+if (!school) return Astro.redirect('/404');
+
+const Layout = getThemeLayout(school.theme || 'harmony');
+
+const items = db.select().from(programs).where(eq(programs.schoolId, school.id)).orderBy(asc(programs.sortOrder)).all();
+---
+
+<Layout school={school} title="Programs">
+  <section class="py-16 bg-[var(--bg)]">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <h1 class="text-4xl font-bold text-[var(--text)]">Our Programs</h1>
+      <p class="mt-2 text-[var(--muted)]">Comprehensive educational programs for every stage</p>
+    </div>
+  </section>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    {items.length === 0 ? (
+      <p class="text-center py-12 text-[var(--muted)]">Program information coming soon.</p>
+    ) : (
+      <div class="space-y-8">
+        {items.map(item => (
+          <a href={item.hasDetailPage && item.slug ? `/${slug}/programs/${item.slug}` : '#'} class:list={['block', !item.hasDetailPage && 'cursor-default']}>
+          <div class="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-8 hover:shadow-md transition-shadow">
+            <div class="flex flex-col sm:flex-row sm:items-start gap-4">
+              <div class="flex-1">
+                <h2 class="text-xl font-semibold text-[var(--text)] mb-2">{item.name}</h2>
+                <div class="flex flex-wrap gap-3 mb-3">
+                  {item.level && <span class="text-xs px-2.5 py-1 rounded-full font-medium" style="background:color-mix(in srgb, var(--primary) 12%, transparent);color:var(--primary)">{item.level}</span>}
+                  {item.duration && <span class="text-xs bg-[var(--bg)] px-2.5 py-1 rounded-full text-[var(--muted)]">{item.duration}</span>}
+                </div>
+                {item.description && <p class="leading-relaxed text-[var(--muted)]">{item.description}</p>}
+              </div>
+            </div>
+          </div>
+          </a>
+        ))}
+      </div>
+    )}
+  </div>
+</Layout>

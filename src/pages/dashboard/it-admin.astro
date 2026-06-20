@@ -1,0 +1,306 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { getUserSchoolId } from '../../lib/school.js';
+import { getDb } from '../../lib/db/index.js';
+import { schools, schoolMembers, users, auditLogs, moduleSettings } from '../../lib/db/schema.js';
+import { eq, and, desc } from 'drizzle-orm';
+
+const user = Astro.locals.user!;
+if (!user) return Astro.redirect('/auth/login');
+const schoolId = getUserSchoolId(user.id);
+
+let schoolData: any = null;
+let modules: any[] = [];
+let logs: any[] = [];
+let members: any[] = [];
+let activeModules: string[] = [];
+
+if (schoolId) {
+  const db = getDb();
+  schoolData = db.select().from(schools).where(eq(schools.id, schoolId)).get();
+  activeModules = (schoolData?.activeModules as string[]) || ['cms', 'sis', 'lms', 'finance', 'communication'];
+
+  const allModuleList = [
+    { key: 'cms', label: 'Content Management', desc: 'Manage website pages, blogs, announcements, and media' },
+    { key: 'sis', label: 'Student Information', desc: 'Student records, enrollment, attendance, and grades' },
+    { key: 'lms', label: 'Learning Management', desc: 'Courses, assignments, quizzes, and learning resources' },
+    { key: 'timetable', label: 'Timetable & Scheduling', desc: 'Class schedules, teacher assignments, and room allocation' },
+    { key: 'exams', label: 'Examinations', desc: 'Exam series, papers, grading, and result management' },
+    { key: 'finance', label: 'Finance & Fees', desc: 'Fee structures, invoices, payments, and financial reports' },
+    { key: 'hr', label: 'Human Resources', desc: 'Staff records, leave management, and payroll' },
+    { key: 'communication', label: 'Communication', desc: 'Messages, notifications, and announcements' },
+    { key: 'library', label: 'Library', desc: 'Book catalog, borrowing, and returns management' },
+    { key: 'hostel', label: 'Hostel', desc: 'Room allocation, hostel fees, and resident management' },
+    { key: 'transport', label: 'Transport', desc: 'Vehicle fleet, routes, and student transport assignments' },
+    { key: 'inventory', label: 'Inventory & Assets', desc: 'Asset tracking, stock management, and procurement' },
+    { key: 'events', label: 'Events', desc: 'School events, calendar, and RSVP management' },
+    { key: 'classroom', label: 'Classroom Tools', desc: 'Lesson plans, behavior logs, and classroom management' },
+    { key: 'analytics', label: 'Analytics & Reports', desc: 'Data analytics, saved reports, and performance insights' },
+    { key: 'cbt', label: 'e-Exam / CBT', desc: 'Computer-based testing, question banks, and online exams' },
+  ];
+
+  const dbSettings = db.select().from(moduleSettings).where(eq(moduleSettings.schoolId, schoolId)).all();
+  modules = allModuleList.map(m => ({
+    ...m,
+    enabled: activeModules.includes(m.key),
+    settingsId: dbSettings.find(s => s.module === m.key)?.id || null,
+  }));
+
+  logs = db.select({
+    id: auditLogs.id,
+    action: auditLogs.action,
+    entity: auditLogs.entity,
+    entityId: auditLogs.entityId,
+    details: auditLogs.details,
+    ipAddress: auditLogs.ipAddress,
+    createdAt: auditLogs.createdAt,
+    userName: users.name,
+  }).from(auditLogs)
+    .leftJoin(users, eq(auditLogs.userId, users.id))
+    .where(eq(auditLogs.schoolId, schoolId))
+    .orderBy(desc(auditLogs.createdAt))
+    .limit(50).all();
+
+  members = db.select({
+    id: schoolMembers.id,
+    userId: schoolMembers.userId,
+    role: schoolMembers.role,
+    joinedAt: schoolMembers.createdAt,
+    userName: users.name,
+    userEmail: users.email,
+    userRole: users.role,
+    twoFactorEnabled: users.twoFactorEnabled,
+  }).from(schoolMembers)
+    .leftJoin(users, eq(schoolMembers.userId, users.id))
+    .where(eq(schoolMembers.schoolId, schoolId))
+    .all();
+}
+---
+
+<DashboardLayout title="IT Administration - iSchool">
+  <div class="space-y-6">
+    <div class="flex justify-between items-center">
+      <div>
+        <h2 class="text-2xl font-bold text-gray-900">IT Administration</h2>
+        <p class="text-sm text-gray-500 mt-1">System settings, audit logs, and user management</p>
+      </div>
+      <div class="flex items-center gap-2 text-sm text-gray-500">
+        <span class="w-2 h-2 rounded-full bg-green-500 inline-block"></span>
+        System Active
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div class="bg-white rounded-lg border p-4">
+        <p class="text-sm text-gray-500">Active Modules</p>
+        <p class="text-2xl font-bold text-primary-600">{activeModules.length}</p>
+      </div>
+      <div class="bg-white rounded-lg border p-4">
+        <p class="text-sm text-gray-500">Total Members</p>
+        <p class="text-2xl font-bold text-gray-900">{members.length}</p>
+      </div>
+      <div class="bg-white rounded-lg border p-4">
+        <p class="text-sm text-gray-500">Audit Entries</p>
+        <p class="text-2xl font-bold text-gray-900">{logs.length}</p>
+      </div>
+      <div class="bg-white rounded-lg border p-4">
+        <p class="text-sm text-gray-500">2FA Enabled</p>
+        <p class="text-2xl font-bold text-green-600">{members.filter(m => m.twoFactorEnabled).length}</p>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow">
+      <div class="border-b border-gray-200">
+        <nav class="flex -mb-px">
+          <button onclick="switchTab('modules')" id="tab-modules" class="tab-btn px-6 py-3 text-sm font-medium border-b-2 border-primary-500 text-primary-600">Module Settings</button>
+          <button onclick="switchTab('logs')" id="tab-logs" class="tab-btn px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700">Audit Logs</button>
+          <button onclick="switchTab('members')" id="tab-members" class="tab-btn px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700">Members & Roles</button>
+        </nav>
+      </div>
+
+      <div id="panel-modules" class="tab-panel p-6">
+        <p class="text-sm text-gray-500 mb-4">Enable or disable modules for your school. Changes take effect immediately.</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {modules.map(mod => (
+            <div class={`border rounded-lg p-4 transition-all ${mod.enabled ? 'border-primary-200 bg-primary-50/30' : 'border-gray-200 bg-gray-50'}`}>
+              <div class="flex items-start justify-between">
+                <div class="flex-1">
+                  <h4 class="font-semibold text-gray-900">{mod.label}</h4>
+                  <p class="text-xs text-gray-500 mt-1">{mod.desc}</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer ml-3">
+                  <input type="checkbox" class="sr-only peer module-toggle" data-module={mod.key} checked={mod.enabled} onchange={`toggleModule('${mod.key}', this.checked)`} />
+                  <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                </label>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div id="panel-logs" class="tab-panel p-6 hidden">
+        <div class="flex items-center justify-between mb-4">
+          <p class="text-sm text-gray-500">Recent system activity and user actions</p>
+          <button onclick="loadAuditLogs()" class="text-sm text-primary-600 hover:text-primary-700 font-medium">Refresh</button>
+        </div>
+        {logs.length === 0 ? (
+          <div class="text-center py-12 text-gray-400">
+            <p class="text-lg">No audit logs yet</p>
+            <p class="text-sm mt-1">System activity will appear here</p>
+          </div>
+        ) : (
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-gray-50 border-b">
+                <tr>
+                  <th class="px-4 py-3 text-left font-medium text-gray-500">Time</th>
+                  <th class="px-4 py-3 text-left font-medium text-gray-500">User</th>
+                  <th class="px-4 py-3 text-left font-medium text-gray-500">Action</th>
+                  <th class="px-4 py-3 text-left font-medium text-gray-500">Entity</th>
+                  <th class="px-4 py-3 text-left font-medium text-gray-500">Details</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-100" id="audit-logs-body">
+                {logs.map(log => (
+                  <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-3 text-gray-600 whitespace-nowrap">{log.createdAt ? new Date(log.createdAt).toLocaleString() : '-'}</td>
+                    <td class="px-4 py-3 font-medium text-gray-900">{log.userName || 'System'}</td>
+                    <td class="px-4 py-3">
+                      <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">{log.action}</span>
+                    </td>
+                    <td class="px-4 py-3 text-gray-600">{log.entity || '-'}</td>
+                    <td class="px-4 py-3 text-gray-500 text-xs max-w-xs truncate">{log.details ? JSON.stringify(log.details) : '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <div id="panel-members" class="tab-panel p-6 hidden">
+        <p class="text-sm text-gray-500 mb-4">Manage school members and their roles</p>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50 border-b">
+              <tr>
+                <th class="px-4 py-3 text-left font-medium text-gray-500">Name</th>
+                <th class="px-4 py-3 text-left font-medium text-gray-500">Email</th>
+                <th class="px-4 py-3 text-left font-medium text-gray-500">Platform Role</th>
+                <th class="px-4 py-3 text-left font-medium text-gray-500">School Role</th>
+                <th class="px-4 py-3 text-left font-medium text-gray-500">2FA</th>
+                <th class="px-4 py-3 text-left font-medium text-gray-500">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              {members.map(member => (
+                <tr class="hover:bg-gray-50">
+                  <td class="px-4 py-3 font-medium text-gray-900">{member.userName || '-'}</td>
+                  <td class="px-4 py-3 text-gray-600">{member.userEmail || '-'}</td>
+                  <td class="px-4 py-3">
+                    <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">{member.userRole}</span>
+                  </td>
+                  <td class="px-4 py-3">
+                    <select class="text-sm border rounded px-2 py-1" data-member-id={member.id} onchange={`updateMemberRole(${member.id}, this.value)`}>
+                      <option value="admin" selected={member.role === 'admin'}>Admin</option>
+                      <option value="teacher" selected={member.role === 'teacher'}>Teacher</option>
+                      <option value="student" selected={member.role === 'student'}>Student</option>
+                      <option value="parent" selected={member.role === 'parent'}>Parent</option>
+                      <option value="staff" selected={member.role === 'staff'}>Staff</option>
+                      <option value="accountant" selected={member.role === 'accountant'}>Accountant</option>
+                      <option value="librarian" selected={member.role === 'librarian'}>Librarian</option>
+                      <option value="it_admin" selected={member.role === 'it_admin'}>IT Admin</option>
+                    </select>
+                  </td>
+                  <td class="px-4 py-3">
+                    {member.twoFactorEnabled ? (
+                      <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Enabled</span>
+                    ) : (
+                      <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">Disabled</span>
+                    )}
+                  </td>
+                  <td class="px-4 py-3">
+                    <span class="text-xs text-gray-400">Joined {member.joinedAt ? new Date(member.joinedAt).toLocaleDateString() : '-'}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="fixed bottom-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg text-sm hidden transition-all"></div>
+</DashboardLayout>
+
+<script>
+function switchTab(tab: string) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    b.classList.remove('border-primary-500', 'text-primary-600');
+    b.classList.add('border-transparent', 'text-gray-500');
+  });
+  document.getElementById(`panel-${tab}`)?.classList.remove('hidden');
+  const btn = document.getElementById(`tab-${tab}`);
+  btn?.classList.remove('border-transparent', 'text-gray-500');
+  btn?.classList.add('border-primary-500', 'text-primary-600');
+}
+
+function showToast(msg: string, isError = false) {
+  const toast = document.getElementById('toast')!;
+  toast.textContent = msg;
+  toast.className = `fixed bottom-4 right-4 px-4 py-2 rounded-lg shadow-lg text-sm text-white ${isError ? 'bg-red-600' : 'bg-green-600'}`;
+  toast.classList.remove('hidden');
+  setTimeout(() => toast.classList.add('hidden'), 3000);
+}
+
+async function toggleModule(moduleKey: string, enabled: boolean) {
+  try {
+    const res = await fetch('/api/dashboard/it-admin', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'toggle_module', module: moduleKey, enabled }),
+    });
+    if (!res.ok) throw new Error('Failed to update');
+    showToast(`${moduleKey} ${enabled ? 'enabled' : 'disabled'} successfully`);
+  } catch (e) {
+    showToast('Failed to update module', true);
+  }
+}
+
+async function updateMemberRole(memberId: number, role: string) {
+  try {
+    const res = await fetch('/api/dashboard/it-admin', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'update_member_role', memberId, role }),
+    });
+    if (!res.ok) throw new Error('Failed to update');
+    showToast('Role updated successfully');
+  } catch (e) {
+    showToast('Failed to update role', true);
+  }
+}
+
+async function loadAuditLogs() {
+  try {
+    const res = await fetch('/api/dashboard/it-admin?type=audit_logs');
+    const logs = await res.json();
+    const tbody = document.getElementById('audit-logs-body');
+    if (!tbody) return;
+    tbody.innerHTML = logs.map((log: any) => `
+      <tr class="hover:bg-gray-50">
+        <td class="px-4 py-3 text-gray-600 whitespace-nowrap">${log.createdAt ? new Date(log.createdAt).toLocaleString() : '-'}</td>
+        <td class="px-4 py-3 font-medium text-gray-900">${log.userName || 'System'}</td>
+        <td class="px-4 py-3"><span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">${log.action}</span></td>
+        <td class="px-4 py-3 text-gray-600">${log.entity || '-'}</td>
+        <td class="px-4 py-3 text-gray-500 text-xs max-w-xs truncate">${log.details ? JSON.stringify(log.details) : '-'}</td>
+      </tr>
+    `).join('');
+    showToast('Logs refreshed');
+  } catch (e) {
+    showToast('Failed to load logs', true);
+  }
+}
+</script>

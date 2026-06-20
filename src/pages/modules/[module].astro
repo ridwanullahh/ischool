@@ -1,0 +1,239 @@
+---
+import MarketingLayout from '../../layouts/MarketingLayout.astro';
+
+const { module } = Astro.params;
+
+const moduleData: Record<string, { name: string; tagline: string; icon: string; color: string; hero: string; description: string; features: { title: string; desc: string }[]; benefits: string[]; related: string[] }> = {
+  sis: { name: 'Student Information System', tagline: 'Complete student lifecycle management', icon: '👨‍🎓', color: 'from-blue-500 to-blue-700', hero: 'Manage every aspect of your students from enrollment to graduation. A centralized, secure database for all student records.', description: 'The SIS module provides a comprehensive view of each student — personal information, academic history, attendance records, health notes, emergency contacts, and enrollment status. With powerful search, filtering, and parent portal integration, it is the foundation of your school data.', features: [
+    { title: 'Student Enrollment', desc: 'Online enrollment forms with document upload, admission workflow, and automated student ID generation.' },
+    { title: 'Attendance Tracking', desc: 'Daily and period-wise attendance with parent notifications, absence reports, and attendance analytics.' },
+    { title: 'Parent Portal', desc: 'Parents can view their child records, attendance, grades, and receive real-time notifications.' },
+    { title: 'Health & Medical Records', desc: 'Allergies, medical conditions, vaccination records, and emergency contacts securely stored.' },
+    { title: 'Custom Fields', desc: 'Add school-specific data fields to student records to capture information unique to your institution.' },
+    { title: 'Document Management', desc: 'Upload and manage student documents — birth certificates, transcripts, ID cards — digitally.' },
+  ], benefits: ['Reduce enrollment processing time by 80%', 'Eliminate paper-based student records', 'Instant access to student history', 'Parent self-service portal', 'GDPR-compliant data handling', 'Automated student ID generation'], related: ['lms', 'exams', 'attendance'] },
+  lms: { name: 'Learning Management System', tagline: 'Modern digital learning for every classroom', icon: '📚', color: 'from-purple-500 to-purple-700', hero: 'Create engaging courses, deliver lessons, manage assignments, and track student progress with a modern LMS designed for K-12 schools.', description: 'Our LMS brings digital learning to your school with structured courses, lesson units, multimedia content, assignments, quizzes, and grade tracking. Teachers can create rich learning experiences while administrators monitor curriculum delivery and academic outcomes.', features: [
+    { title: 'Course Builder', desc: 'Create structured courses with units, lessons, and multimedia content (video, text, files, links).' },
+    { title: 'Assignment Management', desc: 'Essay, file upload, link, and offline assignments with rubrics, late submission rules, and group work.' },
+    { title: 'Online Quizzes', desc: 'Multiple choice, true/false, short answer, essay, fill-in-the-blank, and matching questions with auto-grading.' },
+    { title: 'Grade Tracking', desc: 'Track grades across assignments, quizzes, and exams with configurable grade categories and weighting.' },
+    { title: 'Submission Management', desc: 'Students submit work digitally, teachers provide feedback, and resubmission options are available.' },
+    { title: 'Course Analytics', desc: 'Monitor student engagement, completion rates, and performance trends across courses.' },
+  ], benefits: ['Centralized curriculum delivery', 'Paperless assignment workflow', 'Automated quiz grading', 'Student progress visibility', 'Teacher collaboration tools', 'Content reuse across semesters'], related: ['exams', 'classroom', 'analytics'] },
+  timetable: { name: 'Timetable & Scheduling', tagline: 'Smart scheduling without conflicts', icon: '📅', color: 'from-teal-500 to-teal-700', hero: 'Generate conflict-free timetables, manage bell schedules, and coordinate academic periods with intelligent scheduling tools.', description: 'The Timetable module handles the complex task of scheduling classes, teachers, and rooms without conflicts. Support for multiple bell schedules, academic period hierarchies (year/term/semester/quarter), and room allocation makes this an essential planning tool.', features: [
+    { title: 'Timetable Generation', desc: 'Create class timetables with day-of-week scheduling, period numbers, room assignments, and teacher allocation.' },
+    { title: 'Bell Schedules', desc: 'Define multiple bell schedules (regular, half-day, exam day) with customizable periods and break times.' },
+    { title: 'Academic Periods', desc: 'Hierarchical period management — academic year, terms, semesters, and quarters with date ranges.' },
+    { title: 'Room Allocation', desc: 'Assign rooms to classes and periods, preventing double-booking and optimizing facility usage.' },
+    { title: 'Teacher Scheduling', desc: 'View teacher availability, manage teaching loads, and prevent scheduling conflicts.' },
+    { title: 'Print & Export', desc: 'Generate printable timetables for classrooms, teachers, and students.' },
+  ], benefits: ['Eliminate scheduling conflicts', 'Optimize room utilization', 'Reduce admin planning time by 70%', 'Support multiple schedule types', 'Real-time schedule visibility', 'Automated conflict detection'], related: ['exams', 'events', 'classroom'] },
+  exams: { name: 'Examinations & Results', tagline: 'From exam creation to report cards', icon: '📝', color: 'from-red-500 to-red-700', hero: 'Streamline exam management from scheduling through results processing to automated report card generation.', description: 'Create exam series (midterm, final, mock, practical), schedule exams, record results, process grades, calculate ranks, and generate comprehensive report cards with promotion decisions. The complete examination workflow in one module.', features: [
+    { title: 'Exam Series', desc: 'Organize exams into series — midterm, final, mock, quiz, practical — with academic year and term tracking.' },
+    { title: 'Exam Scheduling', desc: 'Schedule exams with dates, venues, invigilators, duration, and instructions all in one place.' },
+    { title: 'Results Processing', desc: 'Enter marks, calculate grades, assign ranks, add remarks, and track absent/withheld students.' },
+    { title: 'Report Cards', desc: 'Generate professional report cards with subject-wise results, class rank, teacher comments, and promotion status.' },
+    { title: 'Grade Calculation', desc: 'Configurable grading scales, weighted categories, and automatic percentage calculation.' },
+    { title: 'Promotion Management', desc: 'Track promotion decisions — promoted, retained, or pending — based on academic performance.' },
+  ], benefits: ['Automated report card generation', 'Consistent grading across subjects', 'Historical result tracking', 'Parent-accessible results', 'Exam analytics and trends', 'Reduced result processing time'], related: ['lms', 'cbt', 'analytics'] },
+  finance: { name: 'Finance & Fee Management', tagline: 'Effortless fee collection and financial control', icon: '💰', color: 'from-green-500 to-green-700', hero: 'Manage fee structures, generate invoices, collect payments through multiple gateways, and maintain complete financial records.', description: 'The Finance module handles everything from fee structure creation to payment collection and financial reporting. Support for Stripe, PayPal, Paystack, and Flutterwave payment gateways, automated invoicing, partial payments, and discount management.', features: [
+    { title: 'Fee Structures', desc: 'Create customizable fee structures by grade level, category, and academic year with multiple line items.' },
+    { title: 'Automated Invoicing', desc: 'Generate invoices automatically based on fee structures with due dates, discounts, and fine calculations.' },
+    { title: 'Payment Gateways', desc: 'Accept payments via Stripe, PayPal, Paystack, Flutterwave, bank transfer, and cash.' },
+    { title: 'Payment Tracking', desc: 'Track partial payments, outstanding balances, payment history, and generate receipts.' },
+    { title: 'Financial Reports', desc: 'Revenue reports, collection summaries, outstanding balances, and payment trend analysis.' },
+    { title: 'Discount & Fine Management', desc: 'Apply discounts for early payment, scholarships, or siblings. Add late payment fines automatically.' },
+  ], benefits: ['Increase fee collection rate by 40%', 'Multiple payment gateway options', 'Automated payment reminders', 'Real-time financial visibility', 'Reduce accounting errors', 'Secure payment processing'], related: ['sis', 'analytics', 'hr'] },
+  hr: { name: 'HR & Staff Management', tagline: 'Complete human resource management', icon: '👔', color: 'from-amber-500 to-amber-700', hero: 'Manage your teaching and non-teaching staff from hiring to retirement with comprehensive HR tools.', description: 'Track staff records, qualifications, certifications, leave requests, payroll processing, and performance. A complete HR solution designed for the unique needs of educational institutions.', features: [
+    { title: 'Staff Records', desc: 'Comprehensive staff profiles with qualifications, certifications, bank details, and emergency contacts.' },
+    { title: 'Leave Management', desc: 'Online leave applications with approval workflow, leave balance tracking, and calendar view.' },
+    { title: 'Payroll Processing', desc: 'Monthly payroll with basic salary, allowances, deductions, and net pay calculation. Export-ready.' },
+    { title: 'Department Management', desc: 'Organize staff by departments, designations, and employment types (full-time, part-time, contract).' },
+    { title: 'Document Management', desc: 'Store staff documents — contracts, certificates, appraisals — digitally and securely.' },
+    { title: 'Staff Directory', desc: 'Searchable staff directory with contact information, department, and availability.' },
+  ], benefits: ['Streamlined payroll processing', 'Automated leave balance tracking', 'Centralized staff database', 'Compliance-ready records', 'Performance tracking', 'Reduced HR admin workload'], related: ['finance', 'timetable', 'it-admin'] },
+  communication: { name: 'Communication Hub', tagline: 'Stay connected with your school community', icon: '💬', color: 'from-pink-500 to-pink-700', hero: 'Internal messaging, broadcast notifications, email/SMS integration, and structured communication channels for your entire school.', description: 'The Communication module keeps everyone connected — teachers can message parents, admins can broadcast announcements, and the system can send automated notifications via email, SMS, or in-app alerts.', features: [
+    { title: 'Internal Messaging', desc: 'Direct messaging between staff, teachers, and parents with threading and attachment support.' },
+    { title: 'Broadcast Notifications', desc: 'Send announcements to specific groups — all parents, a particular class, or all staff members.' },
+    { title: 'Multi-Channel Delivery', desc: 'In-app, email, SMS, and push notification channels for maximum reach.' },
+    { title: 'Notification Templates', desc: 'Pre-built templates for common notifications (attendance alerts, fee reminders, event updates) with variable substitution.' },
+    { title: 'Read Tracking', desc: 'Track which recipients have read messages and notifications for accountability.' },
+    { title: 'Automated Triggers', desc: 'Set up automatic notifications for events like new grades, attendance issues, or payment due dates.' },
+  ], benefits: ['Improve parent engagement', 'Reduce missed communications', 'Automated notification workflows', 'Multi-channel delivery', 'Message history and search', 'Targeted communication groups'], related: ['events', 'sis', 'notifications'] },
+  library: { name: 'Library Management', tagline: 'Digital library operations made simple', icon: '📖', color: 'from-indigo-500 to-indigo-700', hero: 'Manage your school library with book cataloging, loan tracking, barcode scanning, fine management, and digital catalog access.', description: 'A complete library management system for school libraries — from book acquisition to circulation. Track inventory, manage loans, calculate fines, and provide students with a searchable book catalog.', features: [
+    { title: 'Book Catalog', desc: 'Catalog books with title, author, ISBN, publisher, genre, category, cover images, and shelf location.' },
+    { title: 'Loan Management', desc: 'Issue and return books with configurable loan periods, renewal limits, and due date tracking.' },
+    { title: 'Fine Calculation', desc: 'Automatic fine calculation for overdue books based on configurable daily rates.' },
+    { title: 'Barcode Support', desc: 'Scan book barcodes for quick issue/return and inventory management.' },
+    { title: 'Copy Tracking', desc: 'Track total copies, available copies, and individual copy status (available, loaned, damaged, lost).' },
+    { title: 'Search & Discovery', desc: 'Students and staff can search the library catalog by title, author, genre, or category.' },
+  ], benefits: ['Eliminate manual library records', 'Reduce lost books by 90%', 'Automated fine calculation', 'Real-time inventory visibility', 'Student self-service search', 'Efficient circulation workflow'], related: ['sis', 'inventory', 'analytics'] },
+  hostel: { name: 'Hostel & Dormitory', tagline: 'Boarding facility management', icon: '🏠', color: 'from-cyan-500 to-cyan-700', hero: 'Manage hostels, rooms, bed allocation, and boarding student assignments with a dedicated dormitory management system.', description: 'For schools with boarding facilities, the Hostel module manages hostel buildings, room configurations, bed allocation, student assignments, warden management, and occupancy tracking.', features: [
+    { title: 'Hostel Management', desc: 'Create multiple hostels (boys, girls, mixed) with warden assignment and capacity tracking.' },
+    { title: 'Room Configuration', desc: 'Define rooms by type (single, double, dormitory), floor, capacity, and current occupancy.' },
+    { title: 'Student Allocation', desc: 'Assign students to rooms by academic year with status tracking (active, checked out, cancelled).' },
+    { title: 'Occupancy Dashboard', desc: 'Real-time view of room availability, occupancy rates, and capacity utilization.' },
+    { title: 'Warden Management', desc: 'Assign wardens to hostels with contact information and responsibility tracking.' },
+    { title: 'Maintenance Tracking', desc: 'Mark rooms as under maintenance to prevent allocation during repairs.' },
+  ], benefits: ['Optimize room utilization', 'Prevent over-allocation', 'Clear occupancy visibility', 'Streamlined check-in/out', 'Maintenance coordination', 'Academic year allocation cycles'], related: ['sis', 'finance', 'hr'] },
+  transport: { name: 'Transport Management', tagline: 'School transport made efficient', icon: '🚌', color: 'from-orange-500 to-orange-700', hero: 'Plan routes, manage vehicles and drivers, assign students to transport, and track school bus operations.', description: 'The Transport module handles all aspects of school transportation — from vehicle fleet management to route planning and student assignment. Ensure safe, efficient transport operations.', features: [
+    { title: 'Vehicle Fleet', desc: 'Register vehicles with plate numbers, types (bus, van, car), capacity, and maintenance status.' },
+    { title: 'Route Planning', desc: 'Create routes with named stops, scheduled times, and vehicle assignment.' },
+    { title: 'Driver Management', desc: 'Assign drivers to vehicles with contact information and license tracking.' },
+    { title: 'Student Assignment', desc: 'Assign students to routes with designated stops and active/inactive status.' },
+    { title: 'Route Scheduling', desc: 'Define pickup and drop-off schedules with stop-by-stop timing.' },
+    { title: 'Fleet Maintenance', desc: 'Track vehicle status — active, maintenance, retired — and maintenance history.' },
+  ], benefits: ['Optimized route planning', 'Real-time fleet visibility', 'Parent notification of routes', 'Driver accountability', 'Maintenance scheduling', 'Student transport tracking'], related: ['sis', 'events', 'communication'] },
+  inventory: { name: 'Inventory & Assets', tagline: 'Track everything your school owns', icon: '📦', color: 'from-emerald-500 to-emerald-700', hero: 'Track school assets from laptops to lab equipment, manage consumable inventory, and receive reorder alerts.', description: 'The Inventory module provides comprehensive tracking of both fixed assets (computers, furniture, equipment) and consumable inventory (stationery, supplies). Monitor depreciation, assign assets to users, and automate reorder processes.', features: [
+    { title: 'Asset Tracking', desc: 'Register assets with serial numbers, purchase details, current value, location, and condition status.' },
+    { title: 'Depreciation', desc: 'Track asset value depreciation over time with purchase price and current value fields.' },
+    { title: 'Inventory Management', desc: 'Track consumable items with quantities, reorder levels, units, and supplier information.' },
+    { title: 'Assignment Tracking', desc: 'Assign assets to specific users (staff or students) with responsibility tracking.' },
+    { title: 'Reorder Alerts', desc: 'Automatic alerts when inventory levels fall below configured reorder thresholds.' },
+    { title: 'Condition Reports', desc: 'Track asset condition (new, good, fair, damaged, decommissioned) for maintenance planning.' },
+  ], benefits: ['Prevent asset loss', 'Automated reorder alerts', 'Accurate depreciation tracking', 'Asset utilization visibility', 'Maintenance planning', 'Audit-ready inventory records'], related: ['finance', 'it-admin', 'analytics'] },
+  events: { name: 'Events & Calendar', tagline: 'School events organized effortlessly', icon: '🎉', color: 'from-violet-500 to-violet-700', hero: 'Plan, manage, and communicate school events with a full-featured event management and calendar system.', description: 'From parent-teacher meetings to annual celebrations, the Events module helps you organize every school event. Support for recurring events, audience targeting, RSVP management, and multi-channel reminders.', features: [
+    { title: 'Event Creation', desc: 'Create events with title, description, dates, times, venue, category, and featured images.' },
+    { title: 'Recurring Events', desc: 'Set up recurring events with configurable recurrence rules for regular activities.' },
+    { title: 'Audience Targeting', desc: 'Target events to specific audiences — students, parents, staff, or custom groups.' },
+    { title: 'RSVP Management', desc: 'Enable RSVP requirements for events that need attendance confirmation.' },
+    { title: 'Event Categories', desc: 'Categorize events as academic, sports, cultural, holiday, exam, meeting, or custom types.' },
+    { title: 'Calendar Integration', desc: 'View all events in a calendar format with day, week, and month views.' },
+  ], benefits: ['Centralized event calendar', 'Automated event reminders', 'RSVP tracking', 'Cross-module scheduling', 'Event analytics', 'Parent event visibility'], related: ['communication', 'timetable', 'announcements'] },
+  classroom: { name: 'Classroom Tools', tagline: 'Empower teachers in every class', icon: '🎯', color: 'from-rose-500 to-rose-700', hero: 'Lesson planning, behavior tracking, merit systems, and teaching aids to support classroom excellence.', description: 'The Classroom module provides teachers with tools for daily classroom management — lesson planning, behavior logging, student merit/demerit tracking, and teaching resource organization.', features: [
+    { title: 'Lesson Plans', desc: 'Create weekly lesson plans with objectives, materials, activities, and assessment criteria.' },
+    { title: 'Behavior Logging', desc: 'Record positive and negative behaviors with categories, descriptions, and point-based merit systems.' },
+    { title: 'Merit/Demerit System', desc: 'Assign points for behaviors with configurable categories and automatic tallies.' },
+    { title: 'Plan Approval', desc: 'Submit lesson plans for admin review with draft, submitted, and approved status workflow.' },
+    { title: 'Course Linking', desc: 'Link lesson plans to specific courses for curriculum alignment and tracking.' },
+    { title: 'Behavior Reports', desc: 'Generate behavior reports for individual students, classes, or time periods.' },
+  ], benefits: ['Structured lesson planning', 'Behavior trend visibility', 'Parent behavior notifications', 'Teacher accountability', 'Merit-based recognition', 'Admin curriculum oversight'], related: ['lms', 'sis', 'analytics'] },
+  analytics: { name: 'Reports & Analytics', tagline: 'Data-driven school management', icon: '📊', color: 'from-sky-500 to-sky-700', hero: 'Transform school data into actionable insights with comprehensive reports, dashboards, and custom analytics.', description: 'The Analytics module provides school-wide visibility into key metrics — enrollment trends, academic performance, financial health, attendance patterns, and operational efficiency. Save custom reports for recurring analysis.', features: [
+    { title: 'Enrollment Analytics', desc: 'Track enrollment trends, admission funnel conversion, and student demographics over time.' },
+    { title: 'Academic Performance', desc: 'Analyze grades, exam results, and course completion rates across classes, subjects, and terms.' },
+    { title: 'Financial Dashboards', desc: 'Revenue trends, collection rates, outstanding balances, and payment method analysis.' },
+    { title: 'Attendance Insights', desc: 'School-wide, class-wise, and individual attendance patterns with absence frequency analysis.' },
+    { title: 'Saved Reports', desc: 'Create, save, and re-run custom reports with configurable parameters and export options.' },
+    { title: 'Operational Metrics', desc: 'Library usage, transport utilization, hostel occupancy, and staff productivity metrics.' },
+  ], benefits: ['Informed decision-making', 'Early warning identification', 'Trend analysis across years', 'Board-ready reports', 'Custom report builder', 'Cross-module data integration'], related: ['finance', 'exams', 'sis'] },
+  'it-admin': { name: 'IT & System Administration', tagline: 'Complete system control and security', icon: '🛡️', color: 'from-slate-500 to-slate-700', hero: 'Control every aspect of your school platform — enable/disable modules, manage permissions, audit user actions, and configure system settings.', description: 'The IT Admin module gives platform administrators complete control over system configuration, module access, user permissions, and security monitoring. Comprehensive audit logs ensure accountability.', features: [
+    { title: 'Module Control', desc: 'Enable or disable individual modules per school with custom configuration settings.' },
+    { title: 'Audit Logs', desc: 'Comprehensive audit trail of user actions — logins, data changes, settings modifications — with IP tracking.' },
+    { title: 'User Permissions', desc: 'Role-based access control for admin, teacher, student, parent, and custom roles.' },
+    { title: 'System Settings', desc: 'Configure platform-wide settings, notification preferences, and integration parameters.' },
+    { title: 'Security Monitoring', desc: 'Track login attempts, session management, and suspicious activity alerts.' },
+    { title: 'Data Management', desc: 'Backup scheduling, data export, and system maintenance tools.' },
+  ], benefits: ['Complete system visibility', 'Compliance-ready audit trails', 'Granular access control', 'Security monitoring', 'Module flexibility', 'Administrative accountability'], related: ['analytics', 'hr', 'communication'] },
+  cbt: { name: 'e-Exam & CBT', tagline: 'Professional computer-based testing', icon: '💻', color: 'from-fuchsia-500 to-fuchsia-700', hero: 'Deliver professional computer-based examinations with lockdown mode, proctoring, auto-grading, and comprehensive integrity reports.', description: 'The CBT module enables schools to conduct professional online examinations — from entrance tests to certification exams. Features include exam lockdown, proctoring, negative marking, section management, and detailed integrity reports.', features: [
+    { title: 'Exam Builder', desc: 'Create exams with multiple sections, question types, time limits, and configurable scoring including negative marking.' },
+    { title: 'Lockdown Mode', desc: 'Restrict browser navigation, prevent tab switching, and block external applications during exams.' },
+    { title: 'Proctoring', desc: 'Monitor candidates during exams with integrity flags for suspicious behavior patterns.' },
+    { title: 'Candidate Management', desc: 'Register candidates with access PINs, track status (registered, started, submitted, absent, disqualified).' },
+    { title: 'Auto-Grading', desc: 'Automatic scoring for objective questions with detailed result breakdown and rank calculation.' },
+    { title: 'Integrity Reports', desc: 'Generate integrity reports flagging tab switches, copy attempts, and time anomalies.' },
+  ], benefits: ['Eliminate paper-based exams', 'Instant result processing', 'Exam security and integrity', 'Cost-effective testing', 'Scalable for any size', 'Professional exam delivery'], related: ['exams', 'lms', 'analytics'] },
+};
+
+const data = moduleData[module || 'sis'];
+if (!data) return Astro.redirect('/404');
+const allModules = Object.entries(moduleData).map(([slug, d]) => ({ slug, ...d }));
+---
+
+<MarketingLayout title={`${data.name} - iSchool`} description={`${data.tagline}. Part of the iSchool all-in-one school management platform.`}>
+  <!-- Hero -->
+  <section class="relative overflow-hidden">
+    <div class={`absolute inset-0 bg-gradient-to-br ${data.color} opacity-5`}></div>
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28">
+      <div class="max-w-3xl">
+        <div class="flex items-center gap-3 mb-6">
+          <span class="text-4xl">{data.icon}</span>
+          <span class="text-sm font-bold text-primary-600 bg-primary-50 px-3 py-1 rounded-full">MODULE</span>
+        </div>
+        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-black text-gray-900 tracking-tight leading-tight">{data.name}</h1>
+        <p class="mt-4 text-xl text-gray-600 font-medium">{data.tagline}</p>
+        <p class="mt-6 text-lg text-gray-600 leading-relaxed">{data.hero}</p>
+        <div class="mt-10 flex flex-col sm:flex-row gap-4">
+          <a href="/auth/register" class="inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-bold text-white bg-gradient-to-r from-primary-600 to-primary-700 rounded-2xl hover:from-primary-700 hover:to-primary-800 shadow-xl shadow-primary-200 transition-all">
+            Start Free Trial
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+          </a>
+          <a href="/pricing" class="inline-flex items-center justify-center px-8 py-4 text-base font-semibold text-gray-700 bg-white border-2 border-gray-200 rounded-2xl hover:border-primary-300 transition-all">View Pricing</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="py-24 bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center max-w-2xl mx-auto mb-16">
+        <h2 class="text-3xl sm:text-4xl font-black text-gray-900">Powerful features built for schools</h2>
+        <p class="mt-4 text-lg text-gray-600">Every feature in the {data.name} module is designed to save time and improve outcomes.</p>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {data.features.map(f => (
+          <div class="bg-gray-50 rounded-2xl p-6 border border-gray-100 hover:border-primary-200 hover:shadow-lg transition-all">
+            <div class="w-10 h-10 bg-primary-100 rounded-xl flex items-center justify-center mb-4">
+              <svg class="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+            <h3 class="text-base font-bold text-gray-900 mb-2">{f.title}</h3>
+            <p class="text-sm text-gray-600 leading-relaxed">{f.desc}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- Benefits -->
+  <section class="py-24 bg-gray-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+        <div>
+          <h2 class="text-3xl font-black text-gray-900 mb-8">Why schools choose this module</h2>
+          <div class="space-y-4">
+            {data.benefits.map(b => (
+              <div class="flex items-center gap-3">
+                <div class="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center shrink-0">
+                  <svg class="w-3.5 h-3.5 text-green-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                </div>
+                <p class="text-base text-gray-700 font-medium">{b}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div class={`bg-gradient-to-br ${data.color} rounded-3xl p-10 text-white`}>
+          <h3 class="text-2xl font-bold mb-4">{data.description}</h3>
+          <a href="/auth/register" class="inline-flex items-center gap-2 mt-4 text-sm font-bold text-white bg-white/20 hover:bg-white/30 px-5 py-2.5 rounded-xl transition-colors">
+            Try it free <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Related Modules -->
+  <section class="py-24 bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <h2 class="text-2xl font-black text-gray-900 mb-8">Explore all 16 modules</h2>
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+        {allModules.map(m => (
+          <a href={`/modules/${m.slug}`} class:list={['flex items-center gap-3 p-4 rounded-xl border transition-all hover:shadow-md', m.slug === module ? 'border-primary-300 bg-primary-50' : 'border-gray-100 hover:border-primary-200']}>
+            <span class="text-2xl">{m.icon}</span>
+            <span class="text-sm font-semibold text-gray-900">{m.name}</span>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="py-16 bg-gradient-to-r from-primary-600 to-primary-800">
+    <div class="max-w-4xl mx-auto px-4 text-center">
+      <h2 class="text-3xl font-black text-white">Ready to try {data.name}?</h2>
+      <p class="mt-3 text-primary-100 text-lg">Start your 14-day free trial with access to all 16 modules. No credit card required.</p>
+      <a href="/auth/register" class="mt-8 inline-flex items-center justify-center px-8 py-4 text-base font-bold text-primary-700 bg-white rounded-2xl hover:bg-primary-50 transition-colors shadow-xl">
+        Get Started Free
+      </a>
+    </div>
+  </section>
+</MarketingLayout>

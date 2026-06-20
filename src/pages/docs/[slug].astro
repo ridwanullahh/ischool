@@ -1,0 +1,66 @@
+---
+import MarketingLayout from '../../layouts/MarketingLayout.astro';
+import { getDb } from '../../lib/db/index.js';
+import { platformDocs } from '../../lib/db/schema.js';
+import { eq, and, asc } from 'drizzle-orm';
+
+const docSlug = Astro.params.slug!;
+const db = getDb();
+const doc = db.select().from(platformDocs)
+  .where(and(eq(platformDocs.slug, docSlug), eq(platformDocs.isPublished, true)))
+  .get();
+if (!doc) return Astro.redirect('/docs');
+
+const allDocs = db.select().from(platformDocs)
+  .where(eq(platformDocs.isPublished, true))
+  .orderBy(asc(platformDocs.sortOrder)).all();
+
+const categories = [...new Set(allDocs.map(d => d.category || 'Getting Started'))];
+---
+
+<MarketingLayout title={`${doc.title} - iSchool Docs`}>
+  <section class="py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <a href="/docs" class="text-sm text-primary-600 hover:underline mb-4 inline-block">&larr; Back to Documentation</a>
+
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <aside class="lg:col-span-1">
+          <nav class="space-y-6">
+            {categories.map(cat => (
+              <div>
+                <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-3">{cat}</h3>
+                <div class="space-y-1">
+                  {allDocs.filter(d => (d.category || 'Getting Started') === cat).map(d => (
+                    <a
+                      href={`/docs/${d.slug}`}
+                      class:list={[
+                        'block px-3 py-2 text-sm rounded-lg transition-colors',
+                        d.slug === docSlug ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-700 hover:bg-gray-100'
+                      ]}
+                    >
+                      {d.title}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </nav>
+        </aside>
+
+        <article class="lg:col-span-3">
+          <header class="mb-8">
+            <span class="text-sm font-medium bg-primary-50 text-primary-700 px-3 py-1 rounded-full">{doc.category}</span>
+            <h1 class="text-3xl font-bold text-gray-900 mt-4">{doc.title}</h1>
+            {doc.excerpt && <p class="mt-3 text-lg text-gray-600">{doc.excerpt}</p>}
+          </header>
+
+          <div class="prose prose-gray max-w-none">
+            {doc.content.split('\n').map(para => para.trim()).filter(Boolean).map(para => (
+              <p class="text-gray-700 leading-relaxed mb-4">{para}</p>
+            ))}
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+</MarketingLayout>

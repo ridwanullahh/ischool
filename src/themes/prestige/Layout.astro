@@ -1,0 +1,130 @@
+---
+import { getSchoolNav, getSchoolContacts, getSchoolPalette } from '../../lib/school.ts';
+import { normalizeSocialUrl, getSocialIcon } from '../../lib/social.ts';
+import LanguageSelector from '../../components/LanguageSelector.astro';
+import SchoolBannerPopup from '../../components/SchoolBannerPopup.astro';
+import PublicAIChatWidget from '../../components/PublicAIChatWidget.astro';
+
+interface Props { school: any; title?: string; }
+const { school, title } = Astro.props;
+const nav = getSchoolNav(school.id);
+const contacts = getSchoolContacts(school.id);
+const palette = getSchoolPalette(school);
+const pageTitle = title ? `${title} | ${school.name}` : school.name;
+const social = (school.socialHandles as Record<string, string>) || {};
+const socialEntries = Object.entries(social).filter(([, v]) => v && v !== '#');
+---
+<!DOCTYPE html>
+<html lang={school.locale || 'en'} dir={['ar','he','fa','ur'].includes(school.locale || 'en') ? 'rtl' : 'ltr'} class="dark theme-defaults-dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{pageTitle}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <script is:inline>
+    (function(){var s=localStorage.getItem('themeMode');var d=window.matchMedia('(prefers-color-scheme:dark)').matches;var hasDefault=s===null;if(hasDefault){document.documentElement.classList.remove('light','dark');document.documentElement.classList.add('dark')}else{document.documentElement.classList.remove('light','dark');document.documentElement.classList.add(s==='dark'?'dark':'light')}})();
+  </script>
+  <style is:inline>{`
+    html.light{--bg:${palette.backgroundLight};--surface:${palette.surfaceLight};--text:${palette.textLight};--muted:${palette.mutedLight};--border:${palette.borderLight};--accent:${palette.accent};--primary:${palette.primary}}
+    html.dark{--bg:${palette.backgroundDark};--surface:${palette.surfaceDark};--text:${palette.textDark};--muted:${palette.mutedDark};--border:${palette.borderDark};--accent:${palette.accent};--primary:${palette.primary}}
+    :root{--prestige-gold:${palette.primary}}
+  `}</style>
+</head>
+<body class="antialiased" style="background:var(--bg);color:var(--text)">
+  <div class="h-[2px]" style="background:linear-gradient(to right,transparent,var(--primary),transparent)"></div>
+  <header class="sticky top-0 z-50 backdrop-blur-md" style="background:color-mix(in srgb, var(--bg) 95%, transparent);border-bottom:1px solid var(--border)">
+    <div class="max-w-7xl mx-auto">
+      <div class="hidden md:flex items-center justify-between px-8 py-2 text-[11px] tracking-widest uppercase font-['Montserrat']" style="color:var(--muted)">
+        <span>{contacts.find(c=>c.label==='Email')?.value || 'Excellence in Education'}</span>
+        <span class="flex items-center gap-6">
+          <span style="color:var(--primary)">Est. {school.createdAt ? new Date(school.createdAt).getFullYear() : '2000'}</span>
+        </span>
+      </div>
+      <div class="flex items-center justify-between px-6 md:px-8 py-5">
+        <a href={`/${school.slug}`} class="flex items-center gap-4">
+          {school.logoUrl ? (
+            <img src={school.logoUrl} alt={school.name} class="h-10 w-10 rounded-full" style="border:1px solid color-mix(in srgb, var(--primary) 30%, transparent)" />
+          ) : (
+            <div class="h-10 w-10 rounded-full flex items-center justify-center" style="border:1px solid color-mix(in srgb, var(--primary) 40%, transparent)">
+              <span class="font-['Cormorant_Garamond'] text-lg font-semibold" style="color:var(--primary)">{school.name[0]}</span>
+            </div>
+          )}
+          <div>
+            <h1 class="font-['Cormorant_Garamond'] text-xl font-semibold tracking-wide" style="color:var(--text)">{school.name}</h1>
+            {school.tagline && <p class="text-[10px] tracking-[0.2em] uppercase font-['Montserrat'] mt-0.5" style="color:var(--muted)">{school.tagline}</p>}
+          </div>
+        </a>
+        <nav class="hidden lg:flex items-center gap-1">
+          {nav.map((item: any) => (
+            <a href={item.url.startsWith('http') ? item.url : `/${school.slug}${item.url === '/' ? '' : item.url}`} class="px-4 py-2 text-[11px] tracking-[0.15em] uppercase font-['Montserrat'] font-medium transition-colors duration-300 hover:opacity-80" style="color:var(--muted)">{item.label}</a>
+          ))}
+        </nav>
+        <div class="flex items-center gap-3">
+          <LanguageSelector />
+          <button id="theme-toggle" class="p-2 transition-colors hover:opacity-80 rounded" style="color:var(--primary);border:1px solid color-mix(in srgb, var(--primary) 30%, transparent)" aria-label="Toggle dark mode">
+            <svg class="w-4 h-4 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+            <svg class="w-4 h-4 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+          </button>
+          <button id="mobile-toggle" class="lg:hidden p-2 transition-colors hover:opacity-80" style="color:var(--muted)">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6h16M4 12h16M4 18h16" /></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div id="mobile-nav" class="hidden lg:hidden" style="border-top:1px solid var(--border);background:var(--bg)">
+      <nav class="flex flex-col py-4">
+        {nav.map((item: any) => (
+          <a href={item.url.startsWith('http') ? item.url : `/${school.slug}${item.url === '/' ? '' : item.url}`} class="px-8 py-3 text-[11px] tracking-[0.2em] uppercase font-['Montserrat'] font-medium transition-all hover:opacity-80" style="color:var(--muted)">{item.label}</a>
+        ))}
+      </nav>
+    </div>
+  </header>
+  <main><slot /></main>
+  <footer class="mt-24" style="border-top:1px solid var(--border);background:var(--bg)">
+    <div class="max-w-7xl mx-auto px-6 md:px-8 py-16">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-12">
+        <div>
+          <h2 class="font-['Cormorant_Garamond'] text-2xl font-semibold mb-3" style="color:var(--text)">{school.name}</h2>
+          {school.tagline && <p class="text-sm font-['Montserrat'] font-light italic leading-relaxed" style="color:var(--muted)">{school.tagline}</p>}
+          <div class="mt-6 h-[1px] w-16" style="background:var(--primary)"></div>
+        </div>
+        <div>
+          <h3 class="text-[10px] tracking-[0.25em] uppercase font-['Montserrat'] font-semibold mb-6" style="color:var(--primary)">Navigation</h3>
+          <nav class="flex flex-col gap-3">
+            {nav.slice(0, 6).map((item: any) => (
+              <a href={item.url.startsWith('http') ? item.url : `/${school.slug}${item.url === '/' ? '' : item.url}`} class="text-sm font-['Montserrat'] font-light transition-colors duration-300 hover:opacity-80" style="color:var(--muted)">{item.label}</a>
+            ))}
+          </nav>
+        </div>
+        <div>
+          <h3 class="text-[10px] tracking-[0.25em] uppercase font-['Montserrat'] font-semibold mb-6" style="color:var(--primary)">Connect</h3>
+          <div class="space-y-3 text-sm font-['Montserrat'] font-light" style="color:var(--muted)">
+            {contacts.slice(0,3).map(c => <p>{c.value}</p>)}
+          </div>
+          {socialEntries.length > 0 && (
+            <div class="flex items-center gap-3 mt-6">
+              {socialEntries.map(([platform, handle]) => (
+                <a href={normalizeSocialUrl(handle, platform)} aria-label={platform} target="_blank" rel="noopener" class="transition-colors hover:opacity-80" style="color:var(--primary)">
+                  <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d={getSocialIcon(platform)}/></svg>
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+      <div class="mt-16 pt-8 text-center" style="border-top:1px solid var(--border)">
+        <p class="text-[10px] tracking-[0.3em] uppercase font-['Montserrat']" style="color:var(--muted)">&copy; {new Date().getFullYear()} {school.name} — Powered by iSchool</p>
+      </div>
+    </div>
+  </footer>
+  <script>
+    const toggle=document.getElementById('mobile-toggle');const nav=document.getElementById('mobile-nav');
+    toggle?.addEventListener('click',()=>nav?.classList.toggle('hidden'));
+    document.getElementById('theme-toggle')?.addEventListener('click',()=>{const h=document.documentElement;const d=h.classList.contains('dark');h.classList.remove('light','dark');h.classList.add(d?'light':'dark');localStorage.setItem('themeMode',d?'light':'dark')});
+  </script>
+    <SchoolBannerPopup schoolId={school.id} />
+  <PublicAIChatWidget schoolSlug={school.slug} />
+</body>
+</html>

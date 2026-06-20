@@ -1,0 +1,46 @@
+---
+interface Props {
+  placeholder?: string;
+  schoolId?: number;
+  type?: string;
+  basePath: string;
+}
+const { placeholder = 'Search...', schoolId, type, basePath } = Astro.props;
+---
+<div class="space-y-4" id="search-filter-bar" data-school-id={schoolId || ''} data-type={type || ''} data-base-path={basePath}>
+  <div class="flex gap-2">
+    <input type="text" id="search-input" placeholder={placeholder} class="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500" />
+    <button id="search-btn" class="px-4 py-2.5 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors">Search</button>
+  </div>
+  <div id="search-results" class="hidden space-y-2"></div>
+</div>
+<script>
+  const bar = document.getElementById('search-filter-bar');
+  const input = document.getElementById('search-input') as HTMLInputElement;
+  const btn = document.getElementById('search-btn');
+  const resultsDiv = document.getElementById('search-results')!;
+  const schoolId = bar?.dataset.schoolId || '';
+  const type = bar?.dataset.type || '';
+  const basePath = bar?.dataset.basePath || '';
+
+  async function doSearch() {
+    const q = input.value.trim();
+    if (q.length < 2) { resultsDiv.classList.add('hidden'); return; }
+    const params = new URLSearchParams({ q });
+    if (schoolId) params.set('schoolId', schoolId);
+    if (type) params.set('type', type);
+    try {
+      const res = await fetch(`/api/search?${params}`);
+      const data = await res.json();
+      resultsDiv.innerHTML = data.results.length
+        ? data.results.map((r: any) => `<a href="${basePath}/${r.type === 'announcement' ? 'announcements' : r.type === 'blog' ? 'blog' : r.type}/${r.slug}" class="block p-3 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"><div class="text-sm font-medium text-gray-900">${r.title}</div><div class="text-xs text-gray-500 mt-1 line-clamp-2">${r.excerpt}</div></a>`).join('')
+        : '<p class="text-sm text-gray-500">No results found.</p>';
+      resultsDiv.classList.remove('hidden');
+    } catch { resultsDiv.classList.add('hidden'); }
+  }
+
+  btn?.addEventListener('click', doSearch);
+  input?.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); doSearch(); } });
+  let debounce: ReturnType<typeof setTimeout>;
+  input?.addEventListener('input', () => { clearTimeout(debounce); debounce = setTimeout(doSearch, 300); });
+</script>
