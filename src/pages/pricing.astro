@@ -2,9 +2,10 @@
 import MarketingLayout from '../layouts/MarketingLayout.astro';
 import { getDb } from '../lib/db/index.js';
 import { subscriptionPlans } from '../lib/db/schema.js';
+import { eq, asc } from 'drizzle-orm';
 
 const db = getDb();
-const plans = db.select().from(subscriptionPlans).where(subscriptionPlans.isActive).orderBy(subscriptionPlans.sortOrder).all();
+const plans = db.select().from(subscriptionPlans).where(eq(subscriptionPlans.isActive, true)).orderBy(asc(subscriptionPlans.sortOrder)).all();
 ---
 
 <MarketingLayout title="Pricing - iSchool" description="Simple, transparent pricing for school management software. Start free, upgrade when you're ready.">
@@ -16,7 +17,7 @@ const plans = db.select().from(subscriptionPlans).where(subscriptionPlans.isActi
         <p class="mt-4 text-lg text-gray-600">Choose the plan that fits your school. Start with a free plan, upgrade as you grow. All plans include a 14-day free trial.</p>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 max-w-7xl mx-auto">
         {plans.map(plan => {
           const features = (plan.features as string[]) || [];
           return (

@@ -3,6 +3,8 @@ import { getThemeLayout } from '../../../themes/index.js';
 import { getDb } from '../../../lib/db/index.js';
 import { schools, programs } from '../../../lib/db/schema.js';
 import { eq, and } from 'drizzle-orm';
+import ShareButtons from '../../../components/ShareButtons.astro';
+import ReactionBar from '../../../components/ReactionBar.astro';
 
 const slug = Astro.params.slug!;
 const programSlug = Astro.params.program!;
@@ -16,6 +18,8 @@ const item = db.select().from(programs)
   .where(and(eq(programs.schoolId, school.id), eq(programs.slug, programSlug)))
   .get();
 if (!item) return Astro.redirect(`/${slug}/programs`);
+
+const fullUrl = `${Astro.url.origin}/${slug}/programs/${programSlug}`;
 ---
 
 <Layout school={school} title={item.name}>
@@ -32,6 +36,9 @@ if (!item) return Astro.redirect(`/${slug}/programs`);
         {item.level && <span class="text-sm px-3 py-1 rounded-full font-medium" style="background:color-mix(in srgb, var(--primary) 12%, transparent);color:var(--primary)">{item.level}</span>}
         {item.duration && <span class="text-sm bg-[var(--bg)] px-3 py-1 rounded-full text-[var(--muted)]">{item.duration}</span>}
       </div>
+      <div class="mt-4">
+        <ShareButtons url={fullUrl} title={item.name} />
+      </div>
     </header>
 
     {item.description && (
@@ -41,7 +48,7 @@ if (!item) return Astro.redirect(`/${slug}/programs`);
     )}
 
     {item.content && (
-      <div class="prose max-w-none">
+      <div class="prose max-w-none mb-10">
         {item.content.split('\n').map(para => para.trim()).filter(Boolean).map(para => (
           <p class="leading-relaxed mb-4 text-[var(--text)]">{para}</p>
         ))}
@@ -53,6 +60,11 @@ if (!item) return Astro.redirect(`/${slug}/programs`);
       <a href={`/${slug}/admissions`} class="inline-flex items-center justify-center px-8 py-3 text-base font-semibold text-white bg-[var(--primary)] rounded-lg hover:opacity-90 transition-colors shadow-sm">
         Apply for Admission
       </a>
+    </div>
+
+    <div class="border-t border-[var(--border)] pt-6 mt-8">
+      <p class="text-sm font-medium text-[var(--text)] mb-3">What do you think?</p>
+      <ReactionBar entityType="program" entityId={item.id} />
     </div>
   </article>
 </Layout>

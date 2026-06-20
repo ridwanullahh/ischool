@@ -15,13 +15,17 @@ const error = Astro.url.searchParams.get('error');
   <div class="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12">
     <div class="w-full max-w-md">
       <div class="text-center mb-8">
+        <div class="w-16 h-16 bg-gradient-to-br from-primary-500 to-primary-700 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary-200">
+          <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+        </div>
         <h1 class="text-2xl font-bold text-gray-900">Welcome back</h1>
-        <p class="mt-2 text-sm text-gray-600">Sign in to manage your school website</p>
+        <p class="mt-2 text-sm text-gray-500">Sign in to manage your school</p>
       </div>
 
-      <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
+      <div class="bg-white rounded-2xl border border-gray-200 shadow-xl shadow-gray-100/50 p-8">
         {error && (
-          <div class="mb-6 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+          <div class="mb-6 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 flex items-center gap-2">
+            <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg>
             {error}
           </div>
         )}
@@ -29,37 +33,35 @@ const error = Astro.url.searchParams.get('error');
         <form method="POST" action="/api/auth/login" class="space-y-5">
           <input type="hidden" name="redirect" value={redirect} />
 
-          <Input
-            label="Email Address"
-            name="email"
-            type="email"
-            placeholder="you@school.edu"
-            required
-            autocomplete="email"
-          />
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">Email Address</label>
+            <div class="relative">
+              <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"/></svg>
+              <input name="email" type="email" placeholder="you@school.edu" required autocomplete="email" class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none transition-all" />
+            </div>
+          </div>
 
-          <Input
-            label="Password"
-            name="password"
-            type="password"
-            placeholder="Enter your password"
-            required
-            autocomplete="current-password"
-          />
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
+            <div class="relative">
+              <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+              <input name="password" type="password" placeholder="Enter your password" required autocomplete="current-password" class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none transition-all" />
+            </div>
+          </div>
 
-          <Button type="submit" full>
+          <button type="submit" class="w-full px-4 py-3 bg-gradient-to-r from-primary-600 to-primary-700 text-white font-semibold rounded-xl hover:from-primary-700 hover:to-primary-800 transition-all shadow-lg shadow-primary-200 text-sm">
             Sign In
-          </Button>
+          </button>
 
           <div class="text-center">
-            <a href="/auth/forgot-password" class="text-sm text-primary-600 hover:text-primary-700">Forgot password?</a>
+            <a href="/auth/forgot-password" class="text-sm text-primary-600 hover:text-primary-700 font-medium">Forgot password?</a>
           </div>
         </form>
       </div>
 
-      <p class="mt-6 text-center text-sm text-gray-600">
+      <p class="mt-6 text-center text-sm text-gray-500">
         Don't have an account?{' '}
-        <a href="/auth/register" class="font-medium text-primary-600 hover:text-primary-700">Create one</a>
+        <a href="/auth/register" class="font-semibold text-primary-600 hover:text-primary-700">Create one</a>
       </p>
     </div>
   </div>

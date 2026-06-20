@@ -4,6 +4,8 @@ import { getDb } from '../../../lib/db/index.js';
 import { schools, announcements } from '../../../lib/db/schema.js';
 import { eq, and } from 'drizzle-orm';
 import { formatDate } from '../../../lib/utils.js';
+import ShareButtons from '../../../components/ShareButtons.astro';
+import ReactionBar from '../../../components/ReactionBar.astro';
 
 const slug = Astro.params.slug!;
 const announcementSlug = Astro.params.announcement!;
@@ -17,6 +19,8 @@ const item = db.select().from(announcements)
   .where(and(eq(announcements.schoolId, school.id), eq(announcements.slug, announcementSlug), eq(announcements.published, true)))
   .get();
 if (!item) return Astro.redirect(`/${slug}/announcements`);
+
+const fullUrl = `${Astro.url.origin}/${slug}/announcements/${announcementSlug}`;
 ---
 
 <Layout school={school} title={item.title}>
@@ -38,9 +42,12 @@ if (!item) return Astro.redirect(`/${slug}/announcements`);
       {item.excerpt && (
         <p class="mt-4 text-lg text-[var(--muted)]">{item.excerpt}</p>
       )}
+      <div class="mt-4">
+        <ShareButtons url={fullUrl} title={item.title} />
+      </div>
     </header>
 
-    <div class="prose max-w-none">
+    <div class="prose max-w-none mb-10">
       {item.content.split('\n').map(para => para.trim()).filter(Boolean).map(para => (
         <p class="leading-relaxed mb-4 text-[var(--text)]">{para}</p>
       ))}
@@ -56,5 +63,10 @@ if (!item) return Astro.redirect(`/${slug}/announcements`);
         </a>
       </div>
     )}
+
+    <div class="border-t border-[var(--border)] pt-6 mt-8">
+      <p class="text-sm font-medium text-[var(--text)] mb-3">How do you feel about this?</p>
+      <ReactionBar entityType="announcement" entityId={item.id} />
+    </div>
   </article>
 </Layout>
