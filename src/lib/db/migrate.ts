@@ -257,6 +257,13 @@ export function migrate() {
     `ALTER TABLE users ADD COLUMN two_factor_secret TEXT`,
     `ALTER TABLE users ADD COLUMN preferred_language TEXT DEFAULT 'en'`,
     `ALTER TABLE schools ADD COLUMN active_modules TEXT DEFAULT '["cms","sis","lms","finance","communication"]'`,
+    `ALTER TABLE schools ADD COLUMN locale TEXT DEFAULT 'en'`,
+    `ALTER TABLE platform_settings ADD COLUMN type TEXT DEFAULT 'string'`,
+    `ALTER TABLE platform_settings ADD COLUMN category TEXT DEFAULT 'general'`,
+    `ALTER TABLE coupons ADD COLUMN name TEXT DEFAULT ''`,
+    `ALTER TABLE coupons ADD COLUMN currency TEXT DEFAULT 'USD'`,
+    `ALTER TABLE coupons ADD COLUMN min_amount INTEGER DEFAULT 0`,
+    `ALTER TABLE school_support_tickets ADD COLUMN slug TEXT`,
   ];
   for (const sql of alterStatements) {
     try { db.exec(sql); } catch {}
