@@ -58,6 +58,21 @@ import luxeLayout from './conventional/luxe/Layout.astro';
 import slateConfig from './conventional/slate/theme.config';
 import slateLayout from './conventional/slate/Layout.astro';
 
+import auroraConfig from './conventional/aurora/theme.config';
+import auroraLayout from './conventional/aurora/Layout.astro';
+
+import heritageConfig from './conventional/heritage/theme.config';
+import heritageLayout from './conventional/heritage/Layout.astro';
+
+import prismConfig from './conventional/prism/theme.config';
+import prismLayout from './conventional/prism/Layout.astro';
+
+import mosaicConfig from './conventional/mosaic/theme.config';
+import mosaicLayout from './conventional/mosaic/Layout.astro';
+
+import pulseConfig from './conventional/pulse/theme.config';
+import pulseLayout from './conventional/pulse/Layout.astro';
+
 // --- v2 theme imports (mobile) ---
 
 // --- v1 fallback (legacy) ---
@@ -78,6 +93,11 @@ const registry: Record<string, RegisteredTheme> = {
   oasis: { config: oasisConfig, Layout: oasisLayout },
   luxe: { config: luxeConfig, Layout: luxeLayout },
   slate: { config: slateConfig, Layout: slateLayout },
+  aurora: { config: auroraConfig, Layout: auroraLayout },
+  heritage: { config: heritageConfig, Layout: heritageLayout },
+  prism: { config: prismConfig, Layout: prismLayout },
+  mosaic: { config: mosaicConfig, Layout: mosaicLayout },
+  pulse: { config: pulseConfig, Layout: pulseLayout },
 };
 
 /**
