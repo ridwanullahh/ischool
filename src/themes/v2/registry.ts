@@ -98,6 +98,35 @@ import radianceConfig from './conventional/radiance/theme.config';
 import radianceLayout from './conventional/radiance/Layout.astro';
 
 // --- v2 theme imports (mobile) ---
+import mobileHarmonyConfig from './mobile/mobile-harmony/theme.config';
+import mobileHarmonyLayout from './mobile/mobile-harmony/Layout.astro';
+
+import mobileScholarConfig from './mobile/mobile-scholar/theme.config';
+import mobileScholarLayout from './mobile/mobile-scholar/Layout.astro';
+
+import mobileBloomConfig from './mobile/mobile-bloom/theme.config';
+import mobileBloomLayout from './mobile/mobile-bloom/Layout.astro';
+
+import mobilePrestigeConfig from './mobile/mobile-prestige/theme.config';
+import mobilePrestigeLayout from './mobile/mobile-prestige/Layout.astro';
+
+import mobileNovaConfig from './mobile/mobile-nova/theme.config';
+import mobileNovaLayout from './mobile/mobile-nova/Layout.astro';
+
+import mobileEmberConfig from './mobile/mobile-ember/theme.config';
+import mobileEmberLayout from './mobile/mobile-ember/Layout.astro';
+
+import mobileOasisConfig from './mobile/mobile-oasis/theme.config';
+import mobileOasisLayout from './mobile/mobile-oasis/Layout.astro';
+
+import mobileSparkConfig from './mobile/mobile-spark/theme.config';
+import mobileSparkLayout from './mobile/mobile-spark/Layout.astro';
+
+import mobileAuroraConfig from './mobile/mobile-aurora/theme.config';
+import mobileAuroraLayout from './mobile/mobile-aurora/Layout.astro';
+
+import mobileHeritageConfig from './mobile/mobile-heritage/theme.config';
+import mobileHeritageLayout from './mobile/mobile-heritage/Layout.astro';
 
 // --- v1 fallback (legacy) ---
 import LegacyHarmonyLayout from '../harmony/Layout.astro';
@@ -130,6 +159,17 @@ const registry: Record<string, RegisteredTheme> = {
   atlas: { config: atlasConfig, Layout: atlasLayout },
   meridian: { config: meridianConfig, Layout: meridianLayout },
   radiance: { config: radianceConfig, Layout: radianceLayout },
+  // mobile
+  'mobile-harmony': { config: mobileHarmonyConfig, Layout: mobileHarmonyLayout },
+  'mobile-scholar': { config: mobileScholarConfig, Layout: mobileScholarLayout },
+  'mobile-bloom': { config: mobileBloomConfig, Layout: mobileBloomLayout },
+  'mobile-prestige': { config: mobilePrestigeConfig, Layout: mobilePrestigeLayout },
+  'mobile-nova': { config: mobileNovaConfig, Layout: mobileNovaLayout },
+  'mobile-ember': { config: mobileEmberConfig, Layout: mobileEmberLayout },
+  'mobile-oasis': { config: mobileOasisConfig, Layout: mobileOasisLayout },
+  'mobile-spark': { config: mobileSparkConfig, Layout: mobileSparkLayout },
+  'mobile-aurora': { config: mobileAuroraConfig, Layout: mobileAuroraLayout },
+  'mobile-heritage': { config: mobileHeritageConfig, Layout: mobileHeritageLayout },
 };
 
 /**

@@ -1,0 +1,183 @@
+---
+/**
+ * Prestige Mobile — Mobile-Native v2 theme (app-like bottom tab bar layout)
+ */
+import '../../../../styles/global.css';
+import PaletteStyles from '../../_shared/PaletteStyles.astro';
+import FoucScript from '../../_shared/FoucScript.astro';
+import ThemeToggleScript from '../../_shared/ThemeToggleScript.astro';
+import { getSocialIconPath } from '../../_shared/social-icons';
+import { getSchoolNav, getSchoolContacts } from '../../../../lib/school.ts';
+import { normalizeSocialUrl } from '../../../../lib/social.ts';
+import LanguageSelector from '../../../../components/LanguageSelector.astro';
+import SchoolBannerPopup from '../../../../components/SchoolBannerPopup.astro';
+interface Props { school: any; title?: string; }
+const { school, title } = Astro.props;
+const nav = getSchoolNav(school.id); const contacts = getSchoolContacts(school.id);
+const pageTitle = title ? `${title} — ${school.name}` : school.name;
+const prefix = `/${school.slug}`; const { pathname } = Astro.url;
+const social = (school.socialHandles as Record<string, string>) || {};
+const socialEntries = Object.entries(social).filter(([, v]) => v && v !== '#');
+const locale = school.locale || 'en'; const rtl = ['ar','he','fa','ur'].includes(locale);
+// Mobile uses first 5 nav items as bottom tabs
+const tabs = nav.slice(0, 5);
+const moreNav = nav.slice(5);
+---
+<!doctype html>
+<html lang={locale} dir={rtl ? 'rtl' : 'ltr'} class="dark scroll-smooth">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="description" content={school.tagline || school.name} />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  {school.faviconUrl && <link rel="icon" href={school.faviconUrl} />}
+  <link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <title>{pageTitle}</title>
+  <FoucScript defaultMode="dark" /><PaletteStyles school={school} />
+  <style is:inline>{`
+    html, body { background: var(--bg); }
+    body {
+      font-family: 'Cormorant Garamond', system-ui, sans-serif;
+      color: var(--text); min-height: 100vh; min-height: 100dvh;
+      padding-bottom: 4.5rem; /* space for bottom tab bar */
+      -webkit-font-smoothing: antialiased;
+    }
+        .mobile-prestige-header { border-bottom: 1px solid color-mix(in srgb, var(--primary) 30%, var(--border)) !important; }
+    /* App header */
+    .mobile-prestige-header {
+      position: sticky; top: 0; z-index: 40;
+      height: 3.5rem; display: flex; align-items: center; justify-content: space-between;
+      padding: 0 1rem;
+    }
+    /* Bottom tab bar */
+    .mobile-prestige-tabbar {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+      height: 4.5rem; display: flex; align-items: center; justify-content: space-around;
+      padding-bottom: env(safe-area-inset-bottom, 0);
+    }
+    .mobile-prestige-tab {
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+      padding: 0.25rem 0.75rem; font-size: 0.65rem; font-weight: 500;
+      transition: all 0.15s;
+    }
+    .mobile-prestige-tab[data-active="true"] { color: var(--primary); }
+    .mobile-prestige-tab:not([data-active="true"]) { color: var(--muted); }
+    /* Chat panel slides up from bottom */
+    .mobile-prestige-chat-panel {
+      position: fixed; bottom: 4.5rem; left: 0; right: 0; z-index: 60;
+      max-height: 70vh; display: none; flex-direction: column;
+    }
+    .mobile-prestige-bubble-u { color: var(--primary); padding: 0.5rem 0; font-size: 0.85rem; max-width: 80%; margin-left: auto; text-align: right; font-family: 'Cormorant Garamond', serif; font-size: 1rem }
+    .mobile-prestige-bubble-a { color: var(--muted); padding: 0.5rem 0; font-size: 0.85rem; max-width: 80%; font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 1rem }
+  `}</style>
+</head>
+<body>
+  <!-- App header -->
+  <header class="mobile-prestige-header" style="background:var(--surface);border-bottom:1px solid var(--border)">
+    <button id="mobile-prestige-menu-toggle" type="button" style="color:var(--text)" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-prestige-drawer">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+    <a href={`${prefix}/`} class="flex items-center gap-2" aria-label={`${school.name} home`}>
+      {school.logoUrl ? <img src={school.logoUrl} alt={school.name} class="h-7 w-auto" /> : <span class="text-base font-bold" style="color:var(--primary)">{school.name}</span>}
+    </a>
+    <button id="mobile-prestige-chat-toggle" type="button" style="color:var(--primary)" aria-label="Open chat" aria-expanded="false" aria-controls="mobile-prestige-chat-panel">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+    </button>
+  </header>
+
+  <!-- Slide-in drawer for full nav -->
+  <div id="mobile-prestige-drawer" class="fixed inset-0 z-[70] hidden">
+    <div class="absolute inset-0 bg-black/50" data-drawer-close></div>
+    <div class="absolute left-0 top-0 bottom-0 w-72 overflow-y-auto p-5" style="background:var(--surface)">
+      <div class="flex items-center justify-between mb-6">
+        <span class="font-bold" style="color:var(--text)">{school.name}</span>
+        <button id="mobile-prestige-drawer-close" type="button" style="color:var(--text)" aria-label="Close menu"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+      </div>
+      <nav class="space-y-1">
+        {nav.map(item => { const active = pathname === `${prefix}${item.url}`; return <a href={`${prefix}${item.url}`} class=list={["block px-3 py-2.5 text-sm font-medium rounded-lg", active ? "text-white" : ""]} style={active ? "background:var(--primary);color:#fff" : "color:var(--text)"}>{item.label}</a>; })}
+      </nav>
+      <div class="mt-6 pt-4 border-t flex items-center gap-3" style="border-color:var(--border)">
+        <LanguageSelector />
+        <button id="theme-toggle" type="button" style="color:var(--muted)" aria-label="Toggle light, dark, or system mode"><svg class="w-4 h-4 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg><svg class="w-4 h-4 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg></button>
+      </div>
+      {socialEntries.length > 0 && (
+        <div class="mt-4 pt-4 border-t" style="border-color:var(--border)">
+          <p class="text-xs font-bold uppercase tracking-wider mb-2" style="color:var(--muted)">Follow</p>
+          <div class="flex items-center gap-2">
+            {socialEntries.map(([p,h]) => { const path = getSocialIconPath(p); if (!path) return null; return <a href={normalizeSocialUrl(h,p)} target="_blank" rel="noopener noreferrer" aria-label={`Visit our ${p} page`} style="color:var(--primary)"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d={path} /></svg></a>; })}
+          </div>
+        </div>
+      )}
+      {contacts.length > 0 && (
+        <div class="mt-4 pt-4 border-t" style="border-color:var(--border)">
+          <p class="text-xs font-bold uppercase tracking-wider mb-2" style="color:var(--muted)">Contact</p>
+          <ul class="space-y-1.5">{contacts.slice(0,3).map(c => <li class="text-xs" style="color:var(--text)">{c.value}</li>)}</ul>
+        </div>
+      )}
+    </div>
+  </div>
+
+  <main><slot /></main>
+
+  <!-- Mini footer (compact for mobile) -->
+  <footer class="px-4 py-6 border-t mt-8" style="background:var(--surface);border-color:var(--border)">
+    <div class="text-center">
+      <p class="text-xs" style="color:var(--muted)">© {new Date().getFullYear()} {school.name}</p>
+      <a href="/" class="text-xs hover:underline" style="color:var(--primary)">iSchool</a>
+    </div>
+  </footer>
+
+  <SchoolBannerPopup school={school} />
+
+  <!-- Bottom tab bar -->
+  <nav class="mobile-prestige-tabbar" style="background:var(--surface);border-top:1px solid var(--border)" aria-label="Primary mobile">
+    {tabs.map(item => { const active = pathname === `${prefix}${item.url}`; return (
+      <a href={`${prefix}${item.url}`} data-active={active} class="mobile-prestige-tab">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+        <span>{item.label}</span>
+      </a>
+    ); })}
+    {moreNav.length > 0 && (
+      <button id="mobile-prestige-more-tabs" type="button" class="mobile-prestige-tab">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        <span>More</span>
+      </button>
+    )}
+  </nav>
+
+  <!-- Slide-up chat panel -->
+  <div id="mobile-prestige-chat-panel" class="mobile-prestige-chat-panel" style="background:var(--surface);border-top:1px solid var(--border);border-radius:1rem 1rem 0 0">
+    <div class="px-4 py-3 border-b flex items-center justify-between" style="border-color:var(--border)">
+      <p class="text-sm font-bold" style="color:var(--text)">{school.name}</p>
+      <button id="mobile-prestige-chat-close" type="button" style="color:var(--muted)" aria-label="Close chat"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+    </div>
+    <div id="mobile-prestige-chat-messages" class="flex-1 overflow-y-auto p-4 space-y-2" style="max-height:50vh"></div>
+    <form id="mobile-prestige-chat-form" class="p-3 border-t flex items-center gap-2" style="border-color:var(--border)">
+      <input id="mobile-prestige-chat-input" type="text" placeholder="Type..." class="flex-1 rounded-full px-4 py-2 text-sm outline-none" style="background:color-mix(in srgb, var(--primary) 6%, var(--bg));color:var(--text)" aria-label="Type your message" />
+      <button type="submit" class="p-2.5 rounded-full text-white" style="background:var(--primary)" aria-label="Send"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg></button>
+    </form>
+  </div>
+
+  <ThemeToggleScript defaultMode="dark" selector="#theme-toggle" />
+  <script is:inline set:html={`(function(){
+    var mt=document.getElementById('mobile-prestige-menu-toggle'),dr=document.getElementById('mobile-prestige-drawer'),dc=document.getElementById('mobile-prestige-drawer-close');
+    function openD(){dr.classList.remove('hidden');mt.setAttribute('aria-expanded','true');}
+    function closeD(){dr.classList.add('hidden');mt.setAttribute('aria-expanded','false');}
+    if(mt)mt.addEventListener('click',openD);
+    if(dc)dc.addEventListener('click',closeD);
+    if(dr)dr.addEventListener('click',function(e){if(e.target.hasAttribute('data-drawer-close'))closeD();});
+    var ct=document.getElementById('mobile-prestige-chat-toggle'),cp=document.getElementById('mobile-prestige-chat-panel'),cc=document.getElementById('mobile-prestige-chat-close');
+    function o(){cp.style.display='flex';ct.setAttribute('aria-expanded','true');}
+    function c(){cp.style.display='none';ct.setAttribute('aria-expanded','false');}
+    if(ct)ct.addEventListener('click',function(){cp.style.display==='flex'?c():o();});
+    if(cc)cc.addEventListener('click',c);
+    var mt2=document.getElementById('mobile-prestige-more-tabs');
+    if(mt2)mt2.addEventListener('click',openD);
+    var f=document.getElementById('mobile-prestige-chat-form'),i=document.getElementById('mobile-prestige-chat-input'),m=document.getElementById('mobile-prestige-chat-messages');
+    if(f&&i&&m){f.addEventListener('submit',function(e){e.preventDefault();var t=i.value.trim();if(!t)return;
+      var b=document.createElement('div');b.className='mobile-prestige-bubble-u';b.textContent=t;m.appendChild(b);i.value='';m.scrollTop=m.scrollHeight;
+      fetch('/api/'+${JSON.stringify(school.slug)}+'/ai-chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:t})}).then(function(r){return r.ok?r.json():{reply:'Unavailable.'};}).then(function(data){var r=document.createElement('div');r.className='mobile-prestige-bubble-a';r.textContent=data.reply||data.message||'...';m.appendChild(r);m.scrollTop=m.scrollHeight;}).catch(function(){var r=document.createElement('div');r.className='mobile-prestige-bubble-a';r.textContent='Connection error.';m.appendChild(r);m.scrollTop=m.scrollHeight;});});}
+  })();`} />
+</body>
+</html>
