@@ -1,0 +1,240 @@
+---
+/**
+ * Bloom — Playful Rounded theme
+ *
+ * Layout autonomy: organic blob-shaped logo badge, oversized rounded
+ * nav "pill" that floats with a soft shadow, big curvy CTA buttons,
+ * a footer with rounded "card" columns, and a chat widget designed
+ * as a friendly rounded speech-bubble.
+ */
+import '../../../../styles/global.css';
+import PaletteStyles from '../../_shared/PaletteStyles.astro';
+import FoucScript from '../../_shared/FoucScript.astro';
+import ThemeToggleScript from '../../_shared/ThemeToggleScript.astro';
+import { getSocialIconPath } from '../../_shared/social-icons';
+import { getSchoolNav, getSchoolContacts } from '../../../../lib/school.ts';
+import { normalizeSocialUrl } from '../../../../lib/social.ts';
+import LanguageSelector from '../../../../components/LanguageSelector.astro';
+import SchoolBannerPopup from '../../../../components/SchoolBannerPopup.astro';
+
+interface Props { school: any; title?: string; }
+const { school, title } = Astro.props;
+const nav = getSchoolNav(school.id);
+const contacts = getSchoolContacts(school.id);
+const pageTitle = title ? `${title} — ${school.name}` : school.name;
+const prefix = `/${school.slug}`;
+const { pathname } = Astro.url;
+const social = (school.socialHandles as Record<string, string>) || {};
+const socialEntries = Object.entries(social).filter(([, v]) => v && v !== '#');
+const locale = school.locale || 'en';
+const rtl = ['ar','he','fa','ur'].includes(locale);
+---
+
+<!doctype html>
+<html lang={locale} dir={rtl ? 'rtl' : 'ltr'} class="light scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="description" content={school.tagline || school.name} />
+  {school.faviconUrl && <link rel="icon" href={school.faviconUrl} />}
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+  <title>{pageTitle}</title>
+  <FoucScript defaultMode="light" />
+  <PaletteStyles school={school} />
+  <style is:inline>{`
+    html, body { background: var(--bg); }
+    body {
+      font-family: 'Nunito', system-ui, sans-serif;
+      color: var(--text);
+      min-height: 100vh;
+      font-weight: 600;
+    }
+    .bloom-blob {
+      border-radius: 42% 58% 63% 37% / 41% 44% 56% 59%;
+      animation: bloom-morph 8s ease-in-out infinite;
+    }
+    @keyframes bloom-morph {
+      0%, 100% { border-radius: 42% 58% 63% 37% / 41% 44% 56% 59%; }
+      50% { border-radius: 58% 42% 37% 63% / 56% 59% 41% 44%; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .bloom-blob { animation: none; }
+    }
+    .bloom-card { border-radius: 1.75rem; }
+    .bloom-pill { border-radius: 9999px; }
+    .bloom-btn {
+      border-radius: 9999px;
+      box-shadow: 0 8px 20px -8px color-mix(in srgb, var(--primary) 60%, transparent);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .bloom-btn:hover { transform: translateY(-2px) scale(1.02); }
+    .bloom-nav-pill {
+      border-radius: 9999px;
+      box-shadow: 0 10px 40px -10px color-mix(in srgb, var(--primary) 30%, transparent);
+    }
+  `}</style>
+</head>
+<body>
+  <!-- Floating rounded nav pill -->
+  <header class="sticky top-4 z-50 px-4">
+    <nav class="bloom-nav-pill max-w-5xl mx-auto bloom-card" style="background:var(--surface);border:1px solid var(--border)">
+      <div class="flex items-center justify-between h-16 px-3 sm:px-5">
+        <a href={`${prefix}/`} class="flex items-center gap-3" aria-label={`${school.name} home`}>
+          {school.logoUrl ? (
+            <img src={school.logoUrl} alt={school.name} class="h-10 w-auto rounded-2xl" />
+          ) : (
+            <span class="bloom-blob inline-flex h-10 w-10 items-center justify-center text-white font-black text-lg" style="background:linear-gradient(135deg, var(--primary), color-mix(in srgb, var(--accent) 70%, var(--primary)))">{school.name.charAt(0)}</span>
+          )}
+          <span class="text-base font-extrabold" style="color:var(--text)">{school.name}</span>
+        </a>
+        <div class="hidden lg:flex items-center gap-1">
+          {nav.map(item => {
+            const active = pathname === `${prefix}${item.url}`;
+            return (
+              <a href={`${prefix}${item.url}`} class:list={['bloom-pill px-4 py-2 text-sm font-bold transition-all', active ? 'text-white' : 'hover:scale-105']} style={active ? 'background:var(--primary);color:#fff' : 'color:var(--muted)'}>
+                {item.label}
+              </a>
+            );
+          })}
+        </div>
+        <div class="flex items-center gap-2">
+          <LanguageSelector />
+          <button id="theme-toggle" type="button" class="bloom-pill p-2.5 transition-transform hover:scale-110" style="background:color-mix(in srgb, var(--primary) 10%, transparent);color:var(--muted)" aria-label="Toggle light, dark, or system mode">
+            <svg class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+            <svg class="w-5 h-5 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+          </button>
+          <a href={`${prefix}/admissions`} class="bloom-btn hidden sm:inline-flex px-5 py-2.5 text-sm font-bold text-white" style="background:var(--primary)">Apply</a>
+          <button id="bloom-menu-toggle" type="button" class="lg:hidden bloom-pill p-2.5" style="background:color-mix(in srgb, var(--primary) 10%, transparent);color:var(--text)" aria-label="Open menu" aria-expanded="false" aria-controls="bloom-mobile-nav">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 6h16M4 12h16M4 18h16"/></svg>
+          </button>
+        </div>
+      </div>
+      <div id="bloom-mobile-nav" class="lg:hidden hidden px-3 pb-3 space-y-1">
+        {nav.map(item => {
+          const active = pathname === `${prefix}${item.url}`;
+          return (
+            <a href={`${prefix}${item.url}`} class:list={['block bloom-pill px-4 py-2.5 text-sm font-bold', active ? 'text-white' : '']} style={active ? 'background:var(--primary);color:#fff' : 'color:var(--text)'}>
+              {item.label}
+            </a>
+          );
+        })}
+        <a href={`${prefix}/admissions`} class="block bloom-pill px-4 py-2.5 text-sm font-bold text-white text-center" style="background:var(--primary)">Apply for Admission</a>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <slot />
+  </main>
+
+  <!-- Rounded card-column footer -->
+  <footer class="px-4 mt-16 pb-8">
+    <div class="max-w-5xl mx-auto bloom-card p-8 sm:p-10" style="background:var(--surface);border:1px solid var(--border)">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bloom-card p-6" style="background:color-mix(in srgb, var(--primary) 6%, var(--bg))">
+          <div class="flex items-center gap-3 mb-3">
+            {school.logoUrl ? (
+              <img src={school.logoUrl} alt={school.name} class="h-10 w-auto rounded-2xl" />
+            ) : (
+              <span class="bloom-blob inline-flex h-10 w-10 items-center justify-center text-white font-black" style="background:var(--primary)">{school.name.charAt(0)}</span>
+            )}
+            <span class="text-base font-extrabold" style="color:var(--text)">{school.name}</span>
+          </div>
+          {school.tagline && <p class="text-sm leading-relaxed" style="color:var(--muted)">{school.tagline}</p>}
+          {socialEntries.length > 0 && (
+            <div class="flex items-center gap-2 mt-4">
+              {socialEntries.map(([platform, handle]) => {
+                const path = getSocialIconPath(platform);
+                if (!path) return null;
+                return (
+                  <a href={normalizeSocialUrl(handle, platform)} target="_blank" rel="noopener noreferrer" aria-label={`Visit our ${platform} page`} class="bloom-pill p-2 transition-transform hover:scale-110" style="background:var(--primary);color:#fff">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d={path} /></svg>
+                  </a>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div class="bloom-card p-6" style="background:color-mix(in srgb, var(--primary) 4%, var(--bg))">
+          <h3 class="text-xs font-extrabold uppercase tracking-wider mb-3" style="color:var(--primary)">Explore</h3>
+          <ul class="space-y-2">
+            {nav.slice(0, 6).map(item => (
+              <li><a href={`${prefix}${item.url}`} class="text-sm font-semibold transition-colors hover:opacity-70" style="color:var(--text)">{item.label}</a></li>
+            ))}
+          </ul>
+        </div>
+
+        <div class="bloom-card p-6" style="background:color-mix(in srgb, var(--primary) 4%, var(--bg))">
+          <h3 class="text-xs font-extrabold uppercase tracking-wider mb-3" style="color:var(--primary)">Contact</h3>
+          <ul class="space-y-2.5">
+            {contacts.slice(0, 4).map(c => (
+              <li class="text-sm font-semibold" style="color:var(--text)">
+                {c.label && <span class="block text-[11px] font-bold" style="color:var(--muted)">{c.label}</span>}
+                {c.value}
+              </li>
+            ))}
+            {contacts.length === 0 && <li class="text-sm" style="color:var(--muted)">No contact info yet.</li>}
+          </ul>
+        </div>
+      </div>
+      <div class="mt-6 pt-5 border-t flex flex-col sm:flex-row items-center justify-between gap-2" style="border-color:var(--border)">
+        <p class="text-xs font-semibold" style="color:var(--muted)">© {new Date().getFullYear()} {school.name}. All rights reserved.</p>
+        <a href="/" class="bloom-pill px-3 py-1 text-xs font-bold hover:opacity-80" style="background:var(--primary);color:#fff">Powered by iSchool</a>
+      </div>
+    </div>
+  </footer>
+
+  <SchoolBannerPopup school={school} />
+
+  <!-- Friendly speech-bubble chat widget -->
+  <button id="bloom-chat-toggle" type="button" class="fixed bottom-6 right-6 z-50 bloom-btn p-5 text-white" style="background:linear-gradient(135deg, var(--primary), color-mix(in srgb, var(--accent) 70%, var(--primary)))" aria-label="Open chat" aria-expanded="false" aria-controls="bloom-chat-panel">
+    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+  </button>
+  <div id="bloom-chat-panel" class="fixed bottom-24 right-6 z-50 w-[min(380px,calc(100vw-3rem))] hidden flex-col bloom-card shadow-2xl overflow-hidden" style="background:var(--surface);border:1px solid var(--border);max-height:70vh">
+    <div class="px-5 py-4" style="background:linear-gradient(135deg, var(--primary), color-mix(in srgb, var(--accent) 70%, var(--primary)))">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <span class="bloom-blob inline-flex h-9 w-9 items-center justify-center bg-white/25">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+          </span>
+          <div>
+            <p class="text-sm font-extrabold text-white">Hi there!</p>
+            <p class="text-[11px] text-white/85">We are here to help</p>
+          </div>
+        </div>
+        <button id="bloom-chat-close" type="button" class="text-white/85 hover:text-white p-1" aria-label="Close chat">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+    </div>
+    <div id="bloom-chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3" style="color:var(--text)">
+      <div class="bloom-card bloom-pill rounded-bl-sm px-4 py-2.5 text-sm max-w-[85%]" style="background:color-mix(in srgb, var(--primary) 10%, var(--bg));color:var(--text)">
+        Hey! How can we help you today?
+      </div>
+    </div>
+    <form id="bloom-chat-form" class="p-3 border-t flex items-center gap-2" style="border-color:var(--border)">
+      <input id="bloom-chat-input" type="text" placeholder="Say something..." class="flex-1 bloom-pill px-4 py-2.5 text-sm font-semibold outline-none" style="background:color-mix(in srgb, var(--primary) 6%, var(--bg));color:var(--text)" aria-label="Type your message" />
+      <button type="submit" class="bloom-btn p-3 text-white" style="background:var(--primary)" aria-label="Send message">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+      </button>
+    </form>
+  </div>
+
+  <ThemeToggleScript defaultMode="light" selector="#theme-toggle" />
+  <script is:inline set:html={`(function(){
+    var t=document.getElementById('bloom-menu-toggle'),d=document.getElementById('bloom-mobile-nav');
+    if(t&&d){t.addEventListener('click',function(){d.classList.toggle('hidden');t.setAttribute('aria-expanded',String(!d.classList.contains('hidden')));});}
+    var ct=document.getElementById('bloom-chat-toggle'),cp=document.getElementById('bloom-chat-panel'),cc=document.getElementById('bloom-chat-close');
+    function o(){cp.classList.remove('hidden');cp.classList.add('flex');ct.setAttribute('aria-expanded','true');}
+    function c(){cp.classList.add('hidden');cp.classList.remove('flex');ct.setAttribute('aria-expanded','false');}
+    if(ct&&cp){ct.addEventListener('click',function(){cp.classList.contains('hidden')?o():c();});}
+    if(cc){cc.addEventListener('click',c);}
+    var f=document.getElementById('bloom-chat-form'),i=document.getElementById('bloom-chat-input'),m=document.getElementById('bloom-chat-messages');
+    if(f&&i&&m){f.addEventListener('submit',function(e){e.preventDefault();var t=i.value.trim();if(!t)return;var b=document.createElement('div');b.className='bloom-card bloom-pill rounded-br-sm px-4 py-2.5 text-sm max-w-[85%] ml-auto';b.style.background='var(--primary)';b.style.color='#fff';b.textContent=t;m.appendChild(b);i.value='';m.scrollTop=m.scrollHeight;
+      fetch('/api/'+${JSON.stringify(school.slug)}+'/ai-chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:t})}).then(function(r){return r.ok?r.json():{reply:'Oops! Cannot reach the assistant.'};}).then(function(data){var r=document.createElement('div');r.className='bloom-card bloom-pill rounded-bl-sm px-4 py-2.5 text-sm max-w-[85%]';r.style.background='color-mix(in srgb, var(--primary) 10%, var(--bg))';r.style.color='var(--text)';r.textContent=data.reply||data.message||'I will get back to you!';m.appendChild(r);m.scrollTop=m.scrollHeight;}).catch(function(){var r=document.createElement('div');r.className='bloom-card bloom-pill rounded-bl-sm px-4 py-2.5 text-sm max-w-[85%]';r.style.background='color-mix(in srgb, var(--primary) 10%, var(--bg))';r.style.color='var(--text)';r.textContent='Connection issue. Try again!';m.appendChild(r);m.scrollTop=m.scrollHeight;});});}
+  })();`} />
+</body>
+</html>

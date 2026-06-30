@@ -31,6 +31,21 @@ import scholarLayout from './conventional/scholar/Layout.astro';
 import apexConfig from './conventional/apex/theme.config';
 import apexLayout from './conventional/apex/Layout.astro';
 
+import bloomConfig from './conventional/bloom/theme.config';
+import bloomLayout from './conventional/bloom/Layout.astro';
+
+import horizonConfig from './conventional/horizon/theme.config';
+import horizonLayout from './conventional/horizon/Layout.astro';
+
+import prestigeConfig from './conventional/prestige/theme.config';
+import prestigeLayout from './conventional/prestige/Layout.astro';
+
+import novaConfig from './conventional/nova/theme.config';
+import novaLayout from './conventional/nova/Layout.astro';
+
+import emberConfig from './conventional/ember/theme.config';
+import emberLayout from './conventional/ember/Layout.astro';
+
 // --- v2 theme imports (mobile) ---
 
 // --- v1 fallback (legacy) ---
@@ -42,6 +57,11 @@ const registry: Record<string, RegisteredTheme> = {
   harmony: { config: harmonyConfig, Layout: harmonyLayout },
   scholar: { config: scholarConfig, Layout: scholarLayout },
   apex: { config: apexConfig, Layout: apexLayout },
+  bloom: { config: bloomConfig, Layout: bloomLayout },
+  horizon: { config: horizonConfig, Layout: horizonLayout },
+  prestige: { config: prestigeConfig, Layout: prestigeLayout },
+  nova: { config: novaConfig, Layout: novaLayout },
+  ember: { config: emberConfig, Layout: emberLayout },
 };
 
 /**

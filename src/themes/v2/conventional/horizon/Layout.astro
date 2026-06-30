@@ -1,0 +1,173 @@
+---
+/**
+ * Horizon — Ultra-Minimal theme
+ *
+ * Layout autonomy: no header bar at all — just a centered wordmark with
+ * inline horizontal nav, extreme whitespace, monospace micro-labels,
+ * a hairline footer, and a chat widget that appears as a single
+ * understated text link expanding into a minimal panel.
+ */
+import '../../../../styles/global.css';
+import PaletteStyles from '../../_shared/PaletteStyles.astro';
+import FoucScript from '../../_shared/FoucScript.astro';
+import ThemeToggleScript from '../../_shared/ThemeToggleScript.astro';
+import { getSocialIconPath } from '../../_shared/social-icons';
+import { getSchoolNav, getSchoolContacts } from '../../../../lib/school.ts';
+import { normalizeSocialUrl } from '../../../../lib/social.ts';
+import LanguageSelector from '../../../../components/LanguageSelector.astro';
+import SchoolBannerPopup from '../../../../components/SchoolBannerPopup.astro';
+
+interface Props { school: any; title?: string; }
+const { school, title } = Astro.props;
+const nav = getSchoolNav(school.id);
+const contacts = getSchoolContacts(school.id);
+const pageTitle = title ? `${title} — ${school.name}` : school.name;
+const prefix = `/${school.slug}`;
+const { pathname } = Astro.url;
+const social = (school.socialHandles as Record<string, string>) || {};
+const socialEntries = Object.entries(social).filter(([, v]) => v && v !== '#');
+const locale = school.locale || 'en';
+const rtl = ['ar','he','fa','ur'].includes(locale);
+---
+
+<!doctype html>
+<html lang={locale} dir={rtl ? 'rtl' : 'ltr'} class="light scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="description" content={school.tagline || school.name} />
+  {school.faviconUrl && <link rel="icon" href={school.faviconUrl} />}
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <title>{pageTitle}</title>
+  <FoucScript defaultMode="light" />
+  <PaletteStyles school={school} />
+  <style is:inline>{`
+    html, body { background: var(--bg); }
+    body {
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      color: var(--text);
+      min-height: 100vh;
+      font-weight: 400;
+    }
+    .horizon-mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+    .horizon-nav-link {
+      font-size: 0.8rem; letter-spacing: 0.05em;
+      transition: opacity 0.2s;
+    }
+    .horizon-nav-link[data-active="true"] { font-weight: 600; }
+    .horizon-nav-link::before { content: '/ '; opacity: 0.3; }
+  `}</style>
+</head>
+<body>
+  <!-- Centered masthead with inline nav — no header bar -->
+  <header class="px-6 pt-12 pb-8 sm:pt-16">
+    <div class="max-w-4xl mx-auto text-center">
+      <a href={`${prefix}/`} class="inline-block" aria-label={`${school.name} home`}>
+        {school.logoUrl ? (
+          <img src={school.logoUrl} alt={school.name} class="h-8 w-auto mx-auto mb-3" />
+        ) : (
+          <h1 class="text-2xl sm:text-3xl font-medium tracking-tight" style="color:var(--text)">{school.name}</h1>
+        )}
+        {school.tagline && (
+          <p class="horizon-mono text-[10px] uppercase tracking-[0.3em] mt-3" style="color:var(--muted)">{school.tagline}</p>
+        )}
+      </a>
+    </div>
+    <nav class="max-w-4xl mx-auto mt-8 flex items-center justify-center gap-6 sm:gap-8 flex-wrap" aria-label="Primary">
+      {nav.map(item => {
+        const active = pathname === `${prefix}${item.url}`;
+        return (
+          <a href={`${prefix}${item.url}`} data-active={active} class="horizon-nav-link horizon-mono uppercase" style="color:var(--text)">{item.label}</a>
+        );
+      })}
+    </nav>
+    <div class="max-w-4xl mx-auto mt-6 flex items-center justify-center gap-4">
+      <LanguageSelector />
+      <button id="theme-toggle" type="button" class="horizon-mono text-[10px] uppercase tracking-[0.2em] transition-opacity hover:opacity-60" style="color:var(--muted)" aria-label="Toggle light, dark, or system mode">
+        <span class="hidden dark:inline">dark</span>
+        <span class="inline dark:hidden">light</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="px-6">
+    <slot />
+  </main>
+
+  <!-- Hairline minimal footer -->
+  <footer class="px-6 mt-24 pb-12">
+    <div class="max-w-4xl mx-auto">
+      <div class="border-t pt-8" style="border-color:var(--border)"></div>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-8">
+        <div>
+          <p class="horizon-mono text-[10px] uppercase tracking-[0.2em] mb-3" style="color:var(--muted)">Contact</p>
+          <ul class="space-y-1.5">
+            {contacts.slice(0, 3).map(c => (
+              <li class="text-sm" style="color:var(--text)">{c.value}</li>
+            ))}
+            {contacts.length === 0 && <li class="text-sm" style="color:var(--muted)">—</li>}
+          </ul>
+        </div>
+        <div>
+          <p class="horizon-mono text-[10px] uppercase tracking-[0.2em] mb-3" style="color:var(--muted)">Index</p>
+          <ul class="space-y-1.5">
+            {nav.slice(0, 5).map(item => (
+              <li><a href={`${prefix}${item.url}`} class="text-sm transition-opacity hover:opacity-60" style="color:var(--text)">{item.label}</a></li>
+            ))}
+          </ul>
+        </div>
+        <div>
+          <p class="horizon-mono text-[10px] uppercase tracking-[0.2em] mb-3" style="color:var(--muted)">Elsewhere</p>
+          <div class="flex items-center gap-3">
+            {socialEntries.map(([platform, handle]) => (
+              <a href={normalizeSocialUrl(handle, platform)} target="_blank" rel="noopener noreferrer" class="horizon-mono text-[11px] uppercase tracking-wider transition-opacity hover:opacity-60" style="color:var(--text)">{platform}</a>
+            ))}
+            {socialEntries.length === 0 && <span class="text-sm" style="color:var(--muted)">—</span>}
+          </div>
+        </div>
+      </div>
+      <div class="mt-10 flex items-center justify-between">
+        <p class="horizon-mono text-[10px] uppercase tracking-[0.2em]" style="color:var(--muted)">© {new Date().getFullYear()} {school.name}</p>
+        <a href="/" class="horizon-mono text-[10px] uppercase tracking-[0.2em] transition-opacity hover:opacity-60" style="color:var(--muted)">iSchool</a>
+      </div>
+    </div>
+  </footer>
+
+  <SchoolBannerPopup school={school} />
+
+  <!-- Minimal text-link chat widget -->
+  <button id="horizon-chat-toggle" type="button" class="fixed bottom-6 right-6 z-50 horizon-mono text-[11px] uppercase tracking-[0.2em] transition-opacity hover:opacity-60 flex items-center gap-2" style="color:var(--text)" aria-label="Open chat" aria-expanded="false" aria-controls="horizon-chat-panel">
+    <span class="inline-block w-2 h-2 rounded-full" style="background:var(--primary)"></span>
+    <span>Ask</span>
+  </button>
+  <div id="horizon-chat-panel" class="fixed bottom-14 right-6 z-50 w-[min(360px,calc(100vw-3rem))] hidden flex-col border" style="background:var(--surface);border-color:var(--border);max-height:70vh">
+    <div class="px-4 py-3 border-b flex items-center justify-between" style="border-color:var(--border)">
+      <p class="horizon-mono text-[10px] uppercase tracking-[0.2em]" style="color:var(--muted)">Dialogue</p>
+      <button id="horizon-chat-close" type="button" class="horizon-mono text-[10px] uppercase tracking-wider" style="color:var(--muted)" aria-label="Close">[esc]</button>
+    </div>
+    <div id="horizon-chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3 text-sm" style="color:var(--text)">
+      <p style="color:var(--muted)">What would you like to know?</p>
+    </div>
+    <form id="horizon-chat-form" class="p-3 border-t flex items-center gap-2" style="border-color:var(--border)">
+      <input id="horizon-chat-input" type="text" placeholder="message" class="flex-1 bg-transparent border-0 px-1 py-1 text-sm outline-none horizon-mono" style="color:var(--text)" aria-label="Type your message" />
+      <button type="submit" class="horizon-mono text-[10px] uppercase tracking-wider transition-opacity hover:opacity-60" style="color:var(--primary)" aria-label="Send">send</button>
+    </form>
+  </div>
+
+  <ThemeToggleScript defaultMode="light" selector="#theme-toggle" />
+  <script is:inline set:html={`(function(){
+    var ct=document.getElementById('horizon-chat-toggle'),cp=document.getElementById('horizon-chat-panel'),cc=document.getElementById('horizon-chat-close');
+    function o(){cp.classList.remove('hidden');cp.classList.add('flex');ct.setAttribute('aria-expanded','true');}
+    function c(){cp.classList.add('hidden');cp.classList.remove('flex');ct.setAttribute('aria-expanded','false');}
+    if(ct&&cp){ct.addEventListener('click',function(){cp.classList.contains('hidden')?o():c();});}
+    if(cc){cc.addEventListener('click',c);}
+    document.addEventListener('keydown',function(e){if(e.key==='Escape')c();});
+    var f=document.getElementById('horizon-chat-form'),i=document.getElementById('horizon-chat-input'),m=document.getElementById('horizon-chat-messages');
+    if(f&&i&&m){f.addEventListener('submit',function(e){e.preventDefault();var t=i.value.trim();if(!t)return;
+      var b=document.createElement('p');b.style.color='var(--text)';b.textContent=t;m.appendChild(b);i.value='';m.scrollTop=m.scrollHeight;
+      fetch('/api/'+${JSON.stringify(school.slug)}+'/ai-chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:t})}).then(function(r){return r.ok?r.json():{reply:'unavailable.'};}).then(function(data){var r=document.createElement('p');r.style.color='var(--muted)';r.textContent=data.reply||data.message||'...';m.appendChild(r);m.scrollTop=m.scrollHeight;}).catch(function(){var r=document.createElement('p');r.style.color='var(--muted)';r.textContent='connection error.';m.appendChild(r);m.scrollTop=m.scrollHeight;});});}
+  })();`} />
+</body>
+</html>

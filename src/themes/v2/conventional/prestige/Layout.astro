@@ -1,0 +1,224 @@
+---
+/**
+ * Prestige — Luxury Dark & Gold theme
+ *
+ * Layout autonomy: dark-by-default, a centered wordmark with hairline
+ * gold rules on either side, a centered nav with gold underline on
+ * hover, a footer with ornamental dividers, and a chat widget styled
+ * as a "concierge" button with a gold-bordered panel.
+ */
+import '../../../../styles/global.css';
+import PaletteStyles from '../../_shared/PaletteStyles.astro';
+import FoucScript from '../../_shared/FoucScript.astro';
+import ThemeToggleScript from '../../_shared/ThemeToggleScript.astro';
+import { getSocialIconPath } from '../../_shared/social-icons';
+import { getSchoolNav, getSchoolContacts } from '../../../../lib/school.ts';
+import { normalizeSocialUrl } from '../../../../lib/social.ts';
+import LanguageSelector from '../../../../components/LanguageSelector.astro';
+import SchoolBannerPopup from '../../../../components/SchoolBannerPopup.astro';
+
+interface Props { school: any; title?: string; }
+const { school, title } = Astro.props;
+const nav = getSchoolNav(school.id);
+const contacts = getSchoolContacts(school.id);
+const pageTitle = title ? `${title} — ${school.name}` : school.name;
+const prefix = `/${school.slug}`;
+const { pathname } = Astro.url;
+const social = (school.socialHandles as Record<string, string>) || {};
+const socialEntries = Object.entries(social).filter(([, v]) => v && v !== '#');
+const locale = school.locale || 'en';
+const rtl = ['ar','he','fa','ur'].includes(locale);
+---
+
+<!doctype html>
+<html lang={locale} dir={rtl ? 'rtl' : 'ltr'} class="dark scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="description" content={school.tagline || school.name} />
+  {school.faviconUrl && <link rel="icon" href={school.faviconUrl} />}
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <title>{pageTitle}</title>
+  <FoucScript defaultMode="dark" />
+  <PaletteStyles school={school} />
+  <style is:inline>{`
+    html, body { background: var(--bg); }
+    body {
+      font-family: 'Montserrat', system-ui, sans-serif;
+      color: var(--text);
+      min-height: 100vh;
+      font-weight: 400;
+    }
+    .prestige-serif { font-family: 'Cormorant Garamond', Georgia, serif; }
+    .prestige-gold { color: var(--primary); }
+    .prestige-rule {
+      height: 1px;
+      background: linear-gradient(to right, transparent, var(--primary), transparent);
+    }
+    .prestige-nav-link {
+      position: relative; padding: 0.5rem 0;
+      font-size: 0.7rem; letter-spacing: 0.2em;
+      text-transform: uppercase; font-weight: 500;
+    }
+    .prestige-nav-link::after {
+      content: ''; position: absolute; left: 50%; right: 50%; bottom: 0;
+      height: 1px; background: var(--primary);
+      transition: left 0.3s ease, right 0.3s ease;
+    }
+    .prestige-nav-link:hover::after,
+    .prestige-nav-link[data-active="true"]::after { left: 0; right: 0; }
+    .prestige-frame {
+      border: 1px solid color-mix(in srgb, var(--primary) 30%, transparent);
+    }
+    .prestige-btn {
+      border: 1px solid var(--primary);
+      color: var(--primary);
+      background: transparent;
+      transition: background 0.3s ease, color 0.3s ease;
+    }
+    .prestige-btn:hover { background: var(--primary); color: var(--bg); }
+  `}</style>
+</head>
+<body>
+  <!-- Centered wordmark with hairline gold rules -->
+  <header class="px-4 pt-10 pb-6">
+    <div class="max-w-5xl mx-auto">
+      <div class="flex items-center justify-center gap-4">
+        <div class="prestige-rule flex-1 max-w-[120px]"></div>
+        <a href={`${prefix}/`} class="flex items-center gap-3" aria-label={`${school.name} home`}>
+          {school.logoUrl ? (
+            <img src={school.logoUrl} alt={school.name} class="h-10 w-auto" />
+          ) : (
+            <span class="prestige-serif text-2xl font-medium prestige-gold">{school.name.charAt(0)}</span>
+          )}
+          <span class="prestige-serif text-xl sm:text-2xl font-medium tracking-wide" style="color:var(--text)">{school.name}</span>
+        </a>
+        <div class="prestige-rule flex-1 max-w-[120px]"></div>
+      </div>
+      {school.tagline && (
+        <p class="text-center text-[10px] uppercase tracking-[0.3em] mt-3 prestige-gold opacity-80">{school.tagline}</p>
+      )}
+    </div>
+  </header>
+
+  <!-- Centered nav with gold underline -->
+  <nav class="sticky top-0 z-40 border-y" style="background:var(--surface);border-color:color-mix(in srgb, var(--primary) 20%, transparent)" aria-label="Primary">
+    <div class="max-w-5xl mx-auto px-4">
+      <div class="hidden lg:flex items-center justify-center h-14 gap-8">
+        {nav.map(item => {
+          const active = pathname === `${prefix}${item.url}`;
+          return (
+            <a href={`${prefix}${item.url}`} data-active={active} class="prestige-nav-link" style="color:var(--text)">{item.label}</a>
+          );
+        })}
+      </div>
+      <div class="lg:hidden flex items-center justify-between h-14">
+        <button id="theme-toggle" type="button" class="prestige-gold" aria-label="Toggle light, dark, or system mode">
+          <svg class="w-4 h-4 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+          <svg class="w-4 h-4 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+        </button>
+        <button id="prestige-menu-toggle" type="button" class="prestige-gold" aria-label="Open menu" aria-expanded="false" aria-controls="prestige-mobile-nav">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+      </div>
+      <div id="prestige-mobile-nav" class="lg:hidden hidden pb-4 flex flex-col items-center gap-3">
+        {nav.map(item => {
+          const active = pathname === `${prefix}${item.url}`;
+          return (
+            <a href={`${prefix}${item.url}`} data-active={active} class="prestige-nav-link" style="color:var(--text)">{item.label}</a>
+          );
+        })}
+        <a href={`${prefix}/admissions`} class="prestige-nav-link prestige-gold">Apply for Admission</a>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <slot />
+  </main>
+
+  <!-- Ornamental footer -->
+  <footer class="px-4 mt-24 pb-10">
+    <div class="max-w-5xl mx-auto">
+      <div class="prestige-rule mb-10"></div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+        <div>
+          <p class="prestige-serif text-lg font-medium prestige-gold mb-3">{school.name}</p>
+          {school.tagline && <p class="text-xs italic prestige-serif opacity-80" style="color:var(--muted)">{school.tagline}</p>}
+          {socialEntries.length > 0 && (
+            <div class="flex items-center justify-center gap-3 mt-4">
+              {socialEntries.map(([platform, handle]) => {
+                const path = getSocialIconPath(platform);
+                if (!path) return null;
+                return (
+                  <a href={normalizeSocialUrl(handle, platform)} target="_blank" rel="noopener noreferrer" aria-label={`Visit our ${platform} page`} class="prestige-gold opacity-70 hover:opacity-100 transition-opacity">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d={path} /></svg>
+                  </a>
+                );
+              })}
+            </div>
+          )}
+        </div>
+        <div>
+          <p class="text-[10px] uppercase tracking-[0.3em] mb-3 prestige-gold opacity-70">Navigate</p>
+          <ul class="space-y-1.5">
+            {nav.slice(0, 6).map(item => (
+              <li><a href={`${prefix}${item.url}`} class="text-xs uppercase tracking-widest transition-opacity hover:opacity-60" style="color:var(--text)">{item.label}</a></li>
+            ))}
+          </ul>
+        </div>
+        <div>
+          <p class="text-[10px] uppercase tracking-[0.3em] mb-3 prestige-gold opacity-70">Contact</p>
+          <ul class="space-y-1.5">
+            {contacts.slice(0, 4).map(c => (
+              <li class="text-xs" style="color:var(--text)">{c.value}</li>
+            ))}
+            {contacts.length === 0 && <li class="text-xs" style="color:var(--muted)">—</li>}
+          </ul>
+        </div>
+      </div>
+      <div class="prestige-rule mt-10 mb-5"></div>
+      <div class="flex items-center justify-between">
+        <p class="text-[10px] uppercase tracking-[0.3em]" style="color:var(--muted)">© {new Date().getFullYear()} {school.name}</p>
+        <a href="/" class="text-[10px] uppercase tracking-[0.3em] prestige-gold opacity-70 hover:opacity-100">iSchool</a>
+      </div>
+    </div>
+  </footer>
+
+  <SchoolBannerPopup school={school} />
+
+  <!-- Concierge chat widget -->
+  <button id="prestige-chat-toggle" type="button" class="fixed bottom-6 right-6 z-50 prestige-btn px-5 py-3 text-[10px] uppercase tracking-[0.3em] font-medium" aria-label="Open concierge" aria-expanded="false" aria-controls="prestige-chat-panel">
+    Concierge
+  </button>
+  <div id="prestige-chat-panel" class="fixed bottom-20 right-6 z-50 w-[min(380px,calc(100vw-3rem))] hidden flex-col prestige-frame" style="background:var(--surface);max-height:70vh">
+    <div class="px-5 py-4 border-b text-center" style="border-color:color-mix(in srgb, var(--primary) 25%, transparent)">
+      <p class="prestige-serif text-xl font-medium prestige-gold">Concierge</p>
+      <p class="text-[9px] uppercase tracking-[0.3em] mt-1" style="color:var(--muted)">At your service</p>
+    </div>
+    <div id="prestige-chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3" style="color:var(--text)">
+      <p class="prestige-serif italic text-sm" style="color:var(--muted)">How may we assist you?</p>
+    </div>
+    <form id="prestige-chat-form" class="p-3 border-t flex items-center gap-2" style="border-color:color-mix(in srgb, var(--primary) 20%, transparent)">
+      <input id="prestige-chat-input" type="text" placeholder="Your inquiry..." class="flex-1 bg-transparent border-b px-2 py-1.5 text-sm outline-none prestige-serif" style="border-color:color-mix(in srgb, var(--primary) 30%, transparent);color:var(--text)" aria-label="Type your inquiry" />
+      <button type="submit" class="prestige-btn px-3 py-1.5 text-[9px] uppercase tracking-widest" aria-label="Send">Send</button>
+    </form>
+  </div>
+
+  <ThemeToggleScript defaultMode="dark" selector="#theme-toggle" />
+  <script is:inline set:html={`(function(){
+    var t=document.getElementById('prestige-menu-toggle'),d=document.getElementById('prestige-mobile-nav');
+    if(t&&d){t.addEventListener('click',function(){d.classList.toggle('hidden');t.setAttribute('aria-expanded',String(!d.classList.contains('hidden')));});}
+    var ct=document.getElementById('prestige-chat-toggle'),cp=document.getElementById('prestige-chat-panel');
+    function o(){cp.classList.remove('hidden');cp.classList.add('flex');ct.setAttribute('aria-expanded','true');}
+    function c(){cp.classList.add('hidden');cp.classList.remove('flex');ct.setAttribute('aria-expanded','false');}
+    if(ct&&cp){ct.addEventListener('click',function(){cp.classList.contains('hidden')?o():c();});}
+    var f=document.getElementById('prestige-chat-form'),i=document.getElementById('prestige-chat-input'),m=document.getElementById('prestige-chat-messages');
+    if(f&&i&&m){f.addEventListener('submit',function(e){e.preventDefault();var t=i.value.trim();if(!t)return;
+      var b=document.createElement('p');b.className='prestige-serif text-sm text-right';b.style.color='var(--primary)';b.textContent=t;m.appendChild(b);i.value='';m.scrollTop=m.scrollHeight;
+      fetch('/api/'+${JSON.stringify(school.slug)}+'/ai-chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:t})}).then(function(r){return r.ok?r.json():{reply:'The concierge is unavailable.'};}).then(function(data){var r=document.createElement('p');r.className='prestige-serif italic text-sm';r.style.color='var(--muted)';r.textContent=data.reply||data.message||'We will respond shortly.';m.appendChild(r);m.scrollTop=m.scrollHeight;}).catch(function(){var r=document.createElement('p');r.className='prestige-serif italic text-sm';r.style.color='var(--muted)';r.textContent='Connection error.';m.appendChild(r);m.scrollTop=m.scrollHeight;});});}
+  })();`} />
+</body>
+</html>
