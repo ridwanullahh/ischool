@@ -1,0 +1,31 @@
+---
+/**
+ * FOUC (flash-of-unstyled-content) prevention script.
+ *
+ * Infrastructure: runs synchronously in <head> before first paint to set
+ * the html.light / html.dark class from localStorage.themeMode, falling
+ * back to the OS prefers-color-scheme. Themes pass `defaultMode` so the
+ * script knows whether to honor system preference on first visit.
+ *
+ * Themes render this ONCE inside <head>, before any visual markup.
+ */
+interface Props {
+  /** The theme's own default mode — 'light' or 'dark'. */
+  defaultMode?: 'light' | 'dark';
+}
+const { defaultMode = 'light' } = Astro.props;
+const defaultsDark = defaultMode === 'dark';
+---
+<script is:inline set:html={`(function(){
+  var stored = localStorage.getItem('themeMode');
+  var systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  var defaultsDark = ${defaultsDark};
+  var dark;
+  if (stored === 'dark') dark = true;
+  else if (stored === 'light') dark = false;
+  else if (stored === 'system') dark = systemDark;
+  else dark = defaultsDark ? systemDark : false;
+  var el = document.documentElement;
+  el.classList.remove('light','dark');
+  el.classList.add(dark ? 'dark' : 'light');
+})();`} />

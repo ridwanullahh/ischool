@@ -5,6 +5,10 @@ import Button from '../../components/ui/Button.astro';
 import { getUserSchool } from '../../lib/school.js';
 import { generateDefaultPalette } from '../../lib/palette.js';
 import { socialPlatforms } from '../../lib/social.js';
+import { listV2Themes } from '../../themes/index.js';
+
+// Issue #1: theme selector shows ONLY the newly reimplemented v2 themes.
+const v2Themes = listV2Themes();
 
 const user = Astro.locals.user!;
 const school = getUserSchool(user.id);
@@ -113,56 +117,53 @@ const defaultPalette = generateDefaultPalette(school?.primaryColor || '#2563eb')
     </div>
 
     <div class="bg-white rounded-xl border border-gray-200 p-6">
-      <h2 class="text-base font-semibold text-gray-900 mb-4">Theme</h2>
-      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-        {[
-          { name: 'harmony', icon: '🎵', desc: 'Modern glassmorphism' },
-          { name: 'scholar', icon: '📚', desc: 'Classical academic' },
-          { name: 'bloom', icon: '🌸', desc: 'Playful nature' },
-          { name: 'horizon', icon: '🏔️', desc: 'Ultra-minimal' },
-          { name: 'prestige', icon: '👑', desc: 'Luxury dark & gold' },
-          { name: 'spark', icon: '⚡', desc: 'Bold & energetic' },
-          { name: 'aurora', icon: '🌌', desc: 'Ethereal gradients' },
-          { name: 'serenity', icon: '🧘', desc: 'Zen minimalism' },
-          { name: 'heritage', icon: '🏛️', desc: 'Classical tradition' },
-          { name: 'campus', icon: '🎓', desc: 'Collegiate bold' },
-          { name: 'ember', icon: '🔥', desc: 'Warm earth tones' },
-          { name: 'prism', icon: '💎', desc: 'Creative geometric' },
-          { name: 'slate', icon: '📋', desc: 'Corporate clean' },
-          { name: 'oasis', icon: '🌿', desc: 'Nature fresh' },
-          { name: 'nova', icon: '🚀', desc: 'Futuristic tech' },
-          { name: 'mosaic', icon: '🎨', desc: 'Cultural vibrancy' },
-          { name: 'luxe', icon: '✨', desc: 'Elegant luxury gold' },
-          { name: 'vivid', icon: '🌈', desc: 'Bold vibrant gradients' },
-          { name: 'zenith', icon: '📐', desc: 'Sharp minimalism' },
-          { name: 'cascade', icon: '🌊', desc: 'Flowing organic' },
-          { name: 'pulse', icon: '💡', desc: 'Neon tech-forward' },
-        ].map(theme => {
-          const isActive = school?.theme === theme.name;
-          const primary = school?.primaryColor || '#2563eb';
-          return (
-            <label class:list={[
-              'relative flex flex-col items-center p-4 rounded-xl border-2 cursor-pointer transition-all',
-              isActive ? 'bg-opacity-5' : 'border-gray-200 hover:border-gray-300'
-            ]} style={isActive ? `border-color:${primary};background:${primary}10` : ''}>
-              <input type="radio" name="theme" value={theme.name} checked={isActive} class="sr-only" onchange="this.form.submit()" />
-              <div class="w-full h-16 rounded-lg mb-2 flex items-center justify-center text-2xl" style={`background:${primary}15`}>
-                {theme.icon}
-              </div>
-              <span class="text-sm font-medium text-gray-900 capitalize">{theme.name}</span>
-              <span class="text-xs text-gray-500">{theme.desc}</span>
-              {school?.slug && (
-                <a href={`/${school.slug}?preview_theme=${theme.name}`} target="_blank" class="mt-2 text-[11px] font-medium text-primary-600 hover:text-primary-700 underline">Preview</a>
-              )}
-              {isActive && (
-                <span class="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center" style={`background:${primary}`}>
-                  <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                </span>
-              )}
-            </label>
-          );
-        })}
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h2 class="text-base font-semibold text-gray-900">Theme</h2>
+          <p class="text-xs text-gray-500 mt-1">Reimplemented v2 themes with full layout autonomy. Each theme ships its own header, footer, and chat widget design.</p>
+        </div>
+        <div class="flex items-center gap-2 text-xs">
+          <span class="px-2 py-1 rounded-full bg-gray-100 text-gray-600 font-medium">{v2Themes.filter(t => t.category === 'conventional').length} conventional</span>
+          <span class="px-2 py-1 rounded-full bg-gray-100 text-gray-600 font-medium">{v2Themes.filter(t => t.category === 'mobile').length} mobile</span>
+        </div>
       </div>
+      {v2Themes.length === 0 ? (
+        <p class="text-sm text-gray-500 py-8 text-center">No v2 themes registered yet.</p>
+      ) : (
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          {v2Themes.map(theme => {
+            const isActive = school?.theme === theme.name;
+            const primary = theme.defaultPrimaryColor || school?.primaryColor || '#2563eb';
+            return (
+              <label class:list={[
+                'relative flex flex-col p-4 rounded-xl border-2 cursor-pointer transition-all overflow-hidden',
+                isActive ? '' : 'border-gray-200 hover:border-gray-300'
+              ]} style={isActive ? `border-color:${primary};background:${primary}08` : ''}>
+                <input type="radio" name="theme" value={theme.name} checked={isActive} class="sr-only" onchange="this.form.submit()" />
+                <div class="w-full h-20 rounded-lg mb-3 flex items-center justify-center relative overflow-hidden" style={`background:linear-gradient(135deg, ${primary}18, ${primary}08)`}>
+                  <svg class="w-8 h-8" fill="none" stroke={primary} viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d={theme.iconPath} />
+                  </svg>
+                  <span class="absolute top-1.5 right-1.5 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded" style={`color:${primary};background:${primary}15`}>{theme.category === 'mobile' ? 'Mobile' : theme.defaultMode === 'dark' ? 'Dark' : 'Light'}</span>
+                </div>
+                <span class="text-sm font-semibold text-gray-900">{theme.label}</span>
+                <span class="text-xs text-gray-500 mt-0.5 leading-snug">{theme.description}</span>
+                <div class="mt-2 flex items-center gap-2">
+                  <span class="text-[10px] font-medium uppercase tracking-wider text-gray-400">{theme.archetype}</span>
+                </div>
+                {school?.slug && (
+                  <a href={`/${school.slug}?preview_theme=${theme.name}`} target="_blank" class="mt-2 text-[11px] font-medium hover:underline" style={`color:${primary}`}>Preview</a>
+                )}
+                {isActive && (
+                  <span class="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center" style={`background:${primary}`}>
+                    <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                  </span>
+                )}
+              </label>
+            );
+          })}
+        </div>
+      )}
     </div>
 
     <div class="bg-white rounded-xl border border-gray-200 p-6">

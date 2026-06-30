@@ -1,0 +1,322 @@
+---
+/**
+ * Harmony — Glassmorphism theme
+ *
+ * Layout autonomy: floating glass navigation pill (not a sticky bar),
+ * ambient gradient orbs in the background, glassmorphism footer with
+ * frosted panels, and a custom floating chat widget with a glass surface.
+ *
+ * The page <slot/> renders inside a max-width container with the theme's
+ * ambient gradient background visible behind glass surfaces.
+ */
+import '../../../../styles/global.css';
+import PaletteStyles from '../../_shared/PaletteStyles.astro';
+import FoucScript from '../../_shared/FoucScript.astro';
+import ThemeToggleScript from '../../_shared/ThemeToggleScript.astro';
+import { getSocialIconPath } from '../../_shared/social-icons';
+import { getSchoolNav, getSchoolContacts } from '../../../../lib/school.ts';
+import { normalizeSocialUrl } from '../../../../lib/social.ts';
+import LanguageSelector from '../../../../components/LanguageSelector.astro';
+import SchoolBannerPopup from '../../../../components/SchoolBannerPopup.astro';
+
+interface Props { school: any; title?: string; }
+const { school, title } = Astro.props;
+const nav = getSchoolNav(school.id);
+const contacts = getSchoolContacts(school.id);
+const pageTitle = title ? `${title} — ${school.name}` : school.name;
+const prefix = `/${school.slug}`;
+const { pathname } = Astro.url;
+const social = (school.socialHandles as Record<string, string>) || {};
+const socialEntries = Object.entries(social).filter(([, v]) => v && v !== '#');
+const locale = school.locale || 'en';
+const rtl = ['ar','he','fa','ur'].includes(locale);
+---
+
+<!doctype html>
+<html lang={locale} dir={rtl ? 'rtl' : 'ltr'} class="light scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="description" content={school.tagline || school.name} />
+  {school.faviconUrl && <link rel="icon" href={school.faviconUrl} />}
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <title>{pageTitle}</title>
+  <FoucScript defaultMode="light" />
+  <PaletteStyles school={school} />
+  <style is:inline>{`
+    html, body { background: var(--bg); }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      color: var(--text);
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+    }
+    /* Ambient gradient orbs — harmony's signature background */
+    .harmony-orb {
+      position: fixed;
+      border-radius: 9999px;
+      filter: blur(80px);
+      opacity: 0.35;
+      pointer-events: none;
+      z-index: 0;
+      transition: opacity 0.4s ease;
+    }
+    .harmony-orb-1 {
+      width: 500px; height: 500px;
+      top: -150px; left: -150px;
+      background: var(--primary);
+    }
+    .harmony-orb-2 {
+      width: 400px; height: 400px;
+      bottom: -100px; right: -100px;
+      background: var(--accent);
+      opacity: 0.25;
+    }
+    html.dark .harmony-orb { opacity: 0.18; }
+    html.dark .harmony-orb-2 { opacity: 0.12; }
+    /* Glass surface utility */
+    .harmony-glass {
+      background: color-mix(in srgb, var(--surface) 65%, transparent);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+    }
+    .harmony-glass-strong {
+      background: color-mix(in srgb, var(--surface) 80%, transparent);
+      backdrop-filter: blur(24px) saturate(200%);
+      -webkit-backdrop-filter: blur(24px) saturate(200%);
+      border: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .harmony-orb { transition: none; }
+    }
+  `}</style>
+</head>
+<body>
+  <div class="harmony-orb harmony-orb-1" aria-hidden="true"></div>
+  <div class="harmony-orb harmony-orb-2" aria-hidden="true"></div>
+
+  <!-- Floating glass navigation pill -->
+  <header class="relative z-50 px-4 sm:px-6 pt-4">
+    <nav class="harmony-glass-strong max-w-6xl mx-auto rounded-2xl shadow-xl shadow-black/5">
+      <div class="flex items-center justify-between h-16 px-5">
+        <a href={`${prefix}/`} class="flex items-center gap-3 group" aria-label={`${school.name} home`}>
+          {school.logoUrl ? (
+            <img src={school.logoUrl} alt={school.name} class="h-9 w-auto rounded-lg" />
+          ) : (
+            <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl text-white font-black text-lg shadow-md" style="background:linear-gradient(135deg, var(--primary), var(--accent))">
+              {school.name.charAt(0)}
+            </span>
+          )}
+          <span class="text-base font-bold tracking-tight" style="color:var(--text)">{school.name}</span>
+        </a>
+
+        <div class="hidden lg:flex items-center gap-1">
+          {nav.map(item => {
+            const active = pathname === `${prefix}${item.url}`;
+            return (
+              <a href={`${prefix}${item.url}`} class:list={[
+                'px-3.5 py-2 text-sm font-medium rounded-lg transition-all',
+                active ? 'text-white shadow-md' : 'hover:bg-[color-mix(in_srgb,var(--primary)_8%,transparent)]'
+              ]} style={active ? 'background:var(--primary);color:#fff' : 'color:var(--muted)'}>
+                {item.label}
+              </a>
+            );
+          })}
+        </div>
+
+        <div class="flex items-center gap-2">
+          <LanguageSelector />
+          <button id="theme-toggle" type="button" class="harmony-glass p-2 rounded-lg transition-colors hover:scale-105" style="color:var(--muted)" aria-label="Toggle light, dark, or system mode">
+            <svg class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+            <svg class="w-5 h-5 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+          </button>
+          <a href={`${prefix}/admissions`} class="hidden sm:inline-flex px-4 py-2 text-sm font-semibold text-white rounded-lg shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all" style="background:linear-gradient(135deg, var(--primary), var(--accent))">
+            Apply
+          </a>
+          <button id="harmony-menu-toggle" type="button" class="lg:hidden harmony-glass p-2 rounded-lg" style="color:var(--text)" aria-label="Open menu" aria-expanded="false" aria-controls="harmony-mobile-nav">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Mobile nav drawer -->
+      <div id="harmony-mobile-nav" class="lg:hidden hidden border-t" style="border-color:color-mix(in srgb, var(--border) 50%, transparent)">
+        <div class="px-5 py-4 space-y-1">
+          {nav.map(item => {
+            const active = pathname === `${prefix}${item.url}`;
+            return (
+              <a href={`${prefix}${item.url}`} class:list={['block px-3 py-2.5 text-sm font-medium rounded-lg transition-colors', active ? 'text-white' : 'hover:bg-[color-mix(in_srgb,var(--primary)_8%,transparent)]']} style={active ? 'background:var(--primary);color:#fff' : 'color:var(--text)'}>
+                {item.label}
+              </a>
+            );
+          })}
+          <a href={`${prefix}/admissions`} class="block px-3 py-2.5 text-sm font-semibold text-white rounded-lg text-center mt-2" style="background:var(--primary)">Apply for Admission</a>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <!-- Main content slot -->
+  <main class="relative z-10">
+    <slot />
+  </main>
+
+  <!-- Glassmorphism footer -->
+  <footer class="relative z-10 mt-20">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 pb-10">
+      <div class="harmony-glass rounded-2xl p-8 sm:p-10">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div class="md:col-span-2">
+            <div class="flex items-center gap-3 mb-4">
+              {school.logoUrl ? (
+                <img src={school.logoUrl} alt={school.name} class="h-10 w-auto rounded-lg" />
+              ) : (
+                <span class="inline-flex h-10 w-10 items-center justify-center rounded-xl text-white font-black text-lg" style="background:linear-gradient(135deg, var(--primary), var(--accent))">{school.name.charAt(0)}</span>
+              )}
+              <span class="text-lg font-bold" style="color:var(--text)">{school.name}</span>
+            </div>
+            {school.tagline && <p class="text-sm leading-relaxed max-w-md" style="color:var(--muted)">{school.tagline}</p>}
+            {socialEntries.length > 0 && (
+              <div class="flex items-center gap-2 mt-5">
+                {socialEntries.map(([platform, handle]) => {
+                  const path = getSocialIconPath(platform);
+                  if (!path) return null;
+                  return (
+                    <a href={normalizeSocialUrl(handle, platform)} target="_blank" rel="noopener noreferrer" aria-label={`Visit our ${platform} page`} class="harmony-glass p-2.5 rounded-lg transition-all hover:scale-110 hover:-translate-y-0.5">
+                      <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" style="color:var(--text)" aria-hidden="true"><path d={path} /></svg>
+                    </a>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <h3 class="text-xs font-bold uppercase tracking-wider mb-4" style="color:var(--muted)">Explore</h3>
+            <ul class="space-y-2.5">
+              {nav.slice(0, 6).map(item => (
+                <li><a href={`${prefix}${item.url}`} class="text-sm transition-colors hover:opacity-70" style="color:var(--text)">{item.label}</a></li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <h3 class="text-xs font-bold uppercase tracking-wider mb-4" style="color:var(--muted)">Contact</h3>
+            <ul class="space-y-2.5">
+              {contacts.slice(0, 5).map(c => (
+                <li class="text-sm" style="color:var(--text)">
+                  {c.label && <span class="block text-xs font-medium" style="color:var(--muted)">{c.label}</span>}
+                  {c.value}
+                </li>
+              ))}
+              {contacts.length === 0 && <li class="text-sm" style="color:var(--muted)">No contact info yet.</li>}
+            </ul>
+          </div>
+        </div>
+
+        <div class="mt-8 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 border-t" style="border-color:color-mix(in srgb, var(--border) 40%, transparent)">
+          <p class="text-xs" style="color:var(--muted)">© {new Date().getFullYear()} {school.name}. All rights reserved.</p>
+          <a href="/" class="text-xs font-medium hover:underline" style="color:var(--primary)">Powered by iSchool</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <SchoolBannerPopup school={school} />
+
+  <!-- Theme-specific floating chat widget (glassmorphism design) -->
+  <button id="harmony-chat-toggle" type="button" class="fixed bottom-6 right-6 z-50 harmony-glass-strong p-4 rounded-2xl shadow-2xl hover:scale-105 transition-all" style="color:var(--primary)" aria-label="Open chat assistant" aria-expanded="false" aria-controls="harmony-chat-panel">
+    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+  </button>
+  <div id="harmony-chat-panel" class="fixed bottom-24 right-6 z-50 w-[min(380px,calc(100vw-3rem))] harmony-glass-strong rounded-2xl shadow-2xl hidden flex-col overflow-hidden" style="max-height: 70vh">
+    <div class="flex items-center justify-between px-5 py-4 border-b" style="border-color:color-mix(in srgb, var(--border) 50%, transparent); background:linear-gradient(135deg, var(--primary), var(--accent))">
+      <div class="flex items-center gap-3">
+        <span class="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/20 backdrop-blur">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+        </span>
+        <div>
+          <p class="text-sm font-bold text-white">{school.name} Assistant</p>
+          <p class="text-[11px] text-white/80">Ask us anything</p>
+        </div>
+      </div>
+      <button id="harmony-chat-close" type="button" class="text-white/80 hover:text-white p-1 rounded" aria-label="Close chat">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div id="harmony-chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3" style="color:var(--text)">
+      <div class="harmony-glass rounded-xl rounded-tl-sm px-4 py-2.5 text-sm max-w-[85%]" style="color:var(--text)">
+        As-salamu alaykum! How can we help you today?
+      </div>
+    </div>
+    <form id="harmony-chat-form" class="p-3 border-t flex items-center gap-2" style="border-color:color-mix(in srgb, var(--border) 40%, transparent)">
+      <input id="harmony-chat-input" type="text" placeholder="Type your message..." class="flex-1 harmony-glass rounded-full px-4 py-2 text-sm outline-none" style="color:var(--text)" aria-label="Type your message" />
+      <button type="submit" class="harmony-glass-strong p-2.5 rounded-full transition-all hover:scale-105" style="color:var(--primary)" aria-label="Send message">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+      </button>
+    </form>
+  </div>
+
+  <ThemeToggleScript defaultMode="light" selector="#theme-toggle" />
+  <script is:inline set:html={`(function(){
+    var toggle = document.getElementById('harmony-menu-toggle');
+    var drawer = document.getElementById('harmony-mobile-nav');
+    if (toggle && drawer) {
+      toggle.addEventListener('click', function(){
+        var open = !drawer.classList.contains('hidden');
+        drawer.classList.toggle('hidden');
+        toggle.setAttribute('aria-expanded', String(!open));
+      });
+    }
+    var chatToggle = document.getElementById('harmony-chat-toggle');
+    var chatPanel = document.getElementById('harmony-chat-panel');
+    var chatClose = document.getElementById('harmony-chat-close');
+    function openChat(){ chatPanel.classList.remove('hidden'); chatPanel.classList.add('flex'); chatToggle.setAttribute('aria-expanded','true'); }
+    function closeChat(){ chatPanel.classList.add('hidden'); chatPanel.classList.remove('flex'); chatToggle.setAttribute('aria-expanded','false'); }
+    if (chatToggle && chatPanel) { chatToggle.addEventListener('click', function(){ chatPanel.classList.contains('hidden') ? openChat() : closeChat(); }); }
+    if (chatClose) { chatClose.addEventListener('click', closeChat); }
+    var form = document.getElementById('harmony-chat-form');
+    var input = document.getElementById('harmony-chat-input');
+    var msgs = document.getElementById('harmony-chat-messages');
+    if (form && input && msgs) {
+      form.addEventListener('submit', function(e){
+        e.preventDefault();
+        var text = input.value.trim();
+        if (!text) return;
+        var bubble = document.createElement('div');
+        bubble.className = 'harmony-glass rounded-xl rounded-tr-sm px-4 py-2.5 text-sm max-w-[85%] ml-auto';
+        bubble.style.background = 'var(--primary)';
+        bubble.style.color = '#fff';
+        bubble.textContent = text;
+        msgs.appendChild(bubble);
+        input.value = '';
+        msgs.scrollTop = msgs.scrollHeight;
+        // Real submission to the platform AI chat endpoint
+        fetch('/api/' + ${JSON.stringify(school.slug)} + '/ai-chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text })
+        }).then(function(r){ return r.ok ? r.json() : { reply: 'Sorry, I could not reach the assistant right now.' }; })
+          .then(function(data){
+            var reply = document.createElement('div');
+            reply.className = 'harmony-glass rounded-xl rounded-tl-sm px-4 py-2.5 text-sm max-w-[85%]';
+            reply.style.color = 'var(--text)';
+            reply.textContent = data.reply || data.message || 'I will get back to you on that.';
+            msgs.appendChild(reply);
+            msgs.scrollTop = msgs.scrollHeight;
+          }).catch(function(){
+            var reply = document.createElement('div');
+            reply.className = 'harmony-glass rounded-xl rounded-tl-sm px-4 py-2.5 text-sm max-w-[85%]';
+            reply.style.color = 'var(--text)';
+            reply.textContent = 'Connection error. Please try again.';
+            msgs.appendChild(reply);
+            msgs.scrollTop = msgs.scrollHeight;
+          });
+      });
+    }
+  })();`} />
+</body>
+</html>

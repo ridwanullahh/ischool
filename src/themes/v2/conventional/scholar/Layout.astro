@@ -1,0 +1,297 @@
+---
+/**
+ * Scholar — Classic Academic theme
+ *
+ * Layout autonomy: traditional top utility bar (contact + social),
+ * a centered crest-style masthead with the school name in serif,
+ * a horizontal rule nav bar, and a formal multi-column footer with
+ * typographic rules between sections. Custom chat widget styled as
+ * an academic "inquiry desk" with serif headings.
+ */
+import '../../../../styles/global.css';
+import PaletteStyles from '../../_shared/PaletteStyles.astro';
+import FoucScript from '../../_shared/FoucScript.astro';
+import ThemeToggleScript from '../../_shared/ThemeToggleScript.astro';
+import { getSocialIconPath } from '../../_shared/social-icons';
+import { getSchoolNav, getSchoolContacts } from '../../../../lib/school.ts';
+import { normalizeSocialUrl } from '../../../../lib/social.ts';
+import LanguageSelector from '../../../../components/LanguageSelector.astro';
+import SchoolBannerPopup from '../../../../components/SchoolBannerPopup.astro';
+
+interface Props { school: any; title?: string; }
+const { school, title } = Astro.props;
+const nav = getSchoolNav(school.id);
+const contacts = getSchoolContacts(school.id);
+const pageTitle = title ? `${title} — ${school.name}` : school.name;
+const prefix = `/${school.slug}`;
+const { pathname } = Astro.url;
+const social = (school.socialHandles as Record<string, string>) || {};
+const socialEntries = Object.entries(social).filter(([, v]) => v && v !== '#');
+const locale = school.locale || 'en';
+const rtl = ['ar','he','fa','ur'].includes(locale);
+const primaryContact = contacts[0];
+---
+
+<!doctype html>
+<html lang={locale} dir={rtl ? 'rtl' : 'ltr'} class="light scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="description" content={school.tagline || school.name} />
+  {school.faviconUrl && <link rel="icon" href={school.faviconUrl} />}
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,700&family=Source+Sans+3:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet" />
+  <title>{pageTitle}</title>
+  <FoucScript defaultMode="light" />
+  <PaletteStyles school={school} />
+  <style is:inline>{`
+    html, body { background: var(--bg); }
+    body {
+      font-family: 'Source Sans 3', Georgia, serif;
+      color: var(--text);
+      min-height: 100vh;
+    }
+    .scholar-serif { font-family: 'Playfair Display', Georgia, serif; }
+    .scholar-rule { border-color: color-mix(in srgb, var(--primary) 30%, var(--border)); }
+    .scholar-crest {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 3rem; height: 3rem; border: 2px solid var(--primary);
+      border-radius: 50%; color: var(--primary);
+      font-family: 'Playfair Display', Georgia, serif; font-weight: 700;
+    }
+    .scholar-nav-link {
+      position: relative; padding-bottom: 0.25rem;
+    }
+    .scholar-nav-link::after {
+      content: ''; position: absolute; left: 0; right: 0; bottom: -2px;
+      height: 2px; background: var(--primary);
+      transform: scaleX(0); transform-origin: center;
+      transition: transform 0.25s ease;
+    }
+    .scholar-nav-link:hover::after,
+    .scholar-nav-link[data-active="true"]::after { transform: scaleX(1); }
+  `}</style>
+</head>
+<body>
+  <!-- Utility bar: contact + social + language -->
+  <div class="border-b" style="background:var(--surface);border-color:var(--border)">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-10 flex items-center justify-between text-xs">
+      <div class="flex items-center gap-4" style="color:var(--muted)">
+        {primaryContact && (
+          <span class="flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+            {primaryContact.value}
+          </span>
+        )}
+      </div>
+      <div class="flex items-center gap-3">
+        {socialEntries.slice(0, 5).map(([platform, handle]) => {
+          const path = getSocialIconPath(platform);
+          if (!path) return null;
+          return (
+            <a href={normalizeSocialUrl(handle, platform)} target="_blank" rel="noopener noreferrer" aria-label={`Visit our ${platform} page`} class="transition-opacity hover:opacity-70" style="color:var(--muted)">
+              <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d={path} /></svg>
+            </a>
+          );
+        })}
+        <span class="w-px h-3" style="background:var(--border)"></span>
+        <LanguageSelector />
+        <button id="theme-toggle" type="button" class="transition-opacity hover:opacity-70" style="color:var(--muted)" aria-label="Toggle light, dark, or system mode">
+          <svg class="w-3.5 h-3.5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+          <svg class="w-3.5 h-3.5 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Crest masthead -->
+  <header class="border-b scholar-rule" style="background:var(--bg)">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center">
+      <a href={`${prefix}/`} class="inline-flex flex-col items-center gap-3" aria-label={`${school.name} home`}>
+        {school.logoUrl ? (
+          <img src={school.logoUrl} alt={school.name} class="h-14 w-auto" />
+        ) : (
+          <span class="scholar-crest scholar-serif text-lg">{school.name.charAt(0)}</span>
+        )}
+        <div>
+          <h1 class="scholar-serif text-3xl sm:text-4xl font-bold tracking-tight" style="color:var(--text)">{school.name}</h1>
+          {school.tagline && (
+            <p class="mt-1 text-xs sm:text-sm uppercase tracking-[0.2em]" style="color:var(--muted)">{school.tagline}</p>
+          )}
+        </div>
+      </a>
+    </div>
+  </header>
+
+  <!-- Horizontal nav bar -->
+  <nav class="sticky top-0 z-40 border-y scholar-rule" style="background:var(--surface)" aria-label="Primary">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="hidden lg:flex items-center justify-center h-12 gap-8">
+        {nav.map(item => {
+          const active = pathname === `${prefix}${item.url}`;
+          return (
+            <a href={`${prefix}${item.url}`} data-active={active} class="scholar-nav-link text-sm font-medium uppercase tracking-wider" style="color:var(--text)">{item.label}</a>
+          );
+        })}
+      </div>
+      <div class="lg:hidden flex items-center justify-between h-12">
+        <span class="text-xs uppercase tracking-widest" style="color:var(--muted)">Menu</span>
+        <button id="scholar-menu-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="scholar-mobile-nav" style="color:var(--text)">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+      </div>
+      <div id="scholar-mobile-nav" class="lg:hidden hidden pb-3 space-y-1">
+        {nav.map(item => {
+          const active = pathname === `${prefix}${item.url}`;
+          return (
+            <a href={`${prefix}${item.url}`} class:list={['block px-2 py-2 text-sm font-medium uppercase tracking-wider', active && 'font-bold']} style="color:var(--text)">{item.label}</a>
+          );
+        })}
+        <a href={`${prefix}/admissions`} class="block px-2 py-2 text-sm font-semibold uppercase tracking-wider" style="color:var(--primary)">Apply for Admission</a>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <slot />
+  </main>
+
+  <!-- Formal multi-column footer with typographic rules -->
+  <footer class="border-t scholar-rule" style="background:var(--surface)">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-8">
+        <div class="md:col-span-5">
+          <div class="flex items-center gap-3 mb-4">
+            {school.logoUrl ? (
+              <img src={school.logoUrl} alt={school.name} class="h-10 w-auto" />
+            ) : (
+              <span class="scholar-crest scholar-serif">{school.name.charAt(0)}</span>
+            )}
+            <span class="scholar-serif text-xl font-bold" style="color:var(--text)">{school.name}</span>
+          </div>
+          {school.tagline && <p class="text-sm italic leading-relaxed max-w-sm scholar-serif" style="color:var(--muted)">{school.tagline}</p>}
+          {socialEntries.length > 0 && (
+            <div class="flex items-center gap-3 mt-5">
+              {socialEntries.map(([platform, handle]) => {
+                const path = getSocialIconPath(platform);
+                if (!path) return null;
+                return (
+                  <a href={normalizeSocialUrl(handle, platform)} target="_blank" rel="noopener noreferrer" aria-label={`Visit our ${platform} page`} class="transition-colors hover:opacity-70" style="color:var(--primary)">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d={path} /></svg>
+                  </a>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div class="md:col-span-1 hidden md:flex justify-center">
+          <div class="w-px h-full" style="background:var(--border)"></div>
+        </div>
+
+        <div class="md:col-span-3">
+          <h3 class="scholar-serif text-sm font-bold uppercase tracking-wider mb-4 pb-2 border-b scholar-rule" style="color:var(--text)">Navigate</h3>
+          <ul class="space-y-2">
+            {nav.slice(0, 6).map(item => (
+              <li><a href={`${prefix}${item.url}`} class="text-sm transition-colors hover:opacity-70" style="color:var(--muted)">{item.label}</a></li>
+            ))}
+          </ul>
+        </div>
+
+        <div class="md:col-span-3">
+          <h3 class="scholar-serif text-sm font-bold uppercase tracking-wider mb-4 pb-2 border-b scholar-rule" style="color:var(--text)">Contact</h3>
+          <ul class="space-y-3">
+            {contacts.slice(0, 4).map(c => (
+              <li class="text-sm" style="color:var(--muted)">
+                {c.label && <span class="block text-xs uppercase tracking-wider mb-0.5" style="color:var(--primary)">{c.label}</span>}
+                {c.value}
+              </li>
+            ))}
+            {contacts.length === 0 && <li class="text-sm" style="color:var(--muted)">No contact info yet.</li>}
+          </ul>
+        </div>
+      </div>
+
+      <div class="mt-10 pt-6 border-t scholar-rule flex flex-col sm:flex-row items-center justify-between gap-3">
+        <p class="text-xs" style="color:var(--muted)">© {new Date().getFullYear()} {school.name}. All rights reserved.</p>
+        <a href="/" class="text-xs uppercase tracking-widest hover:opacity-70" style="color:var(--primary)">Powered by iSchool</a>
+      </div>
+    </div>
+  </footer>
+
+  <SchoolBannerPopup school={school} />
+
+  <!-- Scholar inquiry desk: a formal, serif-styled chat widget -->
+  <button id="scholar-chat-toggle" type="button" class="fixed bottom-6 right-6 z-50 px-5 py-3 rounded-sm shadow-lg border-2 transition-all hover:-translate-y-0.5" style="background:var(--surface);border-color:var(--primary);color:var(--primary)" aria-label="Open inquiry desk" aria-expanded="false" aria-controls="scholar-chat-panel">
+    <span class="flex items-center gap-2">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+      <span class="scholar-serif text-sm font-semibold">Inquire</span>
+    </span>
+  </button>
+  <div id="scholar-chat-panel" class="fixed bottom-24 right-6 z-50 w-[min(380px,calc(100vw-3rem))] hidden flex-col shadow-2xl border-2" style="background:var(--surface);border-color:var(--primary);max-height:70vh">
+    <div class="px-5 py-4 border-b scholar-rule text-center">
+      <p class="scholar-serif text-base font-bold" style="color:var(--text)">Inquiry Desk</p>
+      <p class="text-xs uppercase tracking-widest mt-0.5" style="color:var(--muted)">How may we assist you?</p>
+    </div>
+    <div id="scholar-chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3" style="color:var(--text)">
+      <div class="border-l-2 pl-3 text-sm italic scholar-serif" style="border-color:var(--primary);color:var(--muted)">
+        Welcome. Please leave your question below.
+      </div>
+    </div>
+    <form id="scholar-chat-form" class="p-3 border-t scholar-rule flex items-center gap-2">
+      <input id="scholar-chat-input" type="text" placeholder="Your question..." class="flex-1 bg-transparent border-b px-2 py-1.5 text-sm outline-none scholar-serif" style="border-color:var(--border);color:var(--text)" aria-label="Type your question" />
+      <button type="submit" class="scholar-serif text-sm font-semibold px-3 py-1.5 transition-opacity hover:opacity-70" style="color:var(--primary)" aria-label="Send question">Send</button>
+    </form>
+  </div>
+
+  <ThemeToggleScript defaultMode="light" selector="#theme-toggle" />
+  <script is:inline set:html={`(function(){
+    var toggle = document.getElementById('scholar-menu-toggle');
+    var drawer = document.getElementById('scholar-mobile-nav');
+    if (toggle && drawer) { toggle.addEventListener('click', function(){ drawer.classList.toggle('hidden'); toggle.setAttribute('aria-expanded', String(!drawer.classList.contains('hidden'))); }); }
+    var ct = document.getElementById('scholar-chat-toggle');
+    var cp = document.getElementById('scholar-chat-panel');
+    var cc = document.getElementById('scholar-chat-close');
+    function openChat(){ cp.classList.remove('hidden'); cp.classList.add('flex'); ct.setAttribute('aria-expanded','true'); }
+    function closeChat(){ cp.classList.add('hidden'); cp.classList.remove('flex'); ct.setAttribute('aria-expanded','false'); }
+    if (ct && cp) { ct.addEventListener('click', function(){ cp.classList.contains('hidden') ? openChat() : closeChat(); }); }
+    var form = document.getElementById('scholar-chat-form');
+    var input = document.getElementById('scholar-chat-input');
+    var msgs = document.getElementById('scholar-chat-messages');
+    if (form && input && msgs) {
+      form.addEventListener('submit', function(e){
+        e.preventDefault();
+        var text = input.value.trim();
+        if (!text) return;
+        var b = document.createElement('div');
+        b.className = 'text-sm text-right';
+        b.style.color = 'var(--primary)';
+        b.textContent = text;
+        msgs.appendChild(b);
+        input.value = '';
+        msgs.scrollTop = msgs.scrollHeight;
+        fetch('/api/' + ${JSON.stringify(school.slug)} + '/ai-chat', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ message: text }) })
+          .then(function(r){ return r.ok ? r.json() : { reply: 'Apologies, the assistant is unavailable.' }; })
+          .then(function(data){
+            var r = document.createElement('div');
+            r.className = 'border-l-2 pl-3 text-sm italic scholar-serif';
+            r.style.borderColor = 'var(--primary)';
+            r.style.color = 'var(--muted)';
+            r.textContent = data.reply || data.message || 'We will respond shortly.';
+            msgs.appendChild(r);
+            msgs.scrollTop = msgs.scrollHeight;
+          }).catch(function(){
+            var r = document.createElement('div');
+            r.className = 'border-l-2 pl-3 text-sm italic scholar-serif';
+            r.style.borderColor = 'var(--primary)';
+            r.style.color = 'var(--muted)';
+            r.textContent = 'Connection error. Please try again.';
+            msgs.appendChild(r);
+            msgs.scrollTop = msgs.scrollHeight;
+          });
+      });
+    }
+  })();`} />
+</body>
+</html>

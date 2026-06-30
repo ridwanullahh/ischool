@@ -1,0 +1,41 @@
+---
+/**
+ * Shared palette CSS-variable emitter.
+ *
+ * Infrastructure (not design): reads the school palette and emits the
+ * standard --bg / --surface / --text / --muted / --border / --accent / --primary
+ * CSS variables under html.light and html.dark, plus the legacy --tp utility.
+ *
+ * Every v2 theme imports this so palette + dark-mode is consistent, while
+ * the theme's OWN markup decides how to USE those variables.
+ */
+import { getSchoolPalette } from '../../../lib/school.ts';
+
+interface Props { school: any; }
+const { school } = Astro.props;
+const palette = getSchoolPalette(school);
+---
+<style is:inline>{`
+  html.light {
+    --bg: ${palette.backgroundLight};
+    --surface: ${palette.surfaceLight};
+    --text: ${palette.textLight};
+    --muted: ${palette.mutedLight};
+    --border: ${palette.borderLight};
+    --accent: ${palette.accent};
+    --primary: ${palette.primary};
+  }
+  html.dark {
+    --bg: ${palette.backgroundDark};
+    --surface: ${palette.surfaceDark};
+    --text: ${palette.textDark};
+    --muted: ${palette.mutedDark};
+    --border: ${palette.borderDark};
+    --accent: ${palette.accent};
+    --primary: ${palette.primary};
+  }
+  :root { --tp: ${palette.primary}; }
+  .tp { color: var(--tp); }
+  .tbg { background: var(--primary); }
+  .tbd { border-color: var(--primary); }
+`}</style>

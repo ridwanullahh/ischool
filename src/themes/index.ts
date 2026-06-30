@@ -122,8 +122,40 @@ export const themeLayouts: Record<string, any> = {
   'ember-glow': EmberGlowLayout,
 };
 
+// --- v2 theme system integration ---
+// The v2 registry (src/themes/v2/registry.ts) holds the new WordPress-style
+// themes with full layout autonomy. getThemeLayout checks v2 first, then
+// falls back to the v1 single-file themes above, then to harmony as a
+// last resort so no school ever renders a blank page.
+import { getTheme as v2GetTheme, listThemes as v2ListThemes } from './v2/registry';
+
 export function getThemeLayout(theme: string) {
+  const v2 = v2GetTheme(theme);
+  if (v2) return v2.Layout;
   return themeLayouts[theme] || HarmonyLayout;
 }
 
-export const themeList = Object.keys(themeLayouts);
+/**
+ * All available theme names — v2 (new) + v1 (legacy).
+ * Used by [slug] pages for preview-theme validation.
+ */
+export const themeList = [
+  ...v2ListThemes().map(t => t.name),
+  ...Object.keys(themeLayouts),
+];
+
+/**
+ * Returns only the v2 (reimplemented) theme configs — for the admin
+ * theme selector, which must show ONLY the newly reimplemented themes
+ * per Issue #1.
+ */
+export function listV2Themes() {
+  return v2ListThemes();
+}
+
+/**
+ * Returns true if a theme name is a v2 theme.
+ */
+export function isV2Theme(theme: string): boolean {
+  return v2GetTheme(theme) !== null;
+}

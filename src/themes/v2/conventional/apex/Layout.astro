@@ -1,0 +1,292 @@
+---
+/**
+ * Apex — Split-Screen theme
+ *
+ * Layout autonomy: a split header (logo block left, nav block right
+ * separated by a hard vertical divider), a fixed left-edge side-rail
+ * with vertical social links, an asymmetric two-column footer, and a
+ * chat widget docked to the left side as a "command console" panel.
+ *
+ * Visual language: bold sans-serif, monospace accents, hard edges
+ * (no border-radius), high contrast, asymmetric grid.
+ */
+import '../../../../styles/global.css';
+import PaletteStyles from '../../_shared/PaletteStyles.astro';
+import FoucScript from '../../_shared/FoucScript.astro';
+import ThemeToggleScript from '../../_shared/ThemeToggleScript.astro';
+import { getSocialIconPath } from '../../_shared/social-icons';
+import { getSchoolNav, getSchoolContacts } from '../../../../lib/school.ts';
+import { normalizeSocialUrl } from '../../../../lib/social.ts';
+import LanguageSelector from '../../../../components/LanguageSelector.astro';
+import SchoolBannerPopup from '../../../../components/SchoolBannerPopup.astro';
+
+interface Props { school: any; title?: string; }
+const { school, title } = Astro.props;
+const nav = getSchoolNav(school.id);
+const contacts = getSchoolContacts(school.id);
+const pageTitle = title ? `${title} — ${school.name}` : school.name;
+const prefix = `/${school.slug}`;
+const { pathname } = Astro.url;
+const social = (school.socialHandles as Record<string, string>) || {};
+const socialEntries = Object.entries(social).filter(([, v]) => v && v !== '#');
+const locale = school.locale || 'en';
+const rtl = ['ar','he','fa','ur'].includes(locale);
+---
+
+<!doctype html>
+<html lang={locale} dir={rtl ? 'rtl' : 'ltr'} class="light scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="description" content={school.tagline || school.name} />
+  {school.faviconUrl && <link rel="icon" href={school.faviconUrl} />}
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <title>{pageTitle}</title>
+  <FoucScript defaultMode="light" />
+  <PaletteStyles school={school} />
+  <style is:inline>{`
+    html, body { background: var(--bg); }
+    body {
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      color: var(--text);
+      min-height: 100vh;
+    }
+    .apex-mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+    /* Left side rail — fixed vertical social links */
+    .apex-rail {
+      position: fixed; left: 0; top: 50%; transform: translateY(-50%);
+      z-index: 30; display: none;
+      flex-direction: column; align-items: center; gap: 1rem;
+      padding: 1.5rem 0.75rem;
+    }
+    @media (min-width: 1024px) { .apex-rail { display: flex; } }
+    .apex-rail::before, .apex-rail::after {
+      content: ''; width: 1px; height: 3rem; background: var(--border);
+    }
+    .apex-rail a {
+      writing-mode: vertical-rl; text-orientation: mixed;
+      font-size: 0.7rem; letter-spacing: 0.15em; text-transform: uppercase;
+      transition: color 0.2s;
+    }
+    /* Hard-edge utility — apex uses no border-radius */
+    .apex-hard { border-radius: 0; }
+    /* Split header divider */
+    .apex-divider-v { width: 1px; align-self: stretch; background: var(--border); }
+    .apex-nav-item {
+      position: relative; padding: 0.5rem 0.75rem;
+      font-size: 0.8rem; font-weight: 500; letter-spacing: 0.05em;
+      text-transform: uppercase;
+      transition: color 0.2s;
+    }
+    .apex-nav-item::before {
+      content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px;
+      background: var(--primary); transform: scaleY(0);
+      transition: transform 0.2s;
+    }
+    .apex-nav-item[data-active="true"]::before,
+    .apex-nav-item:hover::before { transform: scaleY(1); }
+    .apex-nav-item[data-active="true"] { color: var(--primary); }
+    main { padding-left: 0; }
+    @media (min-width: 1024px) { main { padding-left: 3.5rem; } }
+  `}</style>
+</head>
+<body>
+  <!-- Fixed left side rail with vertical socials -->
+  <aside class="apex-rail" aria-label="Social links">
+    {socialEntries.slice(0, 4).map(([platform, handle]) => (
+      <a href={normalizeSocialUrl(handle, platform)} target="_blank" rel="noopener noreferrer" class="apex-mono" style="color:var(--muted)" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--muted)'">
+        {platform}
+      </a>
+    ))}
+  </aside>
+
+  <!-- Split header: logo block | divider | nav block -->
+  <header class="sticky top-0 z-40 border-b" style="background:var(--surface);border-color:var(--border)">
+    <div class="flex items-stretch">
+      <!-- Left: logo block -->
+      <div class="flex-1 flex items-center px-4 sm:px-6 lg:px-8 h-16">
+        <a href={`${prefix}/`} class="flex items-center gap-3" aria-label={`${school.name} home`}>
+          {school.logoUrl ? (
+            <img src={school.logoUrl} alt={school.name} class="h-8 w-auto" />
+          ) : (
+            <span class="apex-mono text-2xl font-bold leading-none" style="color:var(--primary)">{school.name.charAt(0)}</span>
+          )}
+          <span class="text-base font-bold tracking-tight" style="color:var(--text)">{school.name}</span>
+        </a>
+      </div>
+
+      <div class="apex-divider-v"></div>
+
+      <!-- Right: nav block -->
+      <div class="hidden lg:flex items-center px-4 sm:px-6 lg:px-8 h-16 gap-1">
+        {nav.map(item => {
+          const active = pathname === `${prefix}${item.url}`;
+          return (
+            <a href={`${prefix}${item.url}`} data-active={active} class="apex-nav-item" style="color:var(--text)">{item.label}</a>
+          );
+        })}
+      </div>
+
+      <div class="apex-divider-v"></div>
+
+      <!-- Far right: actions -->
+      <div class="flex items-center px-4 sm:px-6 lg:px-8 h-16 gap-3">
+        <LanguageSelector />
+        <button id="theme-toggle" type="button" class="apex-hard p-2 transition-colors" style="color:var(--muted)" aria-label="Toggle light, dark, or system mode">
+          <svg class="w-4 h-4 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+          <svg class="w-4 h-4 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+        </button>
+        <a href={`${prefix}/admissions`} class="apex-hard hidden sm:inline-flex px-4 py-2 text-xs font-bold uppercase tracking-wider text-white transition-opacity hover:opacity-90" style="background:var(--primary)">Apply</a>
+        <button id="apex-menu-toggle" type="button" class="lg:hidden apex-hard p-2" style="color:var(--text)" aria-label="Open menu" aria-expanded="false" aria-controls="apex-mobile-nav">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile nav drawer -->
+    <div id="apex-mobile-nav" class="lg:hidden hidden border-t" style="border-color:var(--border)">
+      <div class="px-4 py-3 space-y-1">
+        {nav.map(item => {
+          const active = pathname === `${prefix}${item.url}`;
+          return (
+            <a href={`${prefix}${item.url}`} data-active={active} class="apex-nav-item block" style="color:var(--text)">{item.label}</a>
+          );
+        })}
+        <a href={`${prefix}/admissions`} class="block apex-hard px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-white text-center" style="background:var(--primary)">Apply for Admission</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <slot />
+  </main>
+
+  <!-- Asymmetric two-column footer -->
+  <footer class="border-t" style="background:var(--surface);border-color:var(--border)">
+    <div class="grid grid-cols-1 lg:grid-cols-12">
+      <!-- Large left block: brand + statement -->
+      <div class="lg:col-span-7 px-4 sm:px-6 lg:px-8 py-12 lg:py-16 border-b lg:border-b-0 lg:border-r" style="border-color:var(--border)">
+        <a href={`${prefix}/`} class="inline-flex items-center gap-3 mb-6" aria-label={`${school.name} home`}>
+          {school.logoUrl ? (
+            <img src={school.logoUrl} alt={school.name} class="h-10 w-auto" />
+          ) : (
+            <span class="apex-mono text-3xl font-bold leading-none" style="color:var(--primary)">{school.name.charAt(0)}</span>
+          )}
+          <span class="text-xl font-bold tracking-tight" style="color:var(--text)">{school.name}</span>
+        </a>
+        {school.tagline && (
+          <p class="text-2xl sm:text-3xl font-bold leading-tight max-w-xl tracking-tight" style="color:var(--text)">{school.tagline}</p>
+        )}
+        <div class="mt-8 flex items-center gap-4">
+          <a href={`${prefix}/admissions`} class="apex-hard inline-flex px-6 py-3 text-xs font-bold uppercase tracking-widest text-white" style="background:var(--primary)">Begin Application</a>
+          <a href={`${prefix}/contact`} class="apex-hard inline-flex px-6 py-3 text-xs font-bold uppercase tracking-widest border-2" style="border-color:var(--text);color:var(--text)">Contact</a>
+        </div>
+      </div>
+
+      <!-- Right block: split into nav + contact -->
+      <div class="lg:col-span-5 grid grid-cols-2">
+        <div class="px-4 sm:px-6 py-8 border-r" style="border-color:var(--border)">
+          <p class="apex-mono text-[10px] uppercase tracking-widest mb-4" style="color:var(--muted)">// Navigate</p>
+          <ul class="space-y-2">
+            {nav.slice(0, 6).map(item => (
+              <li><a href={`${prefix}${item.url}`} class="text-sm transition-colors hover:opacity-70" style="color:var(--text)">{item.label}</a></li>
+            ))}
+          </ul>
+        </div>
+        <div class="px-4 sm:px-6 py-8">
+          <p class="apex-mono text-[10px] uppercase tracking-widest mb-4" style="color:var(--muted)">// Contact</p>
+          <ul class="space-y-3">
+            {contacts.slice(0, 3).map(c => (
+              <li class="text-sm" style="color:var(--text)">
+                {c.label && <span class="apex-mono block text-[10px] uppercase tracking-widest mb-0.5" style="color:var(--muted)">{c.label}</span>}
+                {c.value}
+              </li>
+            ))}
+            {contacts.length === 0 && <li class="text-sm" style="color:var(--muted)">No contact info yet.</li>}
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="px-4 sm:px-6 lg:px-8 py-5 border-t flex flex-col sm:flex-row items-center justify-between gap-2" style="border-color:var(--border)">
+      <p class="apex-mono text-[11px] uppercase tracking-widest" style="color:var(--muted)">© {new Date().getFullYear()} {school.name}</p>
+      <a href="/" class="apex-mono text-[11px] uppercase tracking-widest hover:opacity-70" style="color:var(--primary)">[ iSchool ]</a>
+    </div>
+  </footer>
+
+  <SchoolBannerPopup school={school} />
+
+  <!-- Command-console chat widget docked to the left -->
+  <button id="apex-chat-toggle" type="button" class="fixed bottom-6 left-6 z-50 apex-hard px-4 py-3 shadow-lg border-2 transition-all hover:-translate-y-0.5 lg:bottom-6 lg:left-24" style="background:var(--surface);border-color:var(--primary);color:var(--primary)" aria-label="Open console" aria-expanded="false" aria-controls="apex-chat-panel">
+    <span class="flex items-center gap-2">
+      <span class="apex-mono text-xs font-bold">{'>_'}</span>
+      <span class="apex-mono text-xs font-bold uppercase tracking-wider">Console</span>
+    </span>
+  </button>
+  <div id="apex-chat-panel" class="fixed bottom-20 left-6 z-50 w-[min(400px,calc(100vw-3rem))] hidden flex-col shadow-2xl border-2 apex-hard lg:left-24" style="background:var(--surface);border-color:var(--primary);max-height:70vh">
+    <div class="px-4 py-3 border-b flex items-center justify-between" style="border-color:var(--border)">
+      <p class="apex-mono text-xs font-bold uppercase tracking-widest" style="color:var(--text)">{'> '}assistant.log</p>
+      <button id="apex-chat-close" type="button" class="apex-mono text-xs" style="color:var(--muted)" aria-label="Close console">[x]</button>
+    </div>
+    <div id="apex-chat-messages" class="flex-1 overflow-y-auto p-4 space-y-2 apex-mono text-xs" style="color:var(--text)">
+      <div style="color:var(--muted)"><span style="color:var(--primary)">$</span> init assistant --school={school.slug}</div>
+      <div style="color:var(--muted)">Ready. Type your query below.</div>
+    </div>
+    <form id="apex-chat-form" class="p-3 border-t flex items-center gap-2" style="border-color:var(--border)">
+      <span class="apex-mono text-xs" style="color:var(--primary)">$</span>
+      <input id="apex-chat-input" type="text" placeholder="type query..." class="flex-1 bg-transparent border-0 px-1 py-1 text-xs outline-none apex-mono" style="color:var(--text)" aria-label="Type your query" />
+      <button type="submit" class="apex-hard apex-mono text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 text-white" style="background:var(--primary)" aria-label="Send query">Run</button>
+    </form>
+  </div>
+
+  <ThemeToggleScript defaultMode="light" selector="#theme-toggle" />
+  <script is:inline set:html={`(function(){
+    var toggle = document.getElementById('apex-menu-toggle');
+    var drawer = document.getElementById('apex-mobile-nav');
+    if (toggle && drawer) { toggle.addEventListener('click', function(){ drawer.classList.toggle('hidden'); toggle.setAttribute('aria-expanded', String(!drawer.classList.contains('hidden'))); }); }
+    var ct = document.getElementById('apex-chat-toggle');
+    var cp = document.getElementById('apex-chat-panel');
+    var cc = document.getElementById('apex-chat-close');
+    function openChat(){ cp.classList.remove('hidden'); cp.classList.add('flex'); ct.setAttribute('aria-expanded','true'); }
+    function closeChat(){ cp.classList.add('hidden'); cp.classList.remove('flex'); ct.setAttribute('aria-expanded','false'); }
+    if (ct && cp) { ct.addEventListener('click', function(){ cp.classList.contains('hidden') ? openChat() : closeChat(); }); }
+    if (cc) { cc.addEventListener('click', closeChat); }
+    var form = document.getElementById('apex-chat-form');
+    var input = document.getElementById('apex-chat-input');
+    var msgs = document.getElementById('apex-chat-messages');
+    if (form && input && msgs) {
+      form.addEventListener('submit', function(e){
+        e.preventDefault();
+        var text = input.value.trim();
+        if (!text) return;
+        var b = document.createElement('div');
+        b.className = 'apex-mono text-xs';
+        b.style.color = 'var(--text)';
+        b.innerHTML = '<span style="color:var(--primary)">$</span> ' + text.replace(/</g,'&lt;');
+        msgs.appendChild(b);
+        input.value = '';
+        msgs.scrollTop = msgs.scrollHeight;
+        fetch('/api/' + ${JSON.stringify(school.slug)} + '/ai-chat', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ message: text }) })
+          .then(function(r){ return r.ok ? r.json() : { reply: 'ERR: assistant unreachable.' }; })
+          .then(function(data){
+            var r = document.createElement('div');
+            r.className = 'apex-mono text-xs';
+            r.style.color = 'var(--muted)';
+            r.textContent = '> ' + (data.reply || data.message || 'No response.');
+            msgs.appendChild(r);
+            msgs.scrollTop = msgs.scrollHeight;
+          }).catch(function(){
+            var r = document.createElement('div');
+            r.className = 'apex-mono text-xs';
+            r.style.color = 'var(--muted)';
+            r.textContent = '> ERR: connection failed.';
+            msgs.appendChild(r);
+            msgs.scrollTop = msgs.scrollHeight;
+          });
+      });
+    }
+  })();`} />
+</body>
+</html>

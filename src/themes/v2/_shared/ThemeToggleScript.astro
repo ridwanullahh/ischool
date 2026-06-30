@@ -1,0 +1,56 @@
+---
+/**
+ * Theme-mode toggle client script + cycle logic.
+ *
+ * Infrastructure: provides the light -> dark -> system cycle and persists
+ * the choice to localStorage.themeMode. Each theme renders its OWN toggle
+ * button (styled to match its aesthetic) and binds it to this script by
+ * giving the button id="theme-toggle" (or passing a custom selector).
+ *
+ * The script is theme-agnostic; the button design is theme-specific.
+ */
+interface Props {
+  /** CSS selector for the toggle button(s). Default: #theme-toggle. */
+  selector?: string;
+  /** The theme's default mode, used to resolve 'system' on first load. */
+  defaultMode?: 'light' | 'dark';
+}
+const { selector = '#theme-toggle', defaultMode = 'light' } = Astro.props;
+const defaultsDark = defaultMode === 'dark';
+---
+<script is:inline set:html={`(function(){
+  function apply(){
+    var stored = localStorage.getItem('themeMode');
+    var systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    var defaultsDark = ${defaultsDark};
+    var dark;
+    if (stored === 'dark') dark = true;
+    else if (stored === 'light') dark = false;
+    else if (stored === 'system') dark = systemDark;
+    else dark = defaultsDark ? systemDark : false;
+    var el = document.documentElement;
+    el.classList.remove('light','dark');
+    el.classList.add(dark ? 'dark' : 'light');
+    return stored || 'system';
+  }
+  function cycle(){
+    var current = localStorage.getItem('themeMode') || 'system';
+    var next;
+    if (current === 'light') next = 'dark';
+    else if (current === 'dark') next = 'system';
+    else next = 'light';
+    localStorage.setItem('themeMode', next);
+    apply();
+    document.querySelectorAll('[data-theme-mode-label]').forEach(function(el){
+      el.textContent = next.charAt(0).toUpperCase() + next.slice(1);
+    });
+  }
+  apply();
+  document.addEventListener('click', function(e){
+    var t = e.target.closest('${selector}');
+    if (t) { e.preventDefault(); cycle(); }
+  });
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(){
+    if ((localStorage.getItem('themeMode') || 'system') === 'system') apply();
+  });
+})();`} />
