@@ -903,6 +903,19 @@ export const moduleSettings = sqliteTable('module_settings', {
 });
 
 // ═══════════════════════════════════════════════════════
+// RBAC: Role permission overrides (per-school customization)
+// ═══════════════════════════════════════════════════════
+
+export const roleOverrides = sqliteTable('role_overrides', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
+  role: text('role').notNull(), // matches Role type in rbac.ts
+  permission: text('permission').notNull(), // matches Permission keys in rbac.ts
+  action: text('action', { enum: ['grant', 'revoke'] }).notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
+});
+
+// ═══════════════════════════════════════════════════════
 // MODULE 16: e-EXAM & CBT
 // ═══════════════════════════════════════════════════════
 
