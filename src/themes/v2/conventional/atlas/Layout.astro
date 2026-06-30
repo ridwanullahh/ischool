@@ -1,0 +1,85 @@
+---
+/**
+ * Atlas — v2 conventional theme
+ */
+import '../../../../styles/global.css';
+import PaletteStyles from '../../_shared/PaletteStyles.astro';
+import FoucScript from '../../_shared/FoucScript.astro';
+import ThemeToggleScript from '../../_shared/ThemeToggleScript.astro';
+import { getSocialIconPath } from '../../_shared/social-icons';
+import { getSchoolNav, getSchoolContacts } from '../../../../lib/school.ts';
+import { normalizeSocialUrl } from '../../../../lib/social.ts';
+import LanguageSelector from '../../../../components/LanguageSelector.astro';
+import SchoolBannerPopup from '../../../../components/SchoolBannerPopup.astro';
+interface Props { school: any; title?: string; }
+const { school, title } = Astro.props;
+const nav = getSchoolNav(school.id); const contacts = getSchoolContacts(school.id);
+const pageTitle = title ? `${title} — ${school.name}` : school.name;
+const prefix = `/${school.slug}`; const { pathname } = Astro.url;
+const social = (school.socialHandles as Record<string, string>) || {};
+const socialEntries = Object.entries(social).filter(([, v]) => v && v !== '#');
+const locale = school.locale || 'en'; const rtl = ['ar','he','fa','ur'].includes(locale);
+---
+<!doctype html>
+<html lang={locale} dir={rtl ? 'rtl' : 'ltr'} class="light scroll-smooth">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="description" content={school.tagline || school.name} />
+  {school.faviconUrl && <link rel="icon" href={school.faviconUrl} />}
+  <link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;0,700;1,400&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <title>{pageTitle}</title>
+  <FoucScript defaultMode="light" /><PaletteStyles school={school} />
+  <style is:inline>{`
+    html, body { background: var(--bg); }
+    body { font-family: 'DM Sans', system-ui, sans-serif; color: var(--text); min-height: 100vh; }
+    .atlas-serif { font-family: 'Spectral', Georgia, serif; }
+    .atlas-grid-bg { background-image: linear-gradient(color-mix(in srgb, var(--primary) 8%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--primary) 8%, transparent) 1px, transparent 1px); background-size: 32px 32px; }
+    .atlas-nav-link { font-size: 0.85rem; font-weight: 500; padding: 0.5rem 0.75rem; transition: color 0.15s; border-bottom: 2px solid transparent; }
+    .atlas-nav-link[data-active="true"], .atlas-nav-link:hover { border-bottom-color: var(--primary); color: var(--primary); }
+    .atlas-bubble-u { background: var(--primary); color: #fff; padding: 0.5rem 1rem; font-size: 0.85rem; max-width: 85%; margin-left: auto; border-radius: 0.5rem 0.5rem 0 0.5rem; }
+    .atlas-bubble-a { background: color-mix(in srgb, var(--primary) 8%, var(--bg)); color: var(--text); padding: 0.5rem 1rem; font-size: 0.85rem; max-width: 85%; border-radius: 0.5rem 0.5rem 0.5rem 0; }
+  `}</style>
+</head>
+<body>
+  <header class="sticky top-0 z-40 border-b atlas-grid-bg" style="background:var(--surface);border-color:var(--border)">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <a href={`${prefix}/`} class="flex items-center gap-3" aria-label={`${school.name} home`}>{school.logoUrl ? <img src={school.logoUrl} alt={school.name} class="h-8 w-auto" /> : <span class="atlas-serif text-2xl" style="color:var(--primary)">{school.name.charAt(0)}</span>}<span class="text-base font-semibold" style="color:var(--text)">{school.name}</span></a>
+      <div class="hidden lg:flex items-center gap-1">{nav.map(item => { const active = pathname === `${prefix}${item.url}`; return <a href={`${prefix}${item.url}`} data-active={active} class="atlas-nav-link" style="color:var(--text)">{item.label}</a>; })}</div>
+      <div class="flex items-center gap-2"><LanguageSelector /><button id="theme-toggle" type="button" style="color:var(--muted)" aria-label="Toggle light, dark, or system mode"><svg class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg><svg class="w-5 h-5 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg></button><a href={`${prefix}/admissions`} class="hidden sm:inline-flex px-4 py-2 text-xs font-bold uppercase tracking-wider text-white" style="background:var(--primary)">Apply</a><button id="atlas-menu-toggle" type="button" class="lg:hidden p-2" style="color:var(--text)" aria-label="Open menu" aria-expanded="false" aria-controls="atlas-mobile-nav"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg></button></div>
+    </div>
+    <div id="atlas-mobile-nav" class="lg:hidden hidden px-4 pb-3 space-y-1">{nav.map(item => { const active = pathname === `${prefix}${item.url}`; return <a href={`${prefix}${item.url}`} data-active={active} class="atlas-nav-link block" style="color:var(--text)">{item.label}</a>; })}<a href={`${prefix}/admissions`} class="atlas-nav-link block" style="color:var(--primary)">Apply for Admission</a></div>
+  </header>
+  <main><slot /></main>
+  <footer class="mt-20 border-t atlas-grid-bg" style="background:var(--surface);border-color:var(--border)">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div><div class="flex items-center gap-3 mb-3">{school.logoUrl ? <img src={school.logoUrl} alt={school.name} class="h-8 w-auto" /> : <span class="atlas-serif text-2xl" style="color:var(--primary)">{school.name.charAt(0)}</span>}<span class="text-base font-semibold atlas-serif" style="color:var(--text)">{school.name}</span></div>{school.tagline && <p class="atlas-serif italic text-sm" style="color:var(--muted)">{school.tagline}</p>}{socialEntries.length > 0 && <div class="flex items-center gap-2 mt-3">{socialEntries.map(([p,h]) => { const path = getSocialIconPath(p); if (!path) return null; return <a href={normalizeSocialUrl(h,p)} target="_blank" rel="noopener noreferrer" aria-label={`Visit our ${p} page`} style="color:var(--primary)" class="hover:opacity-70"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d={path} /></svg></a>; })}</div>}</div>
+        <div><p class="atlas-serif text-sm font-semibold mb-3" style="color:var(--primary)">Explore</p><ul class="space-y-2">{nav.slice(0,6).map(item => <li><a href={`${prefix}${item.url}`} class="text-sm hover:opacity-70" style="color:var(--text)">{item.label}</a></li>)}</ul></div>
+        <div><p class="atlas-serif text-sm font-semibold mb-3" style="color:var(--primary)">Contact</p><ul class="space-y-2">{contacts.slice(0,4).map(c => <li class="text-sm" style="color:var(--text)">{c.label && <span class="atlas-serif block text-xs italic" style="color:var(--muted)">{c.label}</span>}{c.value}</li>)}{contacts.length===0 && <li class="text-sm atlas-serif italic" style="color:var(--muted)">—</li>}</ul></div>
+      </div>
+      <div class="mt-8 pt-5 border-t flex items-center justify-between" style="border-color:var(--border)"><p class="text-xs atlas-serif" style="color:var(--muted)">© {new Date().getFullYear()} {school.name}</p><a href="/" class="text-xs atlas-serif italic" style="color:var(--primary)">iSchool</a></div>
+    </div>
+  </footer>
+  <SchoolBannerPopup school={school} />
+  <button id="atlas-chat-toggle" type="button" class="fixed bottom-6 right-6 z-50 p-4 rounded-full shadow-lg text-white" style="background:var(--primary)" aria-label="Open chat" aria-expanded="false" aria-controls="atlas-chat-panel"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg></button>
+  <div id="atlas-chat-panel" class="fixed bottom-24 right-6 z-50 w-[min(380px,calc(100vw-3rem))] hidden flex-col rounded-xl shadow-2xl overflow-hidden" style="background:var(--surface);border:1px solid var(--border);max-height:70vh">
+    <div class="px-5 py-4" style="background:var(--primary);color:#fff"><p class="atlas-serif text-lg">{school.name}</p><p class="text-[11px] opacity-90">Explorer's guide</p></div>
+    <div id="atlas-chat-messages" class="flex-1 overflow-y-auto p-4 space-y-2"></div>
+    <form id="atlas-chat-form" class="p-3 border-t flex items-center gap-2" style="border-color:var(--border)"><input id="atlas-chat-input" type="text" placeholder="Ask..." class="flex-1 rounded-lg px-3 py-2 text-sm outline-none atlas-serif" style="background:color-mix(in srgb, var(--primary) 6%, var(--bg));color:var(--text)" aria-label="Type your message" /><button type="submit" class="px-4 py-2 text-xs font-bold text-white rounded-lg" style="background:var(--primary)" aria-label="Send">Send</button></form>
+  </div>
+  <ThemeToggleScript defaultMode="light" selector="#theme-toggle" />
+  <script is:inline set:html={`(function(){
+    var t=document.getElementById('atlas-menu-toggle'),d=document.getElementById('atlas-mobile-nav');
+    if(t&&d){t.addEventListener('click',function(){d.classList.toggle('hidden');t.setAttribute('aria-expanded',String(!d.classList.contains('hidden')));});}
+    var ct=document.getElementById('atlas-chat-toggle'),cp=document.getElementById('atlas-chat-panel');
+    function o(){cp.classList.remove('hidden');cp.classList.add('flex');ct.setAttribute('aria-expanded','true');}
+    function c(){cp.classList.add('hidden');cp.classList.remove('flex');ct.setAttribute('aria-expanded','false');}
+    if(ct&&cp){ct.addEventListener('click',function(){cp.classList.contains('hidden')?o():c();});}
+    var f=document.getElementById('atlas-chat-form'),i=document.getElementById('atlas-chat-input'),m=document.getElementById('atlas-chat-messages');
+    if(f&&i&&m){f.addEventListener('submit',function(e){e.preventDefault();var t=i.value.trim();if(!t)return;
+      var b=document.createElement('div');b.className='atlas-bubble-u';b.textContent=t;m.appendChild(b);i.value='';m.scrollTop=m.scrollHeight;
+      fetch('/api/'+${JSON.stringify(school.slug)}+'/ai-chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:t})}).then(function(r){return r.ok?r.json():{reply:'Unavailable.'};}).then(function(data){var r=document.createElement('div');r.className='atlas-bubble-a';r.textContent=data.reply||data.message||'...';m.appendChild(r);m.scrollTop=m.scrollHeight;}).catch(function(){var r=document.createElement('div');r.className='atlas-bubble-a';r.textContent='Connection error.';m.appendChild(r);m.scrollTop=m.scrollHeight;});});}
+  })();`} />
+</body>
+</html>

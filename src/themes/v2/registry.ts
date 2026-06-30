@@ -73,6 +73,30 @@ import mosaicLayout from './conventional/mosaic/Layout.astro';
 import pulseConfig from './conventional/pulse/theme.config';
 import pulseLayout from './conventional/pulse/Layout.astro';
 
+import vividConfig from './conventional/vivid/theme.config';
+import vividLayout from './conventional/vivid/Layout.astro';
+
+import zenithConfig from './conventional/zenith/theme.config';
+import zenithLayout from './conventional/zenith/Layout.astro';
+
+import cascadeConfig from './conventional/cascade/theme.config';
+import cascadeLayout from './conventional/cascade/Layout.astro';
+
+import crestConfig from './conventional/crest/theme.config';
+import crestLayout from './conventional/crest/Layout.astro';
+
+import nexusConfig from './conventional/nexus/theme.config';
+import nexusLayout from './conventional/nexus/Layout.astro';
+
+import atlasConfig from './conventional/atlas/theme.config';
+import atlasLayout from './conventional/atlas/Layout.astro';
+
+import meridianConfig from './conventional/meridian/theme.config';
+import meridianLayout from './conventional/meridian/Layout.astro';
+
+import radianceConfig from './conventional/radiance/theme.config';
+import radianceLayout from './conventional/radiance/Layout.astro';
+
 // --- v2 theme imports (mobile) ---
 
 // --- v1 fallback (legacy) ---
@@ -98,6 +122,14 @@ const registry: Record<string, RegisteredTheme> = {
   prism: { config: prismConfig, Layout: prismLayout },
   mosaic: { config: mosaicConfig, Layout: mosaicLayout },
   pulse: { config: pulseConfig, Layout: pulseLayout },
+  vivid: { config: vividConfig, Layout: vividLayout },
+  zenith: { config: zenithConfig, Layout: zenithLayout },
+  cascade: { config: cascadeConfig, Layout: cascadeLayout },
+  crest: { config: crestConfig, Layout: crestLayout },
+  nexus: { config: nexusConfig, Layout: nexusLayout },
+  atlas: { config: atlasConfig, Layout: atlasLayout },
+  meridian: { config: meridianConfig, Layout: meridianLayout },
+  radiance: { config: radianceConfig, Layout: radianceLayout },
 };
 
 /**

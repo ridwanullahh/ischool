@@ -1,0 +1,92 @@
+---
+/**
+ * Zenith — v2 conventional theme (generated, production-grade)
+ */
+import '../../../../styles/global.css';
+import PaletteStyles from '../../_shared/PaletteStyles.astro';
+import FoucScript from '../../_shared/FoucScript.astro';
+import ThemeToggleScript from '../../_shared/ThemeToggleScript.astro';
+import { getSocialIconPath } from '../../_shared/social-icons';
+import { getSchoolNav, getSchoolContacts } from '../../../../lib/school.ts';
+import { normalizeSocialUrl } from '../../../../lib/social.ts';
+import LanguageSelector from '../../../../components/LanguageSelector.astro';
+import SchoolBannerPopup from '../../../../components/SchoolBannerPopup.astro';
+interface Props { school: any; title?: string; }
+const { school, title } = Astro.props;
+const nav = getSchoolNav(school.id); const contacts = getSchoolContacts(school.id);
+const pageTitle = title ? `${title} — ${school.name}` : school.name;
+const prefix = `/${school.slug}`; const { pathname } = Astro.url;
+const social = (school.socialHandles as Record<string, string>) || {};
+const socialEntries = Object.entries(social).filter(([, v]) => v && v !== '#');
+const locale = school.locale || 'en'; const rtl = ['ar','he','fa','ur'].includes(locale);
+---
+<!doctype html>
+<html lang={locale} dir={rtl ? 'rtl' : 'ltr'} class="light scroll-smooth">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="description" content={school.tagline || school.name} />
+  {school.faviconUrl && <link rel="icon" href={school.faviconUrl} />}
+  <link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <title>{pageTitle}</title>
+  <FoucScript defaultMode="light" /><PaletteStyles school={school} />
+  <style is:inline>{`
+    html, body { background: var(--bg); }
+    body { font-family: 'Geist', system-ui, sans-serif; color: var(--text); min-height: 100vh; }
+    .zenith-mono { font-family: 'Geist Mono', monospace; }
+    .zenith-nav-link { font-size: 0.8rem; font-weight: 500; padding: 0.5rem 0; transition: color 0.15s; }
+    .zenith-nav-link[data-active="true"], .zenith-nav-link:hover { color: var(--primary); }
+    .zenith-bubble-u { color: var(--primary); padding: 0.5rem 0; font-size: 0.85rem; max-width: 85%; margin-left: auto; text-align: right; }
+    .zenith-bubble-a { color: var(--muted); padding: 0.5rem 0; font-size: 0.85rem; max-width: 85%; }
+  `}</style>
+</head>
+<body>
+  <header class="border-b" style="background:var(--bg);border-color:var(--border)">
+    <div class="max-w-6xl mx-auto px-6 pt-10 pb-6">
+      <div class="flex items-center justify-between">
+        <a href={`${prefix}/`} class="flex items-center gap-2" aria-label={`${school.name} home`}>{school.logoUrl ? <img src={school.logoUrl} alt={school.name} class="h-7 w-auto" /> : <span class="text-xl font-bold tracking-tight" style="color:var(--text)">{school.name}</span>}</a>
+        <div class="flex items-center gap-3"><LanguageSelector /><button id="theme-toggle" type="button" class="zenith-mono text-[10px] uppercase tracking-widest" style="color:var(--muted)" aria-label="Toggle light, dark, or system mode"><span class="hidden dark:inline">dark</span><span class="inline dark:hidden">light</span></button></div>
+      </div>
+      <nav class="hidden lg:flex items-center gap-6 mt-6" aria-label="Primary">{nav.map(item => { const active = pathname === `${prefix}${item.url}`; return <a href={`${prefix}${item.url}`} data-active={active} class="zenith-nav-link" style="color:var(--text)">{item.label}</a>; })}</nav>
+      <button id="zenith-menu-toggle" type="button" class="lg:hidden mt-4 zenith-mono text-[10px] uppercase tracking-widest" style="color:var(--text)" aria-label="Open menu" aria-expanded="false" aria-controls="zenith-mobile-nav">Menu +</button>
+      <div id="zenith-mobile-nav" class="lg:hidden hidden mt-3 space-y-2">{nav.map(item => { const active = pathname === `${prefix}${item.url}`; return <a href={`${prefix}${item.url}`} data-active={active} class="zenith-nav-link block" style="color:var(--text)">{item.label}</a>; })}<a href={`${prefix}/admissions`} class="zenith-nav-link block" style="color:var(--primary)">Apply</a></div>
+    </div>
+  </header>
+
+  <main><slot /></main>
+
+  <footer class="mt-24 px-6 pb-10">
+    <div class="max-w-6xl mx-auto">
+      <div class="border-t pt-8" style="border-color:var(--border)"></div>
+      <div class="grid grid-cols-3 gap-8">
+        <div><p class="zenith-mono text-[10px] uppercase tracking-widest mb-3" style="color:var(--muted)">Contact</p><ul class="space-y-1">{contacts.slice(0,3).map(c => <li class="text-xs" style="color:var(--text)">{c.value}</li>)}{contacts.length===0 && <li class="text-xs" style="color:var(--muted)">—</li>}</ul></div>
+        <div><p class="zenith-mono text-[10px] uppercase tracking-widest mb-3" style="color:var(--muted)">Index</p><ul class="space-y-1">{nav.slice(0,5).map(item => <li><a href={`${prefix}${item.url}`} class="text-xs hover:opacity-60" style="color:var(--text)">{item.label}</a></li>)}</ul></div>
+        <div><p class="zenith-mono text-[10px] uppercase tracking-widest mb-3" style="color:var(--muted)">Elsewhere</p><div class="flex items-center gap-3">{socialEntries.map(([p,h]) => <a href={normalizeSocialUrl(h,p)} target="_blank" rel="noopener noreferrer" class="zenith-mono text-[11px] uppercase tracking-wider hover:opacity-60" style="color:var(--text)">{p}</a>)}{socialEntries.length===0 && <span class="text-xs" style="color:var(--muted)">—</span>}</div></div>
+      </div>
+      <div class="mt-8 flex items-center justify-between"><p class="zenith-mono text-[10px] uppercase tracking-widest" style="color:var(--muted)">© {new Date().getFullYear()} {school.name}</p><a href="/" class="zenith-mono text-[10px] uppercase tracking-widest hover:opacity-60" style="color:var(--muted)">iSchool</a></div>
+    </div>
+  </footer>
+  <SchoolBannerPopup school={school} />
+
+  <button id="zenith-chat-toggle" type="button" class="fixed bottom-6 right-6 z-50 zenith-mono text-[10px] uppercase tracking-widest flex items-center gap-2" style="color:var(--text)" aria-label="Open chat" aria-expanded="false" aria-controls="zenith-chat-panel"><span class="inline-block w-2 h-2 rounded-full" style="background:var(--primary)"></span>Ask</button>
+  <div id="zenith-chat-panel" class="fixed bottom-14 right-6 z-50 w-[min(360px,calc(100vw-3rem))] hidden flex-col border" style="background:var(--surface);border-color:var(--border);max-height:70vh">
+    <div class="px-4 py-3 border-b flex items-center justify-between" style="border-color:var(--border)"><p class="zenith-mono text-[10px] uppercase tracking-widest" style="color:var(--muted)">Dialogue</p><button id="zenith-chat-close" type="button" class="zenith-mono text-[10px] uppercase" style="color:var(--muted)" aria-label="Close">[x]</button></div>
+    <div id="zenith-chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3"></div>
+    <form id="zenith-chat-form" class="p-3 border-t flex items-center gap-2" style="border-color:var(--border)"><input id="zenith-chat-input" type="text" placeholder="message" class="flex-1 bg-transparent border-0 px-1 py-1 text-sm outline-none zenith-mono" style="color:var(--text)" aria-label="Type your message" /><button type="submit" class="zenith-mono text-[10px] uppercase tracking-widest" style="color:var(--primary)" aria-label="Send">send</button></form>
+  </div>
+
+  <ThemeToggleScript defaultMode="light" selector="#theme-toggle" />
+  <script is:inline set:html={`(function(){
+    var t=document.getElementById('zenith-menu-toggle'),d=document.getElementById('zenith-mobile-nav');
+    if(t&&d){{t.addEventListener('click',function(){{d.classList.toggle('hidden');t.setAttribute('aria-expanded',String(!d.classList.contains('hidden')));}});}}
+    var ct=document.getElementById('zenith-chat-toggle'),cp=document.getElementById('zenith-chat-panel');
+    function o(){{cp.classList.remove('hidden');cp.classList.add('flex');ct.setAttribute('aria-expanded','true');}}
+    function c(){{cp.classList.add('hidden');cp.classList.remove('flex');ct.setAttribute('aria-expanded','false');}}
+    if(ct&&cp){{ct.addEventListener('click',function(){{cp.classList.contains('hidden')?o():c();}});}}
+    var f=document.getElementById('zenith-chat-form'),i=document.getElementById('zenith-chat-input'),m=document.getElementById('zenith-chat-messages');
+    if(f&&i&&m){{f.addEventListener('submit',function(e){{e.preventDefault();var t=i.value.trim();if(!t)return;
+      var b=document.createElement('div');b.className='zenith-bubble-u';b.textContent=t;m.appendChild(b);i.value='';m.scrollTop=m.scrollHeight;
+      fetch('/api/'+${JSON.stringify(school.slug)}+'/ai-chat',{{method:'POST',headers:{{'Content-Type':'application/json'}},body:JSON.stringify({{message:t}})}}).then(function(r){{return r.ok?r.json():{{reply:'Unavailable.'}};}}).then(function(data){{var r=document.createElement('div');r.className='zenith-bubble-a';r.textContent=data.reply||data.message||'...';m.appendChild(r);m.scrollTop=m.scrollHeight;}}).catch(function(){{var r=document.createElement('div');r.className='zenith-bubble-a';r.textContent='Connection error.';m.appendChild(r);m.scrollTop=m.scrollHeight;}});}});}}
+  })();`} />
+</body>
+</html>
