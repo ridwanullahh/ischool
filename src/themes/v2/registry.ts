@@ -46,6 +46,18 @@ import novaLayout from './conventional/nova/Layout.astro';
 import emberConfig from './conventional/ember/theme.config';
 import emberLayout from './conventional/ember/Layout.astro';
 
+import campusConfig from './conventional/campus/theme.config';
+import campusLayout from './conventional/campus/Layout.astro';
+
+import oasisConfig from './conventional/oasis/theme.config';
+import oasisLayout from './conventional/oasis/Layout.astro';
+
+import luxeConfig from './conventional/luxe/theme.config';
+import luxeLayout from './conventional/luxe/Layout.astro';
+
+import slateConfig from './conventional/slate/theme.config';
+import slateLayout from './conventional/slate/Layout.astro';
+
 // --- v2 theme imports (mobile) ---
 
 // --- v1 fallback (legacy) ---
@@ -62,6 +74,10 @@ const registry: Record<string, RegisteredTheme> = {
   prestige: { config: prestigeConfig, Layout: prestigeLayout },
   nova: { config: novaConfig, Layout: novaLayout },
   ember: { config: emberConfig, Layout: emberLayout },
+  campus: { config: campusConfig, Layout: campusLayout },
+  oasis: { config: oasisConfig, Layout: oasisLayout },
+  luxe: { config: luxeConfig, Layout: luxeLayout },
+  slate: { config: slateConfig, Layout: slateLayout },
 };
 
 /**
