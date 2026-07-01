@@ -1284,9 +1284,57 @@ export const cbtAttempts = sqliteTable('cbt_attempts', {
   flags: text('flags', { mode: 'json' }).default('[]'),
   proctorNotes: text('proctor_notes'),
   ipAddress: text('ip_address'),
+  deviceFingerprint: text('device_fingerprint'),
   startedAt: integer('started_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
   submittedAt: integer('submitted_at', { mode: 'timestamp' }),
   integrityReport: text('integrity_report', { mode: 'json' }),
+  status: text('status', { enum: ['in_progress', 'submitted', 'graded', 'disqualified'] }).notNull().default('in_progress'),
+  ...timestamps,
+});
+
+// ═══════════════════════════════════════════════════════
+// CBT: Proctoring Logs (detailed event trail per attempt)
+// ═══════════════════════════════════════════════════════
+
+export const cbtProctoringLogs = sqliteTable('cbt_proctoring_logs', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  attemptId: integer('attempt_id').notNull().references(() => cbtAttempts.id, { onDelete: 'cascade' }),
+  eventType: text('event_type', { enum: [
+    'tab_switch', 'fullscreen_exit', 'window_blur', 'copy_attempt',
+    'paste_attempt', 'right_click', 'keyboard_shortcut',
+    'face_not_detected', 'multiple_faces', 'audio_anomaly',
+    'idle_timeout', 'connection_lost', 'session_resume',
+  ] }).notNull(),
+  timestamp: text('timestamp').notNull(),
+  details: text('details'),
+  severity: text('severity', { enum: ['info', 'warning', 'critical'] }).notNull().default('warning'),
+});
+
+// ═══════════════════════════════════════════════════════
+// CBT: Exam Sections (for section-based exam structure)
+// ═══════════════════════════════════════════════════════
+
+export const cbtSections = sqliteTable('cbt_sections', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  examId: integer('exam_id').notNull().references(() => cbtExams.id, { onDelete: 'cascade' }),
+  title: text('title').notNull(),
+  description: text('description'),
+  timeLimit: integer('time_limit'), // minutes, null = use exam default
+  marks: integer('marks'),
+  questionCount: integer('question_count'),
+  sortOrder: integer('sort_order').default(0),
+  ...timestamps,
+});
+
+// ═══════════════════════════════════════════════════════
+// CBT: Question Tags (for topic/subject tagging + auto-generation)
+// ═══════════════════════════════════════════════════════
+
+export const cbtQuestionTags = sqliteTable('cbt_question_tags', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  type: text('type', { enum: ['topic', 'subject', 'curriculum', 'custom'] }).notNull().default('topic'),
   ...timestamps,
 });
 
