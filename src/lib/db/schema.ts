@@ -802,7 +802,24 @@ export const libraryLoans = sqliteTable('library_loans', {
   returnDate: text('return_date'),
   renewals: integer('renewals').default(0),
   fine: integer('fine').default(0),
+  finePaid: integer('fine_paid', { mode: 'boolean' }).default(false),
   status: text('status', { enum: ['active', 'returned', 'overdue', 'lost'] }).notNull().default('active'),
+  ...timestamps,
+});
+
+// ═══════════════════════════════════════════════════════
+// LIBRARY: Reservations / Holds
+// ═══════════════════════════════════════════════════════
+
+export const libraryReservations = sqliteTable('library_reservations', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
+  bookId: integer('book_id').notNull().references(() => libraryBooks.id, { onDelete: 'cascade' }),
+  userId: integer('user_id').notNull().references(() => users.id),
+  status: text('status', { enum: ['pending', 'fulfilled', 'cancelled', 'expired'] }).notNull().default('pending'),
+  reservedAt: text('reserved_at'),
+  fulfilledAt: text('fulfilled_at'),
+  expiresAt: text('expires_at'),
   ...timestamps,
 });
 
@@ -880,6 +897,34 @@ export const transportAssignments = sqliteTable('transport_assignments', {
 });
 
 // ═══════════════════════════════════════════════════════
+// TRANSPORT: Daily Dispatch & Boarding Confirmation
+// ═══════════════════════════════════════════════════════
+
+export const transportDispatch = sqliteTable('transport_dispatch', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
+  routeId: integer('route_id').notNull().references(() => transportRoutes.id),
+  vehicleId: integer('vehicle_id').notNull().references(() => vehicles.id),
+  date: text('date').notNull(),
+  type: text('type', { enum: ['pickup', 'dropoff'] }).notNull(),
+  departureTime: text('departure_time'),
+  arrivalTime: text('arrival_time'),
+  status: text('status', { enum: ['scheduled', 'in_transit', 'completed', 'cancelled'] }).notNull().default('scheduled'),
+  notes: text('notes'),
+  ...timestamps,
+});
+
+export const transportBoarding = sqliteTable('transport_boarding', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  dispatchId: integer('dispatch_id').notNull().references(() => transportDispatch.id, { onDelete: 'cascade' }),
+  studentId: integer('student_id').notNull().references(() => students.id, { onDelete: 'cascade' }),
+  boardedAt: text('boarded_at'),
+  status: text('status', { enum: ['boarded', 'absent', 'late'] }).notNull().default('boarded'),
+  parentNotified: integer('parent_notified', { mode: 'boolean' }).default(false),
+  ...timestamps,
+});
+
+// ═══════════════════════════════════════════════════════
 // MODULE 11: INVENTORY & ASSET MANAGEMENT
 // ═══════════════════════════════════════════════════════
 
@@ -896,6 +941,42 @@ export const assets = sqliteTable('assets', {
   assignedTo: integer('assigned_to').references(() => users.id),
   location: text('location'),
   condition: text('condition', { enum: ['new', 'good', 'fair', 'damaged', 'decommissioned'] }).notNull().default('good'),
+  ...timestamps,
+});
+
+// ═══════════════════════════════════════════════════════
+// INVENTORY: Asset Check-in/Check-out Log
+// ═══════════════════════════════════════════════════════
+
+export const assetCheckouts = sqliteTable('asset_checkouts', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
+  assetId: integer('asset_id').notNull().references(() => assets.id, { onDelete: 'cascade' }),
+  checkedOutTo: integer('checked_out_to').notNull().references(() => users.id),
+  checkedOutBy: integer('checked_out_by').references(() => users.id),
+  checkoutDate: text('checkout_date').notNull(),
+  expectedReturnDate: text('expected_return_date'),
+  actualReturnDate: text('actual_return_date'),
+  returnedTo: integer('returned_to').references(() => users.id),
+  conditionAtCheckout: text('condition_at_checkout'),
+  conditionAtReturn: text('condition_at_return'),
+  notes: text('notes'),
+  status: text('status', { enum: ['active', 'returned', 'overdue', 'lost'] }).notNull().default('active'),
+  ...timestamps,
+});
+
+// ═══════════════════════════════════════════════════════
+// INVENTORY: Suppliers
+// ═══════════════════════════════════════════════════════
+
+export const suppliers = sqliteTable('suppliers', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  contactPerson: text('contact_person'),
+  email: text('email'),
+  phone: text('phone'),
+  address: text('address'),
   ...timestamps,
 });
 
@@ -931,6 +1012,20 @@ export const events = sqliteTable('events', {
   audience: text('audience', { mode: 'json' }).default('[]'),
   rsvpRequired: integer('rsvp_required', { mode: 'boolean' }).default(false),
   imageUrl: text('image_url'),
+  ...timestamps,
+});
+
+// ═══════════════════════════════════════════════════════
+// EVENTS: RSVP Responses
+// ═══════════════════════════════════════════════════════
+
+export const eventRsvps = sqliteTable('event_rsvps', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  eventId: integer('event_id').notNull().references(() => events.id, { onDelete: 'cascade' }),
+  userId: integer('user_id').notNull().references(() => users.id),
+  response: text('response', { enum: ['yes', 'no', 'maybe'] }).notNull(),
+  numberOfGuests: integer('number_of_guests').default(0),
+  notes: text('notes'),
   ...timestamps,
 });
 
