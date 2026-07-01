@@ -1,171 +1,176 @@
+/**
+ * Payment Processing API
+ *
+ * POST /api/dashboard/payments/initiate - initiate a payment
+ * POST /api/dashboard/payments/verify - verify a payment
+ * POST /api/dashboard/payments/manual - record manual payment (cash/transfer)
+ */
 import type { APIRoute } from 'astro';
 import { getDb } from '../../../lib/db/index.js';
-import { payments, invoices, schoolMembers } from '../../../lib/db/schema.js';
-import { eq, and, desc } from 'drizzle-orm';
-import { toCsv, csvResponse, type CsvColumn } from '../../../lib/export.js';
-import { notifyPaymentReceived } from '../../../lib/notifications.js';
+import { payments, invoices } from '../../../lib/db/schema.js';
+import { eq } from 'drizzle-orm';
+import { guardPermission } from '../../../lib/rbac.js';
+import { initializePayment, verifyPayment, generatePaymentReference, type GatewayType } from '../../../lib/payments.js';
 
-function getUserSchoolId(userId: number): number | null {
-  const db = getDb();
-  const membership = db.select().from(schoolMembers).where(eq(schoolMembers.userId, userId)).get();
-  return membership?.schoolId || null;
-}
+// Initiate payment
+export const POST: APIRoute = async ({ request, locals, url }) => {
+  const user = locals.user;
+  if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
 
-export const GET: APIRoute = async ({ locals, url }) => {
-  const user = (locals as any).user;
-  if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
-  const schoolId = getUserSchoolId(user.id);
-  if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 404 });
+  const body = await request.json();
+  const { action } = body;
 
-  const db = getDb();
-  const action = url.searchParams.get('action');
-
-  if (action === 'export') {
-    const allPayments = db.select({
-      id: payments.id, invoiceId: payments.invoiceId, amount: payments.amount,
-      method: payments.method, reference: payments.reference, status: payments.status,
-      paidBy: payments.paidBy, notes: payments.notes, paidAt: payments.paidAt,
-    }).from(payments).innerJoin(invoices, eq(payments.invoiceId, invoices.id))
-      .where(eq(invoices.schoolId, schoolId)).orderBy(desc(payments.paidAt)).all();
-    const columns: CsvColumn[] = [
-      { key: 'id', label: 'Payment ID' },
-      { key: 'invoiceId', label: 'Invoice ID' },
-      { key: 'amount', label: 'Amount' },
-      { key: 'method', label: 'Method' },
-      { key: 'reference', label: 'Reference' },
-      { key: 'status', label: 'Status' },
-      { key: 'paidBy', label: 'Paid By' },
-      { key: 'paidAt', label: 'Paid At' },
-    ];
-    return csvResponse(toCsv(allPayments, columns), 'payments.csv');
+  if (action === 'initiate') {
+    return initiatePayment(body, user);
+  } else if (action === 'verify') {
+    return verifyPaymentHandler(body, user);
+  } else if (action === 'manual') {
+    return recordManualPayment(body, user);
   }
 
-  const status = url.searchParams.get('status');
-  const invoiceId = url.searchParams.get('invoiceId');
-
-  let query = db.select({
-    id: payments.id,
-    invoiceId: payments.invoiceId,
-    amount: payments.amount,
-    method: payments.method,
-    reference: payments.reference,
-    status: payments.status,
-    paidBy: payments.paidBy,
-    notes: payments.notes,
-    paidAt: payments.paidAt,
-    createdAt: payments.createdAt,
-    invoiceNumber: invoices.invoiceNumber,
-    invoiceAmount: invoices.amount,
-  }).from(payments)
-    .leftJoin(invoices, eq(payments.invoiceId, invoices.id))
-    .where(eq(payments.schoolId, schoolId));
-
-  if (status) {
-    query = db.select({
-      id: payments.id,
-      invoiceId: payments.invoiceId,
-      amount: payments.amount,
-      method: payments.method,
-      reference: payments.reference,
-      status: payments.status,
-      paidBy: payments.paidBy,
-      notes: payments.notes,
-      paidAt: payments.paidAt,
-      createdAt: payments.createdAt,
-      invoiceNumber: invoices.invoiceNumber,
-      invoiceAmount: invoices.amount,
-    }).from(payments)
-      .leftJoin(invoices, eq(payments.invoiceId, invoices.id))
-      .where(and(eq(payments.schoolId, schoolId), eq(payments.status, status as any)));
-  }
-
-  if (invoiceId) {
-    query = db.select({
-      id: payments.id,
-      invoiceId: payments.invoiceId,
-      amount: payments.amount,
-      method: payments.method,
-      reference: payments.reference,
-      status: payments.status,
-      paidBy: payments.paidBy,
-      notes: payments.notes,
-      paidAt: payments.paidAt,
-      createdAt: payments.createdAt,
-      invoiceNumber: invoices.invoiceNumber,
-      invoiceAmount: invoices.amount,
-    }).from(payments)
-      .leftJoin(invoices, eq(payments.invoiceId, invoices.id))
-      .where(and(eq(payments.schoolId, schoolId), eq(payments.invoiceId, parseInt(invoiceId))));
-  }
-
-  const records = query.orderBy(desc(payments.paidAt)).all();
-  return new Response(JSON.stringify(records), { headers: { 'Content-Type': 'application/json' } });
+  return new Response(JSON.stringify({ error: 'Invalid action' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
 };
 
-export const POST: APIRoute = async ({ request, locals }) => {
-  const user = (locals as any).user;
-  if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
-  const schoolId = getUserSchoolId(user.id);
-  if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 404 });
+async function initiatePayment(body: any, user: any) {
+  const { invoiceId, gateway, schoolId } = body;
 
-  const data = await request.json();
-  if (!data.invoiceId || !data.amount || !data.method) {
-    return new Response(JSON.stringify({ error: 'invoiceId, amount, and method are required' }), { status: 400 });
+  if (!invoiceId || !gateway) {
+    return new Response(JSON.stringify({ error: 'Missing invoice ID or gateway' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+  }
+
+  // For payments, students/parents can initiate, or admins can do it
+  const allowedPerms = ['payments.make', 'payments.record'];
+  const userPerms = (user as any).permissions;
+  const hasPermission = userPerms && allowedPerms.some((p: string) => userPerms.has(p));
+  if (!hasPermission) {
+    return new Response(JSON.stringify({ error: 'Permission denied' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
   }
 
   const db = getDb();
-  const result = db.insert(payments).values({
-    invoiceId: data.invoiceId,
-    schoolId,
-    amount: data.amount,
-    method: data.method,
-    reference: data.reference || null,
-    status: data.status || 'completed',
+  const invoice = db.select().from(invoices).where(eq(invoices.id, invoiceId)).get();
+  if (!invoice || invoice.schoolId !== (user as any).schoolId) {
+    return new Response(JSON.stringify({ error: 'Invoice not found' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
+  }
+
+  if (invoice.balance <= 0) {
+    return new Response(JSON.stringify({ error: 'Invoice already paid' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+  }
+
+  const reference = generatePaymentReference();
+  const result = await initializePayment(gateway as GatewayType, invoice.balance, reference, {
+    invoiceId,
+    schoolId: invoice.schoolId,
+    studentId: invoice.studentId,
+  });
+
+  if (!result.ok) {
+    return new Response(JSON.stringify({ error: result.message }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+  }
+
+  // Create a pending payment record
+  const payment = db.insert(payments).values({
+    invoiceId,
+    schoolId: invoice.schoolId,
+    amount: invoice.balance,
+    method: gateway,
+    reference,
+    status: 'pending',
     paidBy: user.id,
-    notes: data.notes || null,
     paidAt: new Date(),
   }).returning().get();
 
-  const invoice = db.select().from(invoices).where(eq(invoices.id, data.invoiceId)).get();
-  if (invoice) {
-    const newPaidAmount = invoice.paidAmount + data.amount;
-    const newBalance = invoice.amount - newPaidAmount;
-    const newStatus = newBalance <= 0 ? 'paid' : 'partial';
-    db.update(invoices).set({ paidAmount: newPaidAmount, balance: newBalance > 0 ? newBalance : 0, status: newStatus as any, updatedAt: new Date() }).where(eq(invoices.id, data.invoiceId)).run();
+  return new Response(JSON.stringify({
+    ok: true,
+    paymentId: payment.id,
+    reference,
+    authorizationUrl: result.authorizationUrl,
+    clientSecret: result.clientSecret,
+    gateway,
+  }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+}
+
+async function verifyPaymentHandler(body: any, user: any) {
+  const { reference, gateway } = body;
+
+  if (!reference || !gateway) {
+    return new Response(JSON.stringify({ error: 'Missing reference or gateway' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
   }
 
-  notifyPaymentReceived(schoolId, data.amount, data.method).catch(() => {});
+  const result = await verifyPayment(gateway as GatewayType, reference);
+  if (!result.ok) {
+    return new Response(JSON.stringify({ error: result.message, status: result.status }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+  }
 
-  return new Response(JSON.stringify(result), { status: 201, headers: { 'Content-Type': 'application/json' } });
-};
+  // If payment completed, update the payment and invoice records
+  if (result.status === 'completed') {
+    const db = getDb();
+    const payment = db.select().from(payments).where(eq(payments.reference, reference)).get();
+    if (payment) {
+      db.update(payments).set({
+        status: 'completed',
+        paidAt: new Date(),
+      }).where(eq(payments.id, payment.id)).run();
 
-export const PUT: APIRoute = async ({ request, locals }) => {
-  const user = (locals as any).user;
-  if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
-  const schoolId = getUserSchoolId(user.id);
-  if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 404 });
+      // Update invoice
+      const invoice = db.select().from(invoices).where(eq(invoices.id, payment.invoiceId)).get();
+      if (invoice) {
+        const newPaid = (invoice.amountPaid || 0) + payment.amount;
+        const newBalance = invoice.amount - newPaid;
+        db.update(invoices).set({
+          amountPaid: newPaid,
+          balance: newBalance,
+          status: newBalance <= 0 ? 'paid' : 'partial',
+          updatedAt: new Date(),
+        }).where(eq(invoices.id, invoice.id)).run();
+      }
+    }
+  }
 
-  const data = await request.json();
-  if (!data.id) return new Response(JSON.stringify({ error: 'id is required' }), { status: 400 });
+  return new Response(JSON.stringify({ ok: true, status: result.status, reference }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+}
+
+async function recordManualPayment(body: any, user: any) {
+  const denied = guardPermission(user, 'payments.record');
+  if (denied) return denied;
+
+  const { invoiceId, amount, method, reference, notes, schoolId } = body;
+
+  if (!invoiceId || !amount || !method) {
+    return new Response(JSON.stringify({ error: 'Missing required fields' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+  }
+
+  if (schoolId !== (user as any).schoolId) {
+    return new Response(JSON.stringify({ error: 'School mismatch' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
+  }
 
   const db = getDb();
-  const existing = db.select().from(payments).where(and(eq(payments.id, data.id), eq(payments.schoolId, schoolId))).get();
-  if (!existing) return new Response(JSON.stringify({ error: 'Payment not found' }), { status: 404 });
+  const invoice = db.select().from(invoices).where(eq(invoices.id, invoiceId)).get();
+  if (!invoice || invoice.schoolId !== schoolId) {
+    return new Response(JSON.stringify({ error: 'Invoice not found' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
+  }
 
-  const { id, schoolId: _, ...updateData } = data;
-  db.update(payments).set({ ...updateData, updatedAt: new Date() }).where(eq(payments.id, id)).run();
-  const updated = db.select().from(payments).where(eq(payments.id, id)).get();
-  return new Response(JSON.stringify(updated), { headers: { 'Content-Type': 'application/json' } });
-};
+  // Create completed payment record
+  const payment = db.insert(payments).values({
+    invoiceId,
+    schoolId,
+    amount,
+    method,
+    reference: reference || generatePaymentReference('MAN'),
+    status: 'completed',
+    paidBy: user.id,
+    notes: notes || null,
+    paidAt: new Date(),
+  }).returning().get();
 
-export const DELETE: APIRoute = async ({ request, locals }) => {
-  const user = (locals as any).user;
-  if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
-  const schoolId = getUserSchoolId(user.id);
-  if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 404 });
+  // Update invoice
+  const newPaid = (invoice.amountPaid || 0) + amount;
+  const newBalance = invoice.amount - newPaid;
+  db.update(invoices).set({
+    amountPaid: newPaid,
+    balance: newBalance,
+    status: newBalance <= 0 ? 'paid' : 'partial',
+    updatedAt: new Date(),
+  }).where(eq(invoices.id, invoice.id)).run();
 
-  const { id } = await request.json();
-  const db = getDb();
-  db.delete(payments).where(and(eq(payments.id, id), eq(payments.schoolId, schoolId))).run();
-  return new Response(JSON.stringify({ success: true }), { headers: { 'Content-Type': 'application/json' } });
-};
+  return new Response(JSON.stringify({ ok: true, paymentId: payment.id }), { status: 201, headers: { 'Content-Type': 'application/json' } });
+}
