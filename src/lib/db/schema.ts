@@ -993,14 +993,35 @@ export const feeAccessRules = sqliteTable('fee_access_rules', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
   enabled: integer('enabled', { mode: 'boolean' }).default(false),
-  // How many days overdue before blocking kicks in
   gracePeriodDays: integer('grace_period_days').default(0),
-  // Which modules to block: json array of module keys ['lms', 'exams', 'cbt', 'portal']
   blockedModules: text('blocked_modules', { mode: 'json' }).default('[]'),
-  // Threshold amount: only block if outstanding exceeds this (0 = any amount)
   thresholdAmount: integer('threshold_amount').default(0),
-  // Custom message shown to blocked students
   blockMessage: text('block_message'),
+  ...timestamps,
+});
+
+// ═══════════════════════════════════════════════════════
+// LMS: Discussion Boards
+// ═══════════════════════════════════════════════════════
+
+export const discussionBoards = sqliteTable('discussion_boards', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
+  courseId: integer('course_id').references(() => courses.id, { onDelete: 'cascade' }),
+  title: text('title').notNull(),
+  description: text('description'),
+  locked: integer('locked', { mode: 'boolean' }).default(false),
+  createdBy: integer('created_by').references(() => users.id),
+  ...timestamps,
+});
+
+export const discussionPosts = sqliteTable('discussion_posts', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  boardId: integer('board_id').notNull().references(() => discussionBoards.id, { onDelete: 'cascade' }),
+  parentId: integer('parent_id'), // for threaded replies
+  authorId: integer('author_id').notNull().references(() => users.id),
+  content: text('content').notNull(),
+  pinned: integer('pinned', { mode: 'boolean' }).default(false),
   ...timestamps,
 });
 
