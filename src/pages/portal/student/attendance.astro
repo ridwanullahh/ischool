@@ -1,0 +1,109 @@
+---
+/**
+ * Student Portal - Attendance
+ *
+ * Shows the student's attendance history and rate.
+ */
+import StudentPortalLayout from '../../../layouts/StudentPortalLayout.astro';
+import { getDb } from '../../../lib/db/index.js';
+import { attendance } from '../../../lib/db/schema.js';
+import { eq, desc, sql } from 'drizzle-orm';
+import { getStudentForUser, getUserSchoolId } from '../../../lib/portal.js';
+
+const user = Astro.locals.user;
+if (!user) return Astro.redirect('/auth/login?redirect=/portal/student/attendance');
+
+const student = getStudentForUser(user.id);
+if (!student) return Astro.redirect('/portal/no-profile');
+const schoolId = getUserSchoolId(user.id) ?? student.schoolId;
+const db = getDb();
+
+const records = db.select().from(attendance)
+  .where(eq(attendance.studentId, student.id))
+  .orderBy(desc(attendance.date)).limit(60).all();
+
+const total = records.length;
+const present = records.filter(r => r.status === 'present').length;
+const absent = records.filter(r => r.status === 'absent').length;
+const late = records.filter(r => r.status === 'late').length;
+const excused = records.filter(r => r.status === 'excused').length;
+const rate = total > 0 ? Math.round((present / total) * 100) : 100;
+
+const formatDate = (d: string | Date | null) => {
+  if (!d) return '';
+  try { return new Date(d).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }); } catch { return ''; }
+};
+
+const statusColors: Record<string, string> = {
+  present: 'bg-green-100 text-green-700',
+  absent: 'bg-red-100 text-red-700',
+  late: 'bg-amber-100 text-amber-700',
+  excused: 'bg-blue-100 text-blue-700',
+};
+---
+
+<StudentPortalLayout title="Attendance - Student Portal">
+  <div class="space-y-6">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">My Attendance</h1>
+      <p class="text-sm text-gray-500 mt-1">Your attendance history and rate</p>
+    </div>
+
+    {/* Summary cards */}
+    <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      <div class="bg-white rounded-xl border border-gray-200 p-5">
+        <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Rate</p>
+        <p class:list={["text-2xl font-bold mt-2", rate >= 80 ? 'text-green-600' : rate >= 60 ? 'text-amber-600' : 'text-red-600']}>{rate}%</p>
+      </div>
+      <div class="bg-white rounded-xl border border-gray-200 p-5">
+        <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Present</p>
+        <p class="text-2xl font-bold text-green-600 mt-2">{present}</p>
+      </div>
+      <div class="bg-white rounded-xl border border-gray-200 p-5">
+        <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Absent</p>
+        <p class="text-2xl font-bold text-red-600 mt-2">{absent}</p>
+      </div>
+      <div class="bg-white rounded-xl border border-gray-200 p-5">
+        <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Late</p>
+        <p class="text-2xl font-bold text-amber-600 mt-2">{late}</p>
+      </div>
+      <div class="bg-white rounded-xl border border-gray-200 p-5">
+        <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Excused</p>
+        <p class="text-2xl font-bold text-blue-600 mt-2">{excused}</p>
+      </div>
+    </div>
+
+    {/* Attendance history */}
+    {records.length > 0 ? (
+      <div class="bg-white rounded-xl border border-gray-200 p-6">
+        <h2 class="text-base font-semibold text-gray-900 mb-4">Recent History</h2>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50 border-b">
+              <tr>
+                <th class="text-left py-2 px-3 font-medium text-gray-700">Date</th>
+                <th class="text-left py-2 px-3 font-medium text-gray-700">Status</th>
+                <th class="text-left py-2 px-3 font-medium text-gray-700">Notes</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              {records.map(r => (
+                <tr class="hover:bg-gray-50">
+                  <td class="py-2.5 px-3 text-gray-900">{formatDate(r.date)}</td>
+                  <td class="py-2.5 px-3">
+                    <span class:list={["inline-flex px-2 py-0.5 rounded-full text-xs font-bold capitalize", statusColors[r.status] || 'bg-gray-100 text-gray-700']}>{r.status}</span>
+                  </td>
+                  <td class="py-2.5 px-3 text-gray-500 text-xs">{r.notes || '-'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    ) : (
+      <div class="bg-white rounded-xl border border-gray-200 p-12 text-center">
+        <p class="text-sm text-gray-500">No attendance records yet.</p>
+      </div>
+    )}
+  </div>
+</StudentPortalLayout>

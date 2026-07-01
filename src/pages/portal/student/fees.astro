@@ -1,0 +1,136 @@
+---
+/**
+ * Student Portal - Fees
+ *
+ * Shows the student's fee invoices, payment history, and outstanding balance.
+ */
+import StudentPortalLayout from '../../../layouts/StudentPortalLayout.astro';
+import { getDb } from '../../../lib/db/index.js';
+import { invoices, payments } from '../../../lib/db/schema.js';
+import { eq, and, desc } from 'drizzle-orm';
+import { getStudentForUser, getUserSchoolId } from '../../../lib/portal.js';
+
+const user = Astro.locals.user;
+if (!user) return Astro.redirect('/auth/login?redirect=/portal/student/fees');
+
+const student = getStudentForUser(user.id);
+if (!student) return Astro.redirect('/portal/no-profile');
+const schoolId = getUserSchoolId(user.id) ?? student.schoolId;
+const db = getDb();
+
+const myInvoices = db.select().from(invoices)
+  .where(eq(invoices.studentId, student.id))
+  .orderBy(desc(invoices.issuedAt)).all();
+
+const myPayments = db.select().from(payments)
+  .where(eq(payments.schoolId, schoolId))
+  .orderBy(desc(payments.paidAt)).limit(20).all()
+  .filter(p => {
+    const inv = myInvoices.find(i => i.id === p.invoiceId);
+    return !!inv;
+  });
+
+const totalBilled = myInvoices.reduce((s, i) => s + (i.amount || 0), 0);
+const totalPaid = myInvoices.reduce((s, i) => s + (i.amountPaid || 0), 0);
+const outstanding = myInvoices.reduce((s, i) => s + (i.balance || 0), 0);
+
+const formatCurrency = (n: number | null) => {
+  if (n == null) return '0';
+  return n.toLocaleString();
+};
+
+const formatDate = (d: string | Date | null) => {
+  if (!d) return '';
+  try { return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); } catch { return ''; }
+};
+
+const statusColors: Record<string, string> = {
+  paid: 'bg-green-100 text-green-700',
+  partial: 'bg-amber-100 text-amber-700',
+  unpaid: 'bg-red-100 text-red-700',
+  overdue: 'bg-red-100 text-red-700',
+  draft: 'bg-gray-100 text-gray-500',
+};
+---
+
+<StudentPortalLayout title="Fees - Student Portal">
+  <div class="space-y-6">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">My Fees</h1>
+      <p class="text-sm text-gray-500 mt-1">View your invoices, payments, and outstanding balance</p>
+    </div>
+
+    {/* Summary cards */}
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div class="bg-white rounded-xl border border-gray-200 p-5">
+        <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Total Billed</p>
+        <p class="text-2xl font-bold text-gray-900 mt-2">{formatCurrency(totalBilled)}</p>
+      </div>
+      <div class="bg-white rounded-xl border border-gray-200 p-5">
+        <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Total Paid</p>
+        <p class="text-2xl font-bold text-green-600 mt-2">{formatCurrency(totalPaid)}</p>
+      </div>
+      <div class="bg-white rounded-xl border border-gray-200 p-5">
+        <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Outstanding</p>
+        <p class:list={["text-2xl font-bold mt-2", outstanding > 0 ? 'text-red-600' : 'text-green-600']}>{formatCurrency(outstanding)}</p>
+      </div>
+    </div>
+
+    {/* Invoices */}
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <h2 class="text-base font-semibold text-gray-900 mb-4">Invoices</h2>
+      {myInvoices.length > 0 ? (
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50 border-b">
+              <tr>
+                <th class="text-left py-2 px-3 font-medium text-gray-700">Invoice #</th>
+                <th class="text-left py-2 px-3 font-medium text-gray-700">Description</th>
+                <th class="text-left py-2 px-3 font-medium text-gray-700">Issued</th>
+                <th class="text-right py-2 px-3 font-medium text-gray-700">Amount</th>
+                <th class="text-right py-2 px-3 font-medium text-gray-700">Paid</th>
+                <th class="text-right py-2 px-3 font-medium text-gray-700">Balance</th>
+                <th class="text-center py-2 px-3 font-medium text-gray-700">Status</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              {myInvoices.map(inv => (
+                <tr class="hover:bg-gray-50">
+                  <td class="py-2.5 px-3 font-mono text-xs text-gray-700">{inv.invoiceNumber || `INV-${inv.id}`}</td>
+                  <td class="py-2.5 px-3 text-gray-900">{inv.description || 'Tuition Fee'}</td>
+                  <td class="py-2.5 px-3 text-gray-500 text-xs">{formatDate(inv.issuedAt)}</td>
+                  <td class="py-2.5 px-3 text-right text-gray-900">{formatCurrency(inv.amount)}</td>
+                  <td class="py-2.5 px-3 text-right text-green-600">{formatCurrency(inv.amountPaid)}</td>
+                  <td class="py-2.5 px-3 text-right font-bold text-gray-900">{formatCurrency(inv.balance)}</td>
+                  <td class="py-2.5 px-3 text-center">
+                    <span class:list={["inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold uppercase", statusColors[inv.status] || 'bg-gray-100 text-gray-500']}>{inv.status}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p class="text-sm text-gray-500 py-8 text-center">No invoices yet.</p>
+      )}
+    </div>
+
+    {/* Payment history */}
+    {myPayments.length > 0 && (
+      <div class="bg-white rounded-xl border border-gray-200 p-6">
+        <h2 class="text-base font-semibold text-gray-900 mb-4">Payment History</h2>
+        <div class="space-y-2">
+          {myPayments.map(p => (
+            <div class="flex items-center justify-between p-3 rounded-lg bg-gray-50">
+              <div>
+                <p class="text-sm font-medium text-gray-900">{formatCurrency(p.amount)}</p>
+                <p class="text-xs text-gray-500">{formatDate(p.paidAt)} - {p.method}</p>
+              </div>
+              <span class="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700 uppercase">{p.status}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+  </div>
+</StudentPortalLayout>
