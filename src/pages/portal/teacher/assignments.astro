@@ -1,0 +1,168 @@
+---
+/**
+ * Teacher Portal - Assignments
+ *
+ * Teachers can create assignments and view submissions per assignment.
+ */
+import TeacherPortalLayout from '../../../layouts/TeacherPortalLayout.astro';
+import { getDb } from '../../../lib/db/index.js';
+import { assignments, submissions, students, courses, classes } from '../../../lib/db/schema.js';
+import { eq, and, desc, sql } from 'drizzle-orm';
+import { getStaffForUser, getUserSchoolId } from '../../../lib/portal.js';
+
+const user = Astro.locals.user;
+if (!user) return Astro.redirect('/auth/login?redirect=/portal/teacher/assignments');
+
+const schoolId = getUserSchoolId(user.id);
+const db = getDb();
+
+// Get all assignments for the school
+const myAssignments = schoolId
+  ? db.select().from(assignments).where(eq(assignments.schoolId, schoolId)).orderBy(desc(assignments.createdAt)).all()
+  : [];
+
+// For each assignment, get submission count
+const enriched = myAssignments.map(a => {
+  const course = a.courseId ? db.select().from(courses).where(eq(courses.id, a.courseId)).get() : null;
+  const submissionCount = db.select({ c: sql<number>`count(*)` }).from(submissions).where(eq(submissions.assignmentId, a.id)).get()?.c || 0;
+  const gradedCount = db.select({ c: sql<number>`count(*)` }).from(submissions).where(and(eq(submissions.assignmentId, a.id), sql`${submissions.gradedAt} IS NOT NULL`)).get()?.c || 0;
+  return { ...a, courseName: course?.title || 'General', submissionCount, gradedCount };
+});
+
+// Get classes and courses for the create form
+const allClasses = schoolId ? db.select().from(classes).where(eq(classes.schoolId, schoolId)).all() : [];
+const allCourses = schoolId ? db.select().from(courses).where(eq(courses.schoolId, schoolId)).all() : [];
+
+const formatDate = (d: string | Date | null) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+---
+
+<TeacherPortalLayout title="Assignments - Teacher Portal">
+  <div class="space-y-6">
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">Assignments</h1>
+        <p class="text-sm text-gray-500 mt-1">Create and manage assignments, view submissions</p>
+      </div>
+      <button onclick="document.getElementById('createModal').classList.remove('hidden')" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">
+        Create Assignment
+      </button>
+    </div>
+
+    {/* Assignment list */}
+    {enriched.length > 0 ? (
+      <div class="space-y-3">
+        {enriched.map(a => (
+          <div class="bg-white rounded-xl border border-gray-200 p-5">
+            <div class="flex items-start justify-between gap-4">
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="text-xs font-medium text-primary-600">{a.courseName}</span>
+                  {a.dueDate && new Date(a.dueDate) < new Date() && (
+                    <span class="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-500">CLOSED</span>
+                  )}
+                </div>
+                <h3 class="text-sm font-semibold text-gray-900">{a.title}</h3>
+                {a.description && <p class="text-xs text-gray-500 mt-1 line-clamp-2">{a.description}</p>}
+                <div class="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                  <span>Due: {formatDate(a.dueDate)}</span>
+                  {a.maxPoints && <span>Points: {a.maxPoints}</span>}
+                  <span>Submissions: {a.submissionCount}</span>
+                  {a.submissionCount > 0 && a.gradedCount < a.submissionCount && (
+                    <span class="text-amber-600 font-medium">{a.submissionCount - a.gradedCount} ungraded</span>
+                  )}
+                </div>
+              </div>
+              <a href={`/portal/teacher/grades?assignment=${a.id}`} class="shrink-0 px-3 py-1.5 text-xs font-medium text-primary-600 border border-primary-200 rounded-lg hover:bg-primary-50">
+                View Submissions
+              </a>
+            </div>
+          </div>
+        ))}
+      </div>
+    ) : (
+      <div class="bg-white rounded-xl border border-gray-200 p-12 text-center">
+        <svg class="w-12 h-12 mx-auto text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        <p class="text-sm text-gray-500 mt-2">No assignments yet. Create your first assignment.</p>
+      </div>
+    )}
+  </div>
+
+  {/* Create modal */}
+  <div id="createModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-bold text-gray-900">Create Assignment</h3>
+        <button onclick="document.getElementById('createModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600" aria-label="Close">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <form id="createForm" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Title</label>
+          <input name="title" type="text" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+          <textarea name="description" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"></textarea>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Course (optional)</label>
+            <select name="courseId" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+              <option value="">None</option>
+              {allCourses.map(c => <option value={c.id}>{c.title}</option>)}
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Class (optional)</label>
+            <select name="classId" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+              <option value="">All classes</option>
+              {allClasses.map(c => <option value={c.id}>{c.name}{c.section ? ` - ${c.section}` : ''}</option>)}
+            </select>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
+            <input name="dueDate" type="date" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Max Points</label>
+            <input name="maxPoints" type="number" min="0" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+          </div>
+        </div>
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <button type="button" onclick="document.getElementById('createModal').classList.add('hidden')" class="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
+          <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">Create</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script is:inline define:vars={{ schoolId }}>
+    document.getElementById('createForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const fd = new FormData(this);
+      const body = {
+        title: fd.get('title'),
+        description: fd.get('description') || null,
+        courseId: fd.get('courseId') ? parseInt(fd.get('courseId')) : null,
+        classId: fd.get('classId') ? parseInt(fd.get('classId')) : null,
+        dueDate: fd.get('dueDate') || null,
+        maxPoints: fd.get('maxPoints') ? parseFloat(fd.get('maxPoints')) : null,
+        schoolId,
+      };
+      const res = await fetch('/api/portal/teacher/assignments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        window.location.reload();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || 'Failed to create assignment');
+      }
+    });
+  </script>
+</TeacherPortalLayout>

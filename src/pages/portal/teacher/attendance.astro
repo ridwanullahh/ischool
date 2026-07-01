@@ -1,0 +1,191 @@
+---
+/**
+ * Teacher Portal - Take Attendance
+ *
+ * Allows teachers to select a class and mark attendance for all students
+ * on a given date. Supports present/absent/late/excused statuses.
+ */
+import TeacherPortalLayout from '../../../layouts/TeacherPortalLayout.astro';
+import { getDb } from '../../../lib/db/index.js';
+import { classes, enrollments, students, attendance } from '../../../lib/db/schema.js';
+import { eq, and } from 'drizzle-orm';
+import { getStaffForUser, getUserSchoolId } from '../../../lib/portal.js';
+
+const user = Astro.locals.user;
+if (!user) return Astro.redirect('/auth/login?redirect=/portal/teacher/attendance');
+
+const staff = getStaffForUser(user.id);
+const schoolId = getUserSchoolId(user.id);
+const db = getDb();
+
+// Get selected class
+const selectedClassId = Astro.url.searchParams.get('class');
+const selectedDate = Astro.url.searchParams.get('date') || new Date().toISOString().split('T')[0];
+
+// Get classes the teacher can take attendance for
+const myClasses = staff
+  ? db.select().from(classes).where(eq(classes.homeroomTeacherId, staff.id)).all()
+  : [];
+const allSchoolClasses = schoolId
+  ? db.select().from(classes).where(eq(classes.schoolId, schoolId)).all()
+  : [];
+const availableClasses = myClasses.length > 0 ? myClasses : allSchoolClasses;
+
+// Get students in the selected class
+let classStudents: any[] = [];
+let existingAttendance: Record<number, any> = {};
+if (selectedClassId) {
+  const cid = parseInt(selectedClassId);
+  const enrollments_ = db.select().from(enrollments).where(eq(enrollments.classId, cid)).all();
+  const studentIds = enrollments_.map(e => e.studentId).filter(Boolean);
+  if (studentIds.length > 0) {
+    classStudents = db.select().from(students)
+      .where(inArray(students.id, studentIds))
+      .all()
+      .sort((a, b) => (a.firstName + a.lastName).localeCompare(b.firstName + b.lastName));
+  }
+  // Check for existing attendance records for this date
+  const existing = db.select().from(attendance)
+    .where(and(eq(attendance.classId, cid), eq(attendance.date, selectedDate)))
+    .all();
+  existingAttendance = Object.fromEntries(existing.map(a => [a.studentId, a]));
+}
+
+import { inArray } from 'drizzle-orm';
+---
+
+<TeacherPortalLayout title="Take Attendance - Teacher Portal">
+  <div class="space-y-6">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Take Attendance</h1>
+      <p class="text-sm text-gray-500 mt-1">Mark attendance for your class</p>
+    </div>
+
+    {/* Class + date selector */}
+    <div class="bg-white rounded-xl border border-gray-200 p-5">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-medium text-gray-700 mb-1.5">Class</label>
+          <select id="classSelect" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none" onchange="window.location.href=this.value ? `/portal/teacher/attendance?class=${this.value}&date=${document.getElementById('dateSelect').value}` : '/portal/teacher/attendance'">
+            <option value="">Select a class...</option>
+            {availableClasses.map(c => (
+              <option value={c.id} selected={selectedClassId === String(c.id)}>{c.name}{c.section ? ` - ${c.section}` : ''}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-700 mb-1.5">Date</label>
+          <input id="dateSelect" type="date" value={selectedDate} class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none" onchange={`window.location.href='/portal/teacher/attendance?class=${selectedClassId}&date='+this.value`} />
+        </div>
+      </div>
+    </div>
+
+    {/* Student list */}
+    {selectedClassId && classStudents.length > 0 ? (
+      <div class="bg-white rounded-xl border border-gray-200 p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-base font-semibold text-gray-900">{classStudents.length} Students</h2>
+          <div class="flex items-center gap-2">
+            <button onclick="markAll('present')" class="px-3 py-1.5 text-xs font-medium text-green-700 border border-green-200 rounded-lg hover:bg-green-50">Mark all present</button>
+            <button onclick="saveAttendance()" class="px-4 py-1.5 text-xs font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">Save</button>
+          </div>
+        </div>
+        <div class="space-y-2">
+          {classStudents.map((s, idx) => {
+            const existing = existingAttendance[s.id];
+            const status = existing?.status || 'present';
+            return (
+              <div class="flex items-center gap-3 p-3 rounded-lg border border-gray-100" data-student-row data-student-id={s.id}>
+                <span class="text-xs text-gray-400 w-6">{idx + 1}</span>
+                {s.photoUrl ? (
+                  <img src={s.photoUrl} alt={s.firstName} class="w-8 h-8 rounded-full object-cover" />
+                ) : (
+                  <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-600">{s.firstName.charAt(0)}</div>
+                )}
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-medium text-gray-900">{s.firstName} {s.lastName}</p>
+                  <p class="text-xs text-gray-400">{s.studentId}</p>
+                </div>
+                <div class="flex items-center gap-1" data-attendance-toggle>
+                  {['present', 'absent', 'late', 'excused'].map(st => (
+                    <button type="button" data-status={st} data-student-id={s.id} onclick={`setStatus(${s.id}, '${st}')`} class:list={[
+                      'px-2.5 py-1 text-xs font-medium rounded capitalize transition-all',
+                      status === st
+                        ? st === 'present' ? 'bg-green-500 text-white' : st === 'absent' ? 'bg-red-500 text-white' : st === 'late' ? 'bg-amber-500 text-white' : 'bg-blue-500 text-white'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    ]}>{st}</button>
+                  ))}
+                </div>
+                <input type="text" data-notes={s.id} placeholder="Notes (optional)" value={existing?.notes || ''} class="hidden sm:block w-32 text-xs px-2 py-1 border border-gray-200 rounded" />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    ) : selectedClassId ? (
+      <div class="bg-white rounded-xl border border-gray-200 p-12 text-center">
+        <p class="text-sm text-gray-500">No students enrolled in this class.</p>
+      </div>
+    ) : (
+      <div class="bg-white rounded-xl border border-gray-200 p-12 text-center">
+        <svg class="w-12 h-12 mx-auto text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+        <p class="text-sm text-gray-500 mt-2">Select a class to take attendance.</p>
+      </div>
+    )}
+  </div>
+
+  <script is:inline define:vars={{ selectedClassId, selectedDate, schoolId }}>
+    function setStatus(studentId, status) {
+      // Update button states for this student
+      document.querySelectorAll(`[data-student-row][data-student-id="${studentId}"] [data-status]`).forEach(btn => {
+        const st = btn.dataset.status;
+        btn.className = 'px-2.5 py-1 text-xs font-medium rounded capitalize transition-all ' +
+          (st === status
+            ? (st === 'present' ? 'bg-green-500 text-white' : st === 'absent' ? 'bg-red-500 text-white' : st === 'late' ? 'bg-amber-500 text-white' : 'bg-blue-500 text-white')
+            : 'bg-gray-100 text-gray-600 hover:bg-gray-200');
+        btn.dataset.selected = st === status ? 'true' : 'false';
+      });
+    }
+
+    function markAll(status) {
+      document.querySelectorAll('[data-student-row]').forEach(row => {
+        const sid = row.dataset.studentId;
+        setStatus(parseInt(sid), status);
+      });
+    }
+
+    async function saveAttendance() {
+      const records = [];
+      document.querySelectorAll('[data-student-row]').forEach(row => {
+        const sid = parseInt(row.dataset.studentId);
+        const selected = row.querySelector('[data-status][data-selected="true"]');
+        const notes = document.querySelector(`[data-notes="${sid}"]`)?.value || '';
+        if (selected) {
+          records.push({ studentId: sid, status: selected.dataset.status, notes });
+        }
+      });
+
+      if (records.length === 0) {
+        alert('No attendance to save');
+        return;
+      }
+
+      const res = await fetch('/api/portal/teacher/attendance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ classId: parseInt(selectedClassId), date: selectedDate, schoolId, records }),
+      });
+
+      if (res.ok) {
+        const toast = document.createElement('div');
+        toast.className = 'fixed bottom-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg text-sm z-50';
+        toast.textContent = 'Attendance saved successfully';
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || 'Failed to save attendance');
+      }
+    }
+  </script>
+</TeacherPortalLayout>
