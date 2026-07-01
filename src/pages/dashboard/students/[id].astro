@@ -1,0 +1,412 @@
+---
+/**
+ * Student Detail - Tabbed Profile
+ *
+ * Enterprise student profile with 5 tabs:
+ * 1. Overview - personal info, photo, status, class
+ * 2. Medical - conditions, allergies, medications, immunizations, nurse visits
+ * 3. Documents - document vault (upload, view, delete, categorize)
+ * 4. Family - family group, siblings, emergency contacts
+ * 5. Enrollment History - enrollment records over time
+ */
+import DashboardLayout from '../../../layouts/DashboardLayout.astro';
+import { getUserSchoolId } from '../../../lib/school.js';
+import { getDb } from '../../../lib/db/index.js';
+import {
+  students, studentDocuments, studentMedicalRecords, studentEmergencyContacts,
+  familyGroups, enrollments, classes, academicPeriods, attendance
+} from '../../../lib/db/schema.js';
+import { eq, and, desc } from 'drizzle-orm';
+import { pageGuard } from '../../../lib/rbac.js';
+
+const user = Astro.locals.user;
+if (!user) return Astro.redirect('/auth/login');
+
+if (!pageGuard(user, 'students.view')) {
+  return Astro.redirect('/dashboard');
+}
+
+const studentId = parseInt(Astro.params.id);
+if (!studentId) return Astro.redirect('/dashboard/students');
+
+const schoolId = getUserSchoolId(user.id);
+const db = getDb();
+
+const student = db.select().from(students)
+  .where(and(eq(students.id, studentId), eq(students.schoolId, schoolId || 0)))
+  .get();
+
+if (!student) return Astro.redirect('/dashboard/students');
+
+// Documents
+const documents = db.select().from(studentDocuments)
+  .where(eq(studentDocuments.studentId, student.id))
+  .orderBy(desc(studentDocuments.createdAt)).all();
+
+// Medical records
+const medicalRecords = db.select().from(studentMedicalRecords)
+  .where(eq(studentMedicalRecords.studentId, student.id))
+  .orderBy(desc(studentMedicalRecords.date)).all();
+
+// Emergency contacts
+const emergencyContacts = db.select().from(studentEmergencyContacts)
+  .where(eq(studentEmergencyContacts.studentId, student.id)).all();
+
+// Family / siblings
+const siblings = student.familyGroupId
+  ? db.select().from(students)
+    .where(and(eq(students.familyGroupId, student.familyGroupId), eq(students.schoolId, student.schoolId)))
+    .all().filter(s => s.id !== student.id)
+  : [];
+const familyGroup = student.familyGroupId
+  ? db.select().from(familyGroups).where(eq(familyGroups.id, student.familyGroupId)).get()
+  : null;
+
+// Enrollment history
+const enrollmentHistory = db.select().from(enrollments)
+  .where(eq(enrollments.studentId, student.id))
+  .orderBy(desc(enrollments.createdAt)).all();
+const enrichedEnrollments = enrollmentHistory.map(e => {
+  const cls = e.classId ? db.select().from(classes).where(eq(classes.id, e.classId)).get() : null;
+  const period = e.academicPeriodId ? db.select().from(academicPeriods).where(eq(academicPeriods.id, e.academicPeriodId)).get() : null;
+  return { ...e, className: cls ? cls.name + (cls.section ? ' - ' + cls.section : '') : 'N/A', periodName: period?.name || 'N/A' };
+});
+
+// Attendance summary
+const attendanceRecords = db.select().from(attendance).where(eq(attendance.studentId, student.id)).all();
+const presentCount = attendanceRecords.filter(a => a.status === 'present').length;
+const attendanceRate = attendanceRecords.length > 0 ? Math.round((presentCount / attendanceRecords.length) * 100) : 100;
+
+const formatDate = (d: string | Date | null) => d ? new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A';
+
+const categoryLabels: Record<string, string> = {
+  birth_certificate: 'Birth Certificate', passport: 'Passport', health_record: 'Health Record',
+  transfer_certificate: 'Transfer Certificate', report_card: 'Report Card', id_card: 'ID Card', other: 'Other',
+};
+const medicalTypeLabels: Record<string, string> = {
+  condition: 'Condition', allergy: 'Allergy', medication: 'Medication', immunization: 'Immunization',
+  nurse_visit: 'Nurse Visit', incident: 'Incident', action_plan: 'Action Plan',
+};
+const severityColors: Record<string, string> = {
+  low: 'bg-blue-100 text-blue-700', medium: 'bg-amber-100 text-amber-700',
+  high: 'bg-orange-100 text-orange-700', critical: 'bg-red-100 text-red-700',
+};
+---
+
+<DashboardLayout title={`${student.firstName} ${student.lastName} - Student Profile`}>
+  <div class="space-y-6">
+    {/* Back link */}
+    <a href="/dashboard/students" class="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+      Back to Students
+    </a>
+
+    {/* Student header */}
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <div class="flex items-start gap-6">
+        {student.photoUrl ? (
+          <img src={student.photoUrl} alt={student.firstName} class="w-24 h-24 rounded-xl object-cover" />
+        ) : (
+          <div class="w-24 h-24 rounded-xl bg-primary-100 flex items-center justify-center text-3xl font-bold text-primary-700">
+            {student.firstName.charAt(0)}{student.lastName.charAt(0)}
+          </div>
+        )}
+        <div class="flex-1">
+          <div class="flex items-center gap-3">
+            <h1 class="text-2xl font-bold text-gray-900">{student.firstName} {student.lastName}</h1>
+            <span class:list={["inline-flex px-2.5 py-0.5 rounded-full text-xs font-bold uppercase", student.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600']}>{student.status}</span>
+          </div>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 text-sm">
+            <div><p class="text-xs text-gray-500 uppercase tracking-wider">Student ID</p><p class="font-medium text-gray-900">{student.studentId}</p></div>
+            <div><p class="text-xs text-gray-500 uppercase tracking-wider">Date of Birth</p><p class="font-medium text-gray-900">{formatDate(student.dateOfBirth)}</p></div>
+            <div><p class="text-xs text-gray-500 uppercase tracking-wider">Gender</p><p class="font-medium text-gray-900 capitalize">{student.gender || 'N/A'}</p></div>
+            <div><p class="text-xs text-gray-500 uppercase tracking-wider">Attendance</p><p class:list={["font-bold", attendanceRate >= 80 ? 'text-green-600' : 'text-amber-600']}>{attendanceRate}%</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {/* Tabs */}
+    <div class="bg-white rounded-xl border border-gray-200">
+      <div class="border-b border-gray-200">
+        <nav class="flex -mb-px overflow-x-auto">
+          <button onclick="switchTab('overview')" id="tab-overview" class="tab-btn px-6 py-3 text-sm font-medium border-b-2 border-primary-500 text-primary-600 whitespace-nowrap">Overview</button>
+          <button onclick="switchTab('medical')" id="tab-medical" class="tab-btn px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 whitespace-nowrap">Medical</button>
+          <button onclick="switchTab('documents')" id="tab-documents" class="tab-btn px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 whitespace-nowrap">Documents ({documents.length})</button>
+          <button onclick="switchTab('family')" id="tab-family" class="tab-btn px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 whitespace-nowrap">Family</button>
+          <button onclick="switchTab('enrollment')" id="tab-enrollment" class="tab-btn px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 whitespace-nowrap">Enrollment History</button>
+        </nav>
+      </div>
+
+      {/* Overview tab */}
+      <div id="panel-overview" class="tab-panel p-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <h3 class="text-sm font-semibold text-gray-900 mb-3">Personal Information</h3>
+            <dl class="space-y-2 text-sm">
+              <div class="flex justify-between"><dt class="text-gray-500">Email:</dt><dd class="text-gray-900">{student.email || 'N/A'}</dd></div>
+              <div class="flex justify-between"><dt class="text-gray-500">Phone:</dt><dd class="text-gray-900">{student.phone || 'N/A'}</dd></div>
+              <div class="flex justify-between"><dt class="text-gray-500">Address:</dt><dd class="text-gray-900">{student.address || 'N/A'}</dd></div>
+              <div class="flex justify-between"><dt class="text-gray-500">Blood Group:</dt><dd class="text-gray-900">{student.bloodGroup || 'N/A'}</dd></div>
+              <div class="flex justify-between"><dt class="text-gray-500">Nationality:</dt><dd class="text-gray-900">{student.nationality || 'N/A'}</dd></div>
+              <div class="flex justify-between"><dt class="text-gray-500">Religion:</dt><dd class="text-gray-900">{student.religion || 'N/A'}</dd></div>
+            </dl>
+          </div>
+          <div>
+            <h3 class="text-sm font-semibold text-gray-900 mb-3">Enrollment Information</h3>
+            <dl class="space-y-2 text-sm">
+              <div class="flex justify-between"><dt class="text-gray-500">Enrollment Date:</dt><dd class="text-gray-900">{formatDate(student.enrollmentDate)}</dd></div>
+              <div class="flex justify-between"><dt class="text-gray-500">Previous School:</dt><dd class="text-gray-900">{student.previousSchool || 'N/A'}</dd></div>
+              <div class="flex justify-between"><dt class="text-gray-500">Medical Notes:</dt><dd class="text-gray-900">{student.medicalNotes || 'N/A'}</dd></div>
+              <div class="flex justify-between"><dt class="text-gray-500">Allergies:</dt><dd class="text-gray-900">{student.allergies || 'N/A'}</dd></div>
+            </dl>
+          </div>
+        </div>
+      </div>
+
+      {/* Medical tab */}
+      <div id="panel-medical" class="tab-panel p-6 hidden">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-sm font-semibold text-gray-900">Medical Records ({medicalRecords.length})</h3>
+          <button onclick="document.getElementById('medicalModal').classList.remove('hidden')" class="px-3 py-1.5 text-xs font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">Add Record</button>
+        </div>
+        {medicalRecords.length > 0 ? (
+          <div class="space-y-3">
+            {medicalRecords.map(r => (
+              <div class="border border-gray-200 rounded-lg p-4">
+                <div class="flex items-start justify-between gap-2">
+                  <div>
+                    <div class="flex items-center gap-2 mb-1">
+                      <span class="text-xs font-bold text-gray-500 uppercase">{medicalTypeLabels[r.type] || r.type}</span>
+                      {r.severity && <span class:list={["inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold uppercase", severityColors[r.severity] || 'bg-gray-100 text-gray-600']}>{r.severity}</span>}
+                    </div>
+                    <p class="text-sm font-medium text-gray-900">{r.title}</p>
+                    {r.description && <p class="text-xs text-gray-500 mt-1">{r.description}</p>}
+                    <p class="text-xs text-gray-400 mt-1">Date: {formatDate(r.date)}</p>
+                  </div>
+                  <button data-delete-medical={r.id} class="text-red-400 hover:text-red-600 text-xs">Delete</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p class="text-sm text-gray-500 py-8 text-center">No medical records yet.</p>
+        )}
+      </div>
+
+      {/* Documents tab */}
+      <div id="panel-documents" class="tab-panel p-6 hidden">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-sm font-semibold text-gray-900">Document Vault ({documents.length})</h3>
+          <button onclick="document.getElementById('documentModal').classList.remove('hidden')" class="px-3 py-1.5 text-xs font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">Upload Document</button>
+        </div>
+        {documents.length > 0 ? (
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {documents.map(doc => (
+              <div class="border border-gray-200 rounded-lg p-4">
+                <div class="flex items-start justify-between gap-2 mb-2">
+                  <span class="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary-100 text-primary-700 uppercase">{categoryLabels[doc.category] || doc.category}</span>
+                  <button data-delete-doc={doc.id} class="text-red-400 hover:text-red-600 text-xs">Delete</button>
+                </div>
+                <a href={doc.fileUrl} target="_blank" class="block">
+                  <div class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50">
+                    <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                    <div class="flex-1 min-w-0">
+                      <p class="text-sm font-medium text-gray-900 truncate">{doc.title}</p>
+                      <p class="text-xs text-gray-500">{doc.fileName || 'File'}</p>
+                    </div>
+                  </div>
+                </a>
+                <p class="text-xs text-gray-400 mt-2">Uploaded: {formatDate(doc.createdAt)}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p class="text-sm text-gray-500 py-8 text-center">No documents uploaded yet.</p>
+        )}
+      </div>
+
+      {/* Family tab */}
+      <div id="panel-family" class="tab-panel p-6 hidden">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <h3 class="text-sm font-semibold text-gray-900 mb-3">Family Group</h3>
+            {familyGroup ? (
+              <div class="border border-gray-200 rounded-lg p-4">
+                <p class="text-sm font-medium text-gray-900">{familyGroup.familyName}</p>
+                {familyGroup.primaryContactName && <p class="text-xs text-gray-500 mt-1">Contact: {familyGroup.primaryContactName}</p>}
+                {familyGroup.primaryContactPhone && <p class="text-xs text-gray-500">Phone: {familyGroup.primaryContactPhone}</p>}
+              </div>
+            ) : (
+              <p class="text-sm text-gray-500">No family group assigned.</p>
+            )}
+            <h3 class="text-sm font-semibold text-gray-900 mt-6 mb-3">Siblings ({siblings.length})</h3>
+            {siblings.length > 0 ? (
+              <div class="space-y-2">
+                {siblings.map(s => (
+                  <a href={'/dashboard/students/' + s.id} class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50">
+                    {s.photoUrl ? <img src={s.photoUrl} alt={s.firstName} class="w-8 h-8 rounded-full object-cover" /> : <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-600">{s.firstName.charAt(0)}</div>}
+                    <div><p class="text-sm font-medium text-gray-900">{s.firstName} {s.lastName}</p><p class="text-xs text-gray-500">{s.studentId}</p></div>
+                  </a>
+                ))}
+              </div>
+            ) : (
+              <p class="text-sm text-gray-500">No siblings linked.</p>
+            )}
+          </div>
+          <div>
+            <h3 class="text-sm font-semibold text-gray-900 mb-3">Emergency Contacts ({emergencyContacts.length})</h3>
+            {emergencyContacts.length > 0 ? (
+              <div class="space-y-2">
+                {emergencyContacts.map(c => (
+                  <div class="border border-gray-200 rounded-lg p-3">
+                    <div class="flex items-center justify-between">
+                      <p class="text-sm font-medium text-gray-900">{c.name}</p>
+                      {c.isPrimary && <span class="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700">PRIMARY</span>}
+                    </div>
+                    {c.relationship && <p class="text-xs text-gray-500">{c.relationship}</p>}
+                    <p class="text-xs text-gray-700 mt-1">{c.phone}</p>
+                    {c.email && <p class="text-xs text-gray-500">{c.email}</p>}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p class="text-sm text-gray-500">No emergency contacts added.</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Enrollment History tab */}
+      <div id="panel-enrollment" class="tab-panel p-6 hidden">
+        <h3 class="text-sm font-semibold text-gray-900 mb-4">Enrollment History</h3>
+        {enrichedEnrollments.length > 0 ? (
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-gray-50 border-b">
+                <tr>
+                  <th class="text-left py-2 px-3 font-medium text-gray-700">Period</th>
+                  <th class="text-left py-2 px-3 font-medium text-gray-700">Class</th>
+                  <th class="text-left py-2 px-3 font-medium text-gray-700">Status</th>
+                  <th class="text-left py-2 px-3 font-medium text-gray-700">Date</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-100">
+                {enrichedEnrollments.map(e => (
+                  <tr class="hover:bg-gray-50">
+                    <td class="py-2.5 px-3 text-gray-900">{e.periodName}</td>
+                    <td class="py-2.5 px-3 text-gray-900">{e.className}</td>
+                    <td class="py-2.5 px-3"><span class="inline-flex px-2 py-0.5 rounded-full text-xs font-bold bg-gray-100 text-gray-600 uppercase">{e.status || 'enrolled'}</span></td>
+                    <td class="py-2.5 px-3 text-gray-500 text-xs">{formatDate(e.createdAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p class="text-sm text-gray-500 py-8 text-center">No enrollment history.</p>
+        )}
+      </div>
+    </div>
+  </div>
+
+  {/* Medical record modal */}
+  <div id="medicalModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-bold text-gray-900">Add Medical Record</h3>
+        <button onclick="document.getElementById('medicalModal').classList.add('hidden')" class="text-gray-400" aria-label="Close"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+      </div>
+      <form id="medicalForm" class="space-y-3">
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">Type</label><select name="type" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">{Object.entries(medicalTypeLabels).map(([k, v]) => <option value={k}>{v}</option>)}</select></div>
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">Title</label><input name="title" type="text" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /></div>
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">Description</label><textarea name="description" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"></textarea></div>
+        <div class="grid grid-cols-2 gap-3"><div><label class="block text-xs font-medium text-gray-700 mb-1">Severity</label><select name="severity" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"><option value="">None</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option></select></div><div><label class="block text-xs font-medium text-gray-700 mb-1">Date</label><input name="date" type="date" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /></div></div>
+        <button type="submit" class="w-full px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">Save</button>
+      </form>
+    </div>
+  </div>
+
+  {/* Document upload modal */}
+  <div id="documentModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-bold text-gray-900">Upload Document</h3>
+        <button onclick="document.getElementById('documentModal').classList.add('hidden')" class="text-gray-400" aria-label="Close"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+      </div>
+      <form id="documentForm" class="space-y-3">
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">Category</label><select name="category" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">{Object.entries(categoryLabels).map(([k, v]) => <option value={k}>{v}</option>)}</select></div>
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">Title</label><input name="title" type="text" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /></div>
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">File</label><input name="file" type="file" required class="w-full text-sm" /></div>
+        <button type="submit" class="w-full px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">Upload</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast" class="fixed bottom-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg text-sm hidden z-50"></div>
+
+  <script is:inline define:vars={{ studentId: student.id, schoolId }}>
+    function switchTab(tab) {
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(b => { b.classList.remove('border-primary-500', 'text-primary-600'); b.classList.add('border-transparent', 'text-gray-500'); });
+      document.getElementById('panel-' + tab)?.classList.remove('hidden');
+      const btn = document.getElementById('tab-' + tab);
+      btn?.classList.remove('border-transparent', 'text-gray-500');
+      btn?.classList.add('border-primary-500', 'text-primary-600');
+    }
+
+    function showToast(msg, isError) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = 'fixed bottom-4 right-4 px-4 py-2 rounded-lg shadow-lg text-sm text-white z-50 ' + (isError ? 'bg-red-600' : 'bg-green-600');
+      t.classList.remove('hidden');
+      setTimeout(() => t.classList.add('hidden'), 3000);
+    }
+
+    // Medical form
+    document.getElementById('medicalForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const fd = new FormData(this);
+      const body = { studentId, schoolId, type: fd.get('type'), title: fd.get('title'), description: fd.get('description') || null, severity: fd.get('severity') || null, date: fd.get('date') || null };
+      const res = await fetch('/api/dashboard/student-medical', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      if (res.ok) { window.location.reload(); } else { const d = await res.json().catch(() => ({})); alert(d.error || 'Failed'); }
+    });
+
+    // Document form
+    document.getElementById('documentForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const fd = new FormData(this);
+      const file = fd.get('file');
+      if (!file || !file.size) { alert('Please select a file'); return; }
+      // Upload file first
+      const upFd = new FormData(); upFd.append('file', file); upFd.append('folder', 'student-docs');
+      const upRes = await fetch('/api/upload', { method: 'POST', body: upFd });
+      const upData = await upRes.json();
+      if (!upRes.ok || !upData[0]?.url) { alert('Upload failed'); return; }
+      // Save document record
+      const body = { studentId, schoolId, category: fd.get('category'), title: fd.get('title'), fileUrl: upData[0].url, fileName: file.name, fileType: file.type };
+      const res = await fetch('/api/dashboard/student-documents', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      if (res.ok) { window.location.reload(); } else { alert('Failed to save document'); }
+    });
+
+    // Delete medical record
+    document.querySelectorAll('[data-delete-medical]').forEach(btn => {
+      btn.addEventListener('click', async function() {
+        if (!confirm('Delete this medical record?')) return;
+        const id = this.dataset.deleteMedical;
+        const res = await fetch('/api/dashboard/student-medical', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: parseInt(id) }) });
+        if (res.ok) window.location.reload(); else alert('Failed');
+      });
+    });
+
+    // Delete document
+    document.querySelectorAll('[data-delete-doc]').forEach(btn => {
+      btn.addEventListener('click', async function() {
+        if (!confirm('Delete this document?')) return;
+        const id = this.dataset.deleteDoc;
+        const res = await fetch('/api/dashboard/student-documents', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: parseInt(id) }) });
+        if (res.ok) window.location.reload(); else alert('Failed');
+      });
+    });
+  </script>
+</DashboardLayout>
