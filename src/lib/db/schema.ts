@@ -1658,3 +1658,47 @@ export const liveClassWhiteboards = sqliteTable('live_class_whiteboards', {
   createdBy: integer('created_by').references(() => users.id),
   ...timestamps,
 });
+
+// ═══════════════════════════════════════════════════════
+// PLATFORM: Webhooks
+// ═══════════════════════════════════════════════════════
+
+export const webhooks = sqliteTable('webhooks', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
+  url: text('url').notNull(),
+  events: text('events', { mode: 'json' }).default('[]'), // array of event types
+  secret: text('secret'), // for signature verification
+  active: integer('active', { mode: 'boolean' }).default(true),
+  ...timestamps,
+});
+
+export const webhookDeliveries = sqliteTable('webhook_deliveries', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  webhookId: integer('webhook_id').notNull().references(() => webhooks.id, { onDelete: 'cascade' }),
+  event: text('event').notNull(),
+  payload: text('payload', { mode: 'json' }),
+  responseStatus: integer('response_status'),
+  responseBody: text('response_body'),
+  deliveredAt: text('delivered_at'),
+  status: text('status', { enum: ['pending', 'delivered', 'failed', 'retry'] }).notNull().default('pending'),
+  attempts: integer('attempts').default(0),
+  ...timestamps,
+});
+
+// ═══════════════════════════════════════════════════════
+// PLATFORM: GDPR Data Requests
+// ═══════════════════════════════════════════════════════
+
+export const dataRequests = sqliteTable('data_requests', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('user_id').notNull().references(() => users.id),
+  schoolId: integer('school_id').references(() => schools.id),
+  type: text('type', { enum: ['export', 'deletion', 'correction'] }).notNull(),
+  details: text('details'),
+  status: text('status', { enum: ['pending', 'processing', 'completed', 'rejected'] }).notNull().default('pending'),
+  processedBy: integer('processed_by').references(() => users.id),
+  processedAt: text('processed_at'),
+  responseNote: text('response_note'),
+  ...timestamps,
+});
