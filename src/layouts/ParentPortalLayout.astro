@@ -1,0 +1,122 @@
+---
+/**
+ * Parent Portal Layout
+ *
+ * Dedicated layout for the parent portal with parent-specific navigation.
+ * Parents can view their children's overview, attendance, grades, fees,
+ * and message teachers.
+ */
+import { validateSession, getSessionIdFromCookie } from '../lib/auth.js';
+import { getChildrenForParent } from '../lib/portal.js';
+
+const sessionId = getSessionIdFromCookie(Astro.request);
+const result = sessionId ? await validateSession(sessionId) : null;
+const user = result?.user;
+
+if (!user) {
+  return Astro.redirect('/auth/login?redirect=/portal/parent');
+}
+
+const allowedRoles = ['parent', 'school_admin'];
+if (!allowedRoles.includes(user.role)) {
+  if (user.role === 'student') return Astro.redirect('/portal/student');
+  if (user.role === 'teacher') return Astro.redirect('/portal/teacher');
+  return Astro.redirect('/dashboard');
+}
+
+const { title } = Astro.props;
+const currentPath = Astro.url.pathname;
+
+const children = getChildrenForParent(user.id);
+const activeChild = children[0];
+
+const navItems = [
+  { href: '/portal/parent', label: 'Overview', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
+  { href: '/portal/parent/fees', label: 'Fees & Payments', icon: 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z' },
+  { href: '/portal/parent/messages', label: 'Messages', icon: 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z' },
+];
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{title}</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <script is:inline>
+    (function() {
+      if (typeof window !== 'undefined' && !document.querySelector('script[src*="tailwindcss"]')) {
+        var s = document.createElement('script');
+        s.src = 'https://cdn.tailwindcss.com';
+        document.head.appendChild(s);
+      }
+    })();
+  </script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <div class="flex">
+    <aside class="hidden lg:flex lg:flex-col lg:w-64 bg-white border-r border-gray-200 min-h-screen fixed">
+      <div class="p-6 border-b border-gray-200">
+        <h2 class="text-lg font-bold text-gray-900">Parent Portal</h2>
+        <p class="text-sm text-gray-500 mt-1">{user.name}</p>
+        {children.length > 0 && (
+          <div class="mt-2 text-xs text-gray-400">
+            <p>{children.length} child{children.length !== 1 ? 'ren' : ''} linked</p>
+          </div>
+        )}
+      </div>
+      <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
+        {navItems.map(item => (
+          <a href={item.href} class:list={[
+            'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+            currentPath === item.href ? 'bg-primary-50 text-primary-700' : 'text-gray-600 hover:bg-gray-100'
+          ]}>
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={item.icon} /></svg>
+            {item.label}
+          </a>
+        ))}
+      </nav>
+      <div class="p-4 border-t border-gray-200">
+        <a href="/dashboard" class="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+          Back to Dashboard
+        </a>
+        <form method="POST" action="/api/auth/logout" class="mt-2">
+          <button type="submit" class="text-sm text-red-600 hover:text-red-700">Sign Out</button>
+        </form>
+      </div>
+    </aside>
+
+    <main class="flex-1 lg:ml-64">
+      <header class="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-3 lg:hidden flex items-center justify-between">
+        <h1 class="text-lg font-bold">Parent Portal</h1>
+        <button id="mobile-menu-btn" type="button" class="p-2 rounded-lg hover:bg-gray-100" aria-label="Toggle menu">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+        </button>
+      </header>
+
+      <div id="mobile-menu" class="hidden lg:hidden bg-white border-b border-gray-200 px-4 py-2 space-y-1">
+        {navItems.map(item => (
+          <a href={item.href} class:list={[
+            'block px-3 py-2 rounded-lg text-sm font-medium',
+            currentPath === item.href ? 'bg-primary-50 text-primary-700' : 'text-gray-600'
+          ]}>
+            {item.label}
+          </a>
+        ))}
+      </div>
+
+      <div class="p-4 lg:p-8">
+        <slot />
+      </div>
+    </main>
+  </div>
+
+  <script is:inline>
+    document.getElementById('mobile-menu-btn')?.addEventListener('click', function() {
+      document.getElementById('mobile-menu')?.classList.toggle('hidden');
+    });
+  </script>
+</body>
+</html>
