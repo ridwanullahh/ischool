@@ -1,0 +1,188 @@
+---
+/**
+ * Staff Clock-in/Clock-out
+ *
+ * Staff can clock in and out daily. Shows today's status and recent
+ * attendance history. Admins can view all staff attendance.
+ */
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { getUserSchoolId } from '../../lib/school.js';
+import { getDb } from '../../lib/db/index.js';
+import { staffAttendance, staff, users } from '../../lib/db/schema.js';
+import { eq, and, desc } from 'drizzle-orm';
+import { pageGuard } from '../../lib/rbac.js';
+import { getStaffForUser } from '../../lib/portal.js';
+
+const user = Astro.locals.user;
+if (!user) return Astro.redirect('/auth/login');
+
+const schoolId = getUserSchoolId(user.id);
+const db = getDb();
+const today = new Date().toISOString().split('T')[0];
+const now = new Date();
+const currentTime = now.toTimeString().split(' ')[0];
+
+// Get current user's staff record
+const myStaff = getStaffForUser(user.id);
+
+// Today's attendance for current user
+let myToday: any = null;
+if (myStaff) {
+  myToday = db.select().from(staffAttendance)
+    .where(and(eq(staffAttendance.staffId, myStaff.id), eq(staffAttendance.date, today)))
+    .get();
+}
+
+// Recent attendance history for current user
+const myHistory = myStaff
+  ? db.select().from(staffAttendance).where(eq(staffAttendance.staffId, myStaff.id)).orderBy(desc(staffAttendance.date)).limit(14).all()
+  : [];
+
+// Admin view: all staff attendance today
+const canViewAll = pageGuard(user, 'staff.view');
+const allToday = canViewAll && schoolId
+  ? db.select({
+      id: staffAttendance.id, staffName: staff.firstName + ' ' + staff.lastName,
+      staffId: staff.staffId, department: staff.department,
+      clockIn: staffAttendance.clockIn, clockOut: staffAttendance.clockOut,
+      method: staffAttendance.method,
+    }).from(staffAttendance)
+    .leftJoin(staff, eq(staffAttendance.staffId, staff.id))
+    .where(and(eq(staffAttendance.schoolId, schoolId), eq(staffAttendance.date, today)))
+    .all()
+  : [];
+
+const formatTime = (t: string | null) => {
+  if (!t) return '--';
+  try { return new Date('2000-01-01T' + t).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }); } catch { return t; }
+};
+---
+
+<DashboardLayout title="Staff Attendance - iSchool">
+  <div class="space-y-6">
+    <div>
+      <h2 class="text-2xl font-bold text-gray-900">Staff Attendance</h2>
+      <p class="text-sm text-gray-500 mt-1">Clock in and out, view attendance history</p>
+    </div>
+
+    {myStaff ? (
+      <>
+        {/* Clock-in/out card */}
+        <div class="bg-white rounded-xl border border-gray-200 p-6">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-xs text-gray-500 uppercase tracking-wider">Today</p>
+              <p class="text-lg font-bold text-gray-900">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
+              <p class="text-sm text-gray-500 mt-1">Current time: <span id="liveTime">{formatTime(currentTime)}</span></p>
+            </div>
+            <div class="text-right">
+              {!myToday?.clockIn ? (
+                <button onclick="clockAction('in')" class="px-6 py-3 text-sm font-bold text-white bg-green-600 rounded-lg hover:bg-green-700">Clock In</button>
+              ) : !myToday?.clockOut ? (
+                <div class="space-y-2">
+                  <div><p class="text-xs text-gray-500">Clocked in at</p><p class="text-lg font-bold text-green-600">{formatTime(myToday.clockIn)}</p></div>
+                  <button onclick="clockAction('out')" class="px-6 py-2 text-sm font-bold text-white bg-red-600 rounded-lg hover:bg-red-700">Clock Out</button>
+                </div>
+              ) : (
+                <div>
+                  <div><p class="text-xs text-gray-500">Clocked in</p><p class="text-sm font-bold text-green-600">{formatTime(myToday.clockIn)}</p></div>
+                  <div><p class="text-xs text-gray-500">Clocked out</p><p class="text-sm font-bold text-red-600">{formatTime(myToday.clockOut)}</p></div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* My recent history */}
+        <div class="bg-white rounded-xl border border-gray-200 p-6">
+          <h3 class="text-base font-semibold text-gray-900 mb-4">My Recent Attendance</h3>
+          {myHistory.length > 0 ? (
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead class="bg-gray-50 border-b">
+                  <tr>
+                    <th class="text-left py-2 px-3 font-medium text-gray-700">Date</th>
+                    <th class="text-left py-2 px-3 font-medium text-gray-700">Clock In</th>
+                    <th class="text-left py-2 px-3 font-medium text-gray-700">Clock Out</th>
+                    <th class="text-left py-2 px-3 font-medium text-gray-700">Method</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                  {myHistory.map(r => (
+                    <tr class="hover:bg-gray-50">
+                      <td class="py-2.5 px-3 text-gray-900">{r.date}</td>
+                      <td class="py-2.5 px-3 text-green-600 font-medium">{formatTime(r.clockIn)}</td>
+                      <td class="py-2.5 px-3 text-red-600 font-medium">{formatTime(r.clockOut)}</td>
+                      <td class="py-2.5 px-3"><span class="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-600 uppercase">{r.method}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p class="text-sm text-gray-500 py-8 text-center">No attendance records yet.</p>
+          )}
+        </div>
+      </>
+    ) : (
+      <div class="bg-white rounded-xl border border-gray-200 p-12 text-center">
+        <p class="text-sm text-gray-500">No staff profile linked to your account. Please contact administration.</p>
+      </div>
+    )}
+
+    {/* Admin view: all staff today */}
+    {canViewAll && allToday.length > 0 && (
+      <div class="bg-white rounded-xl border border-gray-200 p-6">
+        <h3 class="text-base font-semibold text-gray-900 mb-4">All Staff - Today's Attendance</h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50 border-b">
+              <tr>
+                <th class="text-left py-2 px-3 font-medium text-gray-700">Staff</th>
+                <th class="text-left py-2 px-3 font-medium text-gray-700">Department</th>
+                <th class="text-left py-2 px-3 font-medium text-gray-700">Clock In</th>
+                <th class="text-left py-2 px-3 font-medium text-gray-700">Clock Out</th>
+                <th class="text-left py-2 px-3 font-medium text-gray-700">Method</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              {allToday.map(r => (
+                <tr class="hover:bg-gray-50">
+                  <td class="py-2.5 px-3 text-gray-900">{r.staffName}</td>
+                  <td class="py-2.5 px-3 text-gray-500">{r.department || '-'}</td>
+                  <td class="py-2.5 px-3 text-green-600 font-medium">{formatTime(r.clockIn)}</td>
+                  <td class="py-2.5 px-3 text-red-600 font-medium">{formatTime(r.clockOut)}</td>
+                  <td class="py-2.5 px-3"><span class="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-600 uppercase">{r.method}</span></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    )}
+  </div>
+
+  <script is:inline define:vars={{ staffId: myStaff?.id, schoolId, today }}>
+    async function clockAction(action) {
+      const res = await fetch('/api/dashboard/staff-attendance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ staffId, schoolId, date: today, action }),
+      });
+      if (res.ok) {
+        window.location.reload();
+      } else {
+        const d = await res.json().catch(() => ({}));
+        alert(d.error || 'Failed');
+      }
+    }
+
+    // Live clock
+    function updateLiveTime() {
+      var now = new Date();
+      var el = document.getElementById('liveTime');
+      if (el) el.textContent = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit' });
+    }
+    setInterval(updateLiveTime, 1000);
+  </script>
+</DashboardLayout>

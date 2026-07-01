@@ -684,6 +684,39 @@ export const leaveRequests = sqliteTable('leave_requests', {
   reason: text('reason'),
   status: text('status', { enum: ['pending', 'approved', 'rejected'] }).notNull().default('pending'),
   approvedBy: integer('approved_by').references(() => users.id),
+  days: integer('days'), // calculated days of leave
+  ...timestamps,
+});
+
+// ═══════════════════════════════════════════════════════
+// HR: Staff Attendance (Clock-in/Clock-out)
+// ═══════════════════════════════════════════════════════
+
+export const staffAttendance = sqliteTable('staff_attendance', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
+  staffId: integer('staff_id').notNull().references(() => staff.id, { onDelete: 'cascade' }),
+  date: text('date').notNull(),
+  clockIn: text('clock_in'),
+  clockOut: text('clock_out'),
+  method: text('method', { enum: ['manual', 'qr', 'biometric'] }).notNull().default('manual'),
+  notes: text('notes'),
+  ...timestamps,
+});
+
+// ═══════════════════════════════════════════════════════
+// HR: Leave Balance Tracking
+// ═══════════════════════════════════════════════════════
+
+export const leaveBalances = sqliteTable('leave_balances', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
+  staffId: integer('staff_id').notNull().references(() => staff.id, { onDelete: 'cascade' }),
+  year: integer('year').notNull(),
+  type: text('type', { enum: ['annual', 'sick', 'maternity', 'paternity', 'unpaid'] }).notNull(),
+  allocated: integer('allocated').default(0),
+  used: integer('used').default(0),
+  carriedOver: integer('carried_over').default(0),
   ...timestamps,
 });
 
