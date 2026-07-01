@@ -1,56 +1,41 @@
 ---
-import { getThemeLayout } from '../../../themes/index.js';
+import { getV3Theme, getThemeLayout, themeList } from '../../../themes/index.js';
 import { getDb } from '../../../lib/db/index.js';
-import { schools, announcements } from '../../../lib/db/schema.js';
+import { schools } from '../../../lib/db/schema.js';
 import { eq, desc, and } from 'drizzle-orm';
-import { formatDate } from '../../../lib/utils.js';
 
 const slug = Astro.params.slug!;
 const db = getDb();
 const school = db.select().from(schools).where(eq(schools.slug, slug)).get();
 if (!school) return Astro.redirect('/404');
 
-const Layout = getThemeLayout(school.theme || 'harmony');
+const previewTheme = Astro.url.searchParams.get('preview_theme');
+const user = Astro.locals.user;
+const isPreviewing = previewTheme && themeList.includes(previewTheme) && user;
+const activeTheme = isPreviewing ? previewTheme : (school.theme || 'aurora');
 
-const items = db.select().from(announcements)
-  .where(and(eq(announcements.schoolId, school.id), eq(announcements.published, true)))
-  .orderBy(desc(announcements.createdAt)).all();
+const v3Theme = getV3Theme(activeTheme);
+const Layout = v3Theme?.Layout || getThemeLayout(activeTheme);
+const PageComponent = v3Theme?.AnnouncementsIndexPage;
+import { announcements } from '../../../lib/db/schema.js';
+const schoolAnnouncements = db.select().from(announcements).where(eq(announcements.schoolId, school.id)).orderBy(desc(announcements.createdAt)).all();
+const pageData = { items: schoolAnnouncements };
 ---
-
-<Layout school={school} title="Announcements">
-  <section class="py-16 bg-[var(--bg)]">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <h1 class="text-4xl font-bold text-[var(--text)]">Announcements</h1>
-      <p class="mt-2 text-[var(--muted)]">Latest news and updates from {school.name}</p>
+<Layout school={school} title="{PageComponent ? '' : 'Index'}">
+  {isPreviewing && (
+    <div class="bg-blue-600 text-white py-2 px-4 text-center text-sm font-medium sticky top-0 z-[100]">
+      Previewing <strong>{previewTheme}</strong> theme
+      <a href={`/${slug}`} class="underline text-xs hover:text-blue-200 ml-2">Close</a>
     </div>
-  </section>
-
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-    {items.length === 0 ? (
-      <p class="text-center py-12 text-[var(--muted)]">No announcements at this time. Check back soon!</p>
-    ) : (
-      <div class="space-y-6">
-        {items.map(item => (
-          <a href={`/${slug}/announcements/${item.slug}`} class="block bg-[var(--surface)] rounded-xl border border-[var(--border)] overflow-hidden hover:shadow-lg transition-shadow group">
-            {item.bannerImageUrl && (
-              <img src={item.bannerImageUrl} alt={item.title} class="w-full h-48 object-cover" loading="lazy" />
-            )}
-            <div class="p-6">
-              <div class="flex items-center gap-3 mb-2">
-                {item.isPinned && (
-                  <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">Pinned</span>
-                )}
-                <span class="text-xs text-[var(--muted)]">{formatDate(item.createdAt)}</span>
-              </div>
-              <h2 class="text-xl font-semibold text-[var(--text)] mb-2 group-hover:text-[var(--primary)] transition-colors">{item.title}</h2>
-              <p class="line-clamp-2 text-[var(--muted)]">{item.excerpt || item.content}</p>
-              {item.ctaText && (
-                <span class="inline-block mt-4 text-sm font-medium text-[var(--primary)]">{item.ctaText} &rarr;</span>
-              )}
-            </div>
-          </a>
-        ))}
+  )}
+  {PageComponent ? (
+    <PageComponent school={school} {...pageData} />
+  ) : (
+    <div class="px-4 py-16">
+      <div class="max-w-4xl mx-auto">
+        <h1 class="text-4xl font-bold text-[var(--text)] mb-8">Index</h1>
+        <p class="text-[var(--muted)]">This page uses a legacy theme. Please switch to a v3 theme for full page autonomy.</p>
       </div>
-    )}
-  </div>
+    </div>
+  )}
 </Layout>

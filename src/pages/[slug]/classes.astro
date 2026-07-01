@@ -1,51 +1,41 @@
 ---
-import { getThemeLayout } from '../../themes/index.js';
+import { getV3Theme, getThemeLayout, themeList } from '../../themes/index.js';
 import { getDb } from '../../lib/db/index.js';
-import { schools, classes } from '../../lib/db/schema.js';
-import { eq, asc } from 'drizzle-orm';
+import { schools } from '../../lib/db/schema.js';
+import { eq, desc, and } from 'drizzle-orm';
 
 const slug = Astro.params.slug!;
 const db = getDb();
 const school = db.select().from(schools).where(eq(schools.slug, slug)).get();
 if (!school) return Astro.redirect('/404');
 
-const Layout = getThemeLayout(school.theme || 'harmony');
+const previewTheme = Astro.url.searchParams.get('preview_theme');
+const user = Astro.locals.user;
+const isPreviewing = previewTheme && themeList.includes(previewTheme) && user;
+const activeTheme = isPreviewing ? previewTheme : (school.theme || 'aurora');
 
-const items = db.select().from(classes).where(eq(classes.schoolId, school.id)).orderBy(asc(classes.sortOrder)).all();
+const v3Theme = getV3Theme(activeTheme);
+const Layout = v3Theme?.Layout || getThemeLayout(activeTheme);
+const PageComponent = v3Theme?.ClassesPage;
+import { classes } from '../../lib/db/schema.js';
+const schoolClasses = db.select().from(classes).where(eq(classes.schoolId, school.id)).all();
+const pageData = { items: schoolClasses };
 ---
-
-<Layout school={school} title="Classes">
-  <section class="py-16 bg-[var(--bg)]">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <h1 class="text-4xl font-bold text-[var(--text)]">Our Classes</h1>
-      <p class="mt-2 text-[var(--muted)]">Explore our class offerings and meet our teachers</p>
+<Layout school={school} title="{PageComponent ? '' : 'Classes'}">
+  {isPreviewing && (
+    <div class="bg-blue-600 text-white py-2 px-4 text-center text-sm font-medium sticky top-0 z-[100]">
+      Previewing <strong>{previewTheme}</strong> theme
+      <a href={`/${slug}`} class="underline text-xs hover:text-blue-200 ml-2">Close</a>
     </div>
-  </section>
-
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-    {items.length === 0 ? (
-      <p class="text-center py-12 text-[var(--muted)]">Class information coming soon.</p>
-    ) : (
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {items.map(item => (
-          <a href={item.hasDetailPage && item.slug ? `/${slug}/classes/${item.slug}` : '#'} class:list={['block', !item.hasDetailPage && 'cursor-default']}>
-          <div class="bg-[var(--surface)] rounded-xl border border-[var(--border)] overflow-hidden hover:shadow-md transition-shadow">
-            {item.imageUrl && (
-              <img src={item.imageUrl} alt={item.name} class="w-full h-40 object-cover" loading="lazy" />
-            )}
-            <div class="p-6">
-              <h2 class="text-lg font-semibold text-[var(--text)] mb-2">{item.name}</h2>
-              {item.gradeLevel && <p class="text-sm text-[var(--primary)] font-medium mb-2">{item.gradeLevel}</p>}
-              {item.description && <p class="text-sm mb-3 text-[var(--muted)]">{item.description}</p>}
-              <div class="flex items-center gap-4 text-xs text-[var(--muted)]">
-                {item.teacherName && <span>Teacher: {item.teacherName}</span>}
-                {item.capacity && <span>Max: {item.capacity} students</span>}
-              </div>
-            </div>
-          </div>
-          </a>
-        ))}
+  )}
+  {PageComponent ? (
+    <PageComponent school={school} {...pageData} />
+  ) : (
+    <div class="px-4 py-16">
+      <div class="max-w-4xl mx-auto">
+        <h1 class="text-4xl font-bold text-[var(--text)] mb-8">Classes</h1>
+        <p class="text-[var(--muted)]">This page uses a legacy theme. Please switch to a v3 theme for full page autonomy.</p>
       </div>
-    )}
-  </div>
+    </div>
+  )}
 </Layout>

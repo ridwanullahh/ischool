@@ -1,60 +1,43 @@
 ---
-import { getThemeLayout } from '../../../themes/index.js';
+import { getV3Theme, getThemeLayout, themeList } from '../../../themes/index.js';
 import { getDb } from '../../../lib/db/index.js';
-import { schools, blogPosts } from '../../../lib/db/schema.js';
-import { eq, and } from 'drizzle-orm';
-import { formatDate } from '../../../lib/utils.js';
-import ShareButtons from '../../../components/ShareButtons.astro';
-import ReactionBar from '../../../components/ReactionBar.astro';
+import { schools } from '../../../lib/db/schema.js';
+import { eq, desc, and } from 'drizzle-orm';
 
 const slug = Astro.params.slug!;
-const postSlug = Astro.params.post!;
 const db = getDb();
 const school = db.select().from(schools).where(eq(schools.slug, slug)).get();
 if (!school) return Astro.redirect('/404');
 
-const Layout = getThemeLayout(school.theme || 'harmony');
+const previewTheme = Astro.url.searchParams.get('preview_theme');
+const user = Astro.locals.user;
+const isPreviewing = previewTheme && themeList.includes(previewTheme) && user;
+const activeTheme = isPreviewing ? previewTheme : (school.theme || 'aurora');
 
-const post = db.select().from(blogPosts)
-  .where(and(eq(blogPosts.schoolId, school.id), eq(blogPosts.slug, postSlug), eq(blogPosts.isPublished, true)))
-  .get();
-if (!post) return Astro.redirect(`/${slug}/blog`);
-
-const fullUrl = `${Astro.url.origin}/${slug}/blog/${postSlug}`;
+const v3Theme = getV3Theme(activeTheme);
+const Layout = v3Theme?.Layout || getThemeLayout(activeTheme);
+const PageComponent = v3Theme?.BlogPostPage;
+import { blogPosts } from '../../../lib/db/schema.js';
+const postSlug = Astro.params.post!;
+const item = db.select().from(blogPosts).where(and(eq(blogPosts.schoolId, school.id), eq(blogPosts.slug, postSlug))).get();
+if (!item) return Astro.redirect('/404');
+const pageData = { item };
 ---
-
-<Layout school={school} title={post.title}>
-  <article class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-    <a href={`/${slug}/blog`} class="text-sm text-[var(--primary)] hover:underline mb-6 inline-block">&larr; Back to Blog</a>
-
-    {post.coverImageUrl && (
-      <img src={post.coverImageUrl} alt={post.title} class="w-full h-64 sm:h-80 object-cover rounded-xl mb-8" />
-    )}
-
-    <header class="mb-8">
-      <h1 class="text-3xl sm:text-4xl font-bold text-[var(--text)] leading-tight">{post.title}</h1>
-      <div class="mt-4 flex flex-wrap items-center gap-4">
-        {post.publishedAt && (
-          <p class="text-sm text-[var(--muted)]">{formatDate(post.publishedAt)}</p>
-        )}
-        {post.category && (
-          <span class="text-xs font-medium px-2.5 py-1 rounded-full bg-[var(--primary)]/10 text-[var(--primary)]">{post.category}</span>
-        )}
-      </div>
-      <div class="mt-4">
-        <ShareButtons url={fullUrl} title={post.title} />
-      </div>
-    </header>
-
-    <div class="prose max-w-none mb-10">
-      {post.content.split('\n').map(para => para.trim()).filter(Boolean).map(para => (
-        <p class="leading-relaxed mb-4 text-[var(--text)]">{para}</p>
-      ))}
+<Layout school={school} title="{PageComponent ? '' : 'Post'}">
+  {isPreviewing && (
+    <div class="bg-blue-600 text-white py-2 px-4 text-center text-sm font-medium sticky top-0 z-[100]">
+      Previewing <strong>{previewTheme}</strong> theme
+      <a href={`/${slug}`} class="underline text-xs hover:text-blue-200 ml-2">Close</a>
     </div>
-
-    <div class="border-t border-[var(--border)] pt-6">
-      <p class="text-sm font-medium text-[var(--text)] mb-3">Was this helpful?</p>
-      <ReactionBar entityType="blog_post" entityId={post.id} />
+  )}
+  {PageComponent ? (
+    <PageComponent school={school} {...pageData} />
+  ) : (
+    <div class="px-4 py-16">
+      <div class="max-w-4xl mx-auto">
+        <h1 class="text-4xl font-bold text-[var(--text)] mb-8">Post</h1>
+        <p class="text-[var(--muted)]">This page uses a legacy theme. Please switch to a v3 theme for full page autonomy.</p>
+      </div>
     </div>
-  </article>
+  )}
 </Layout>

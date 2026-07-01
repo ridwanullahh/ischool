@@ -1,0 +1,129 @@
+---
+import { getSchoolNav, getSchoolContacts } from '../../../lib/school.ts';
+import { normalizeSocialUrl } from '../../../lib/social.ts';
+import { getSocialIconPath } from '../_shared/social-icons';
+
+interface Props { school: any; [key: string]: any; }
+const { school, ...data } = Astro.props;
+const nav = getSchoolNav(school.id);
+const contacts = getSchoolContacts(school.id);
+const prefix = '/' + school.slug;
+const social = (school.socialHandles as Record<string, string>) || {};
+const socialEntries = Object.entries(social).filter(([, v]) => v && v !== '#');
+const locale = school.locale || 'en';
+const formatDate = (d: string | Date | null) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+---
+<div class="space-y-0">
+  <!-- Hero: editorial masthead-style -->
+  <section class="border-b-2 heritage-rule" style="background:var(--bg)">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28">
+      <div class="max-w-3xl">
+        <h1 class="heritage-serif text-5xl sm:text-6xl lg:text-7xl font-bold leading-tight tracking-tight" style="color:var(--text)">{school.name}</h1>
+        {school.tagline && <p class="mt-4 text-xl leading-relaxed heritage-serif italic" style="color:var(--muted)">{school.tagline}</p>}
+        <div class="mt-8 flex flex-col sm:flex-row gap-4">
+          <a href={`/${school.slug}/admissions`} class="inline-flex items-center justify-center px-6 py-3 text-sm font-bold uppercase tracking-wider text-white" style="background:var(--primary)">Apply for Admission</a>
+          <a href={`/${school.slug}/about`} class="inline-flex items-center justify-center px-6 py-3 text-sm font-bold uppercase tracking-wider border-2" style="border-color:var(--text);color:var(--text)">Learn More</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Latest announcement -->
+  {data.recentAnnouncements?.length > 0 && (
+    <a href={`/${school.slug}/announcements/${data.recentAnnouncements[0].slug}`} class="block border-b hover:bg-amber-50/50" style="border-color:var(--border)">
+      <div class="max-w-7xl mx-auto px-4 py-4 flex items-center gap-3">
+        <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 text-white" style="background:var(--primary)">Latest</span>
+        <span class="text-sm font-medium" style="color:var(--text)">{data.recentAnnouncements[0].title}</span>
+      </div>
+    </a>
+  )}
+
+  <!-- Value proposition: centered editorial -->
+  {data.about?.valueProposition && (
+    <section class="py-20" style="background:var(--surface)">
+      <div class="max-w-3xl mx-auto px-4 text-center">
+        <h2 class="heritage-serif text-3xl font-bold mb-6" style="color:var(--text)">Why Choose {school.name}?</h2>
+        <p class="text-lg leading-relaxed heritage-serif" style="color:var(--muted)">{data.about.valueProposition}</p>
+      </div>
+    </section>
+  )}
+
+  <!-- Features: multi-column with rules -->
+  {data.features?.length > 0 && (
+    <section class="py-20">
+      <div class="max-w-7xl mx-auto px-4">
+        <h2 class="heritage-serif text-3xl font-bold text-center mb-12" style="color:var(--text)">Our Highlights</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-0 divide-x" style="border-color:var(--border)">
+          {data.features.map(f => (
+            <div class="p-8">
+              <h3 class="heritage-serif text-xl font-bold mb-3" style="color:var(--text)">{f.title}</h3>
+              <p class="leading-relaxed text-sm" style="color:var(--muted)">{f.description}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- Programs: editorial cards with rules -->
+  {data.schoolPrograms?.length > 0 && (
+    <section class="py-20" style="background:var(--surface)">
+      <div class="max-w-7xl mx-auto px-4">
+        <h2 class="heritage-serif text-3xl font-bold text-center mb-4" style="color:var(--text)">Our Programs</h2>
+        <p class="text-center mb-12 max-w-2xl mx-auto text-sm" style="color:var(--muted)">Comprehensive educational programs designed to nurture every student's potential.</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-0">
+          {data.schoolPrograms.map((p, i) => (
+            <a href={`/${school.slug}/programs/${p.slug}`} class="block p-6 border" style="border-color:var(--border)">
+              <span class="heritage-serif text-3xl font-bold" style="color:var(--primary)">{String(i+1).padStart(2,'0')}</span>
+              <h3 class="heritage-serif text-lg font-bold mt-2 mb-2" style="color:var(--text)">{p.name}</h3>
+              {p.level && <p class="text-sm font-medium mb-2" style="color:var(--primary)">{p.level}</p>}
+              {p.description && <p class="text-sm line-clamp-3" style="color:var(--muted)">{p.description}</p>}
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- Stats: full-width bar -->
+  {data.stats?.length > 0 && (
+    <section class="py-16" style="background:var(--primary)">
+      <div class="max-w-7xl mx-auto px-4">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
+          {data.stats.map(s => <div class="text-center text-white"><p class="text-3xl sm:text-4xl font-bold">{s.value}</p><p class="text-sm opacity-80 mt-1">{s.label}</p></div>)}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- News: editorial multi-column -->
+  {data.recentPosts?.length > 0 && (
+    <section class="py-20">
+      <div class="max-w-7xl mx-auto px-4">
+        <div class="flex items-center justify-between mb-12">
+          <h2 class="heritage-serif text-3xl font-bold" style="color:var(--text)">Latest News</h2>
+          <a href={`/${school.slug}/blog`} class="text-sm font-medium hover:underline" style="color:var(--primary)">View all</a>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {data.recentPosts.map(post => (
+            <a href={`/${school.slug}/blog/${post.slug}`} class="block group">
+              {post.coverImageUrl && <img src={post.coverImageUrl} alt={post.title} class="w-full h-48 object-cover mb-4" loading="lazy" />}
+              <p class="text-xs uppercase tracking-wider mb-2" style="color:var(--muted)">{formatDate(post.publishedAt || post.createdAt)}</p>
+              <h3 class="heritage-serif text-xl font-bold mb-2 group-hover:text-[var(--primary)] transition-colors" style="color:var(--text)">{post.title}</h3>
+              <p class="text-sm line-clamp-2" style="color:var(--muted)">{post.excerpt || post.content}</p>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- CTA -->
+  <section class="py-20" style="background:var(--surface)">
+    <div class="max-w-3xl mx-auto px-4 text-center">
+      <h2 class="heritage-serif text-3xl font-bold mb-4" style="color:var(--text)">Ready to Join {school.name}?</h2>
+      <p class="mb-8 max-w-2xl mx-auto text-sm" style="color:var(--muted)">We would love to welcome your family to our community. Start the admissions process today.</p>
+      <a href={`/${school.slug}/admissions`} class="inline-flex px-8 py-3.5 text-sm font-bold uppercase tracking-wider text-white" style="background:var(--primary)">Start Application</a>
+    </div>
+  </section>
+</div>

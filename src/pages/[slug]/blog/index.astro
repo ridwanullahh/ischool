@@ -1,50 +1,41 @@
 ---
-import { getThemeLayout } from '../../../themes/index.js';
+import { getV3Theme, getThemeLayout, themeList } from '../../../themes/index.js';
 import { getDb } from '../../../lib/db/index.js';
-import { schools, blogPosts } from '../../../lib/db/schema.js';
+import { schools } from '../../../lib/db/schema.js';
 import { eq, desc, and } from 'drizzle-orm';
-import { formatDate } from '../../../lib/utils.js';
 
 const slug = Astro.params.slug!;
 const db = getDb();
 const school = db.select().from(schools).where(eq(schools.slug, slug)).get();
 if (!school) return Astro.redirect('/404');
 
-const Layout = getThemeLayout(school.theme || 'harmony');
+const previewTheme = Astro.url.searchParams.get('preview_theme');
+const user = Astro.locals.user;
+const isPreviewing = previewTheme && themeList.includes(previewTheme) && user;
+const activeTheme = isPreviewing ? previewTheme : (school.theme || 'aurora');
 
-const posts = db.select().from(blogPosts)
-  .where(and(eq(blogPosts.schoolId, school.id), eq(blogPosts.isPublished, true)))
-  .orderBy(desc(blogPosts.createdAt)).all();
+const v3Theme = getV3Theme(activeTheme);
+const Layout = v3Theme?.Layout || getThemeLayout(activeTheme);
+const PageComponent = v3Theme?.BlogIndexPage;
+import { blogPosts } from '../../../lib/db/schema.js';
+const posts = db.select().from(blogPosts).where(eq(blogPosts.schoolId, school.id)).orderBy(desc(blogPosts.createdAt)).all();
+const pageData = { items: posts };
 ---
-
-<Layout school={school} title="Blog">
-  <section class="py-16 bg-[var(--bg)]">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <h1 class="text-4xl font-bold text-[var(--text)]">Blog & News</h1>
-      <p class="mt-2 text-[var(--muted)]">Latest updates and stories from {school.name}</p>
+<Layout school={school} title="{PageComponent ? '' : 'Index'}">
+  {isPreviewing && (
+    <div class="bg-blue-600 text-white py-2 px-4 text-center text-sm font-medium sticky top-0 z-[100]">
+      Previewing <strong>{previewTheme}</strong> theme
+      <a href={`/${slug}`} class="underline text-xs hover:text-blue-200 ml-2">Close</a>
     </div>
-  </section>
-
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-    {posts.length === 0 ? (
-      <p class="text-center py-12 text-[var(--muted)]">No blog posts yet. Check back soon!</p>
-    ) : (
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {posts.map(post => (
-          <a href={`/${slug}/blog/${post.slug}`} class="bg-[var(--surface)] rounded-xl border border-[var(--border)] overflow-hidden hover:shadow-lg transition-shadow group">
-            {post.coverImageUrl && (
-              <img src={post.coverImageUrl} alt={post.title} class="w-full h-48 object-cover" loading="lazy" />
-            )}
-            <div class="p-6">
-              {post.publishedAt && (
-                <p class="text-xs mb-2 text-[var(--muted)]">{formatDate(post.publishedAt)}</p>
-              )}
-              <h2 class="font-semibold text-[var(--text)] mb-2 group-hover:text-[var(--primary)] transition-colors">{post.title}</h2>
-              <p class="text-sm line-clamp-3 text-[var(--muted)]">{post.excerpt || post.content}</p>
-            </div>
-          </a>
-        ))}
+  )}
+  {PageComponent ? (
+    <PageComponent school={school} {...pageData} />
+  ) : (
+    <div class="px-4 py-16">
+      <div class="max-w-4xl mx-auto">
+        <h1 class="text-4xl font-bold text-[var(--text)] mb-8">Index</h1>
+        <p class="text-[var(--muted)]">This page uses a legacy theme. Please switch to a v3 theme for full page autonomy.</p>
       </div>
-    )}
-  </div>
+    </div>
+  )}
 </Layout>

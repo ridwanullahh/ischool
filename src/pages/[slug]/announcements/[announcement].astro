@@ -1,72 +1,43 @@
 ---
-import { getThemeLayout } from '../../../themes/index.js';
+import { getV3Theme, getThemeLayout, themeList } from '../../../themes/index.js';
 import { getDb } from '../../../lib/db/index.js';
-import { schools, announcements } from '../../../lib/db/schema.js';
-import { eq, and } from 'drizzle-orm';
-import { formatDate } from '../../../lib/utils.js';
-import ShareButtons from '../../../components/ShareButtons.astro';
-import ReactionBar from '../../../components/ReactionBar.astro';
+import { schools } from '../../../lib/db/schema.js';
+import { eq, desc, and } from 'drizzle-orm';
 
 const slug = Astro.params.slug!;
-const announcementSlug = Astro.params.announcement!;
 const db = getDb();
 const school = db.select().from(schools).where(eq(schools.slug, slug)).get();
 if (!school) return Astro.redirect('/404');
 
-const Layout = getThemeLayout(school.theme || 'harmony');
+const previewTheme = Astro.url.searchParams.get('preview_theme');
+const user = Astro.locals.user;
+const isPreviewing = previewTheme && themeList.includes(previewTheme) && user;
+const activeTheme = isPreviewing ? previewTheme : (school.theme || 'aurora');
 
-const item = db.select().from(announcements)
-  .where(and(eq(announcements.schoolId, school.id), eq(announcements.slug, announcementSlug), eq(announcements.published, true)))
-  .get();
-if (!item) return Astro.redirect(`/${slug}/announcements`);
-
-const fullUrl = `${Astro.url.origin}/${slug}/announcements/${announcementSlug}`;
+const v3Theme = getV3Theme(activeTheme);
+const Layout = v3Theme?.Layout || getThemeLayout(activeTheme);
+const PageComponent = v3Theme?.AnnouncementDetailPage;
+import { announcements } from '../../../lib/db/schema.js';
+const announcementSlug = Astro.params.announcement!;
+const item = db.select().from(announcements).where(and(eq(announcements.schoolId, school.id), eq(announcements.slug, announcementSlug))).get();
+if (!item) return Astro.redirect('/404');
+const pageData = { item };
 ---
-
-<Layout school={school} title={item.title}>
-  <article class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-    <a href={`/${slug}/announcements`} class="text-sm text-[var(--primary)] hover:underline mb-6 inline-block">&larr; Back to Announcements</a>
-
-    {item.bannerImageUrl && (
-      <img src={item.bannerImageUrl} alt={item.title} class="w-full h-64 sm:h-80 object-cover rounded-xl mb-8" />
-    )}
-
-    <header class="mb-8">
-      <div class="flex items-center gap-3 mb-3">
-        {item.isPinned && (
-          <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">Pinned</span>
-        )}
-        <span class="text-sm text-[var(--muted)]">{formatDate(item.createdAt)}</span>
-      </div>
-      <h1 class="text-3xl sm:text-4xl font-bold text-[var(--text)] leading-tight">{item.title}</h1>
-      {item.excerpt && (
-        <p class="mt-4 text-lg text-[var(--muted)]">{item.excerpt}</p>
-      )}
-      <div class="mt-4">
-        <ShareButtons url={fullUrl} title={item.title} />
-      </div>
-    </header>
-
-    <div class="prose max-w-none mb-10">
-      {item.content.split('\n').map(para => para.trim()).filter(Boolean).map(para => (
-        <p class="leading-relaxed mb-4 text-[var(--text)]">{para}</p>
-      ))}
+<Layout school={school} title="{PageComponent ? '' : 'Announcement'}">
+  {isPreviewing && (
+    <div class="bg-blue-600 text-white py-2 px-4 text-center text-sm font-medium sticky top-0 z-[100]">
+      Previewing <strong>{previewTheme}</strong> theme
+      <a href={`/${slug}`} class="underline text-xs hover:text-blue-200 ml-2">Close</a>
     </div>
-
-    {item.ctaText && item.ctaUrl && (
-      <div class="mt-10 p-6 bg-[var(--bg)] rounded-xl border border-[var(--border)] text-center">
-        <a
-          href={item.ctaUrl.startsWith('http') ? item.ctaUrl : `/${slug}${item.ctaUrl}`}
-          class="inline-flex items-center justify-center px-8 py-3 text-base font-semibold text-white bg-[var(--primary)] rounded-lg hover:opacity-90 transition-colors shadow-sm"
-        >
-          {item.ctaText}
-        </a>
+  )}
+  {PageComponent ? (
+    <PageComponent school={school} {...pageData} />
+  ) : (
+    <div class="px-4 py-16">
+      <div class="max-w-4xl mx-auto">
+        <h1 class="text-4xl font-bold text-[var(--text)] mb-8">Announcement</h1>
+        <p class="text-[var(--muted)]">This page uses a legacy theme. Please switch to a v3 theme for full page autonomy.</p>
       </div>
-    )}
-
-    <div class="border-t border-[var(--border)] pt-6 mt-8">
-      <p class="text-sm font-medium text-[var(--text)] mb-3">How do you feel about this?</p>
-      <ReactionBar entityType="announcement" entityId={item.id} />
     </div>
-  </article>
+  )}
 </Layout>

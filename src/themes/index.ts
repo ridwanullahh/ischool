@@ -122,40 +122,56 @@ export const themeLayouts: Record<string, any> = {
   'ember-glow': EmberGlowLayout,
 };
 
-// --- v2 theme system integration ---
-// The v2 registry (src/themes/v2/registry.ts) holds the new WordPress-style
-// themes with full layout autonomy. getThemeLayout checks v2 first, then
-// falls back to the v1 single-file themes above, then to harmony as a
-// last resort so no school ever renders a blank page.
-import { getTheme as v2GetTheme, listThemes as v2ListThemes } from './v2/registry';
+// --- v3 theme system integration (FULL WordPress-like architecture) ---
+// The v3 registry holds themes with FULL page-template autonomy.
+// Each theme owns Layout + HomePage + AboutPage + BlogIndexPage + etc.
+// The [slug] pages delegate to the theme's page templates.
+import { getTheme as v3GetTheme, getThemeLayout as v3GetThemeLayout, getThemePage as v3GetThemePage, listThemes as v3ListThemes } from './v3/registry';
+
+// --- v2 fallback (legacy) ---
+import { getTheme as v2GetTheme } from './v2/registry';
 
 export function getThemeLayout(theme: string) {
+  const v3 = v3GetThemeLayout(theme);
+  if (v3) return v3;
   const v2 = v2GetTheme(theme);
   if (v2) return v2.Layout;
   return themeLayouts[theme] || HarmonyLayout;
 }
 
 /**
- * All available theme names — v2 (new) + v1 (legacy).
- * Used by [slug] pages for preview-theme validation.
+ * Returns the full v3 registered theme (config + Layout + page templates).
+ */
+export function getV3Theme(theme: string) {
+  return v3GetTheme(theme);
+}
+
+/**
+ * Returns a specific page template from the v3 theme.
+ */
+export function getThemePageTemplate(theme: string, page: string) {
+  return v3GetThemePage(theme, page);
+}
+
+/**
+ * All available theme names — v3 (new) + v2 + v1 (legacy fallback).
  */
 export const themeList = [
-  ...v2ListThemes().map(t => t.name),
+  ...v3ListThemes().map(t => t.name),
   ...Object.keys(themeLayouts),
 ];
 
 /**
- * Returns only the v2 (reimplemented) theme configs — for the admin
- * theme selector, which must show ONLY the newly reimplemented themes
- * per Issue #1.
+ * Returns only the v3 (fully-fledged) theme configs — for the admin
+ * theme selector, which must show ONLY the new real themes.
  */
 export function listV2Themes() {
-  return v2ListThemes();
+  return v3ListThemes();
 }
 
 /**
- * Returns true if a theme name is a v2 theme.
+ * Returns true if a theme name is a v3 theme.
  */
 export function isV2Theme(theme: string): boolean {
-  return v2GetTheme(theme) !== null;
+  return v3GetTheme(theme) !== null;
 }

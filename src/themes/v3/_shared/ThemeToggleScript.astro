@@ -1,0 +1,11 @@
+---
+interface Props { selector?: string; defaultMode?: 'light' | 'dark'; }
+const { selector = '#theme-toggle', defaultMode = 'light' } = Astro.props;
+const dd = defaultMode === 'dark';
+---
+<script is:inline set:html={`(function(){
+  function apply(){var s=localStorage.getItem('themeMode')||'system';var d=window.matchMedia('(prefers-color-scheme:dark)').matches;var dk=s==='dark'||(s==='system'&&d)||(!s&&${dd}&&d);var el=document.documentElement;el.classList.remove('light','dark');el.classList.add(dk?'dark':'light');}
+  function cycle(){var c=localStorage.getItem('themeMode')||'system';var n=c==='light'?'dark':c==='dark'?'system':'light';localStorage.setItem('themeMode',n);apply();}
+  apply();document.addEventListener('click',function(e){if(e.target.closest('${selector}')){e.preventDefault();cycle();}});
+  window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change',function(){if((localStorage.getItem('themeMode')||'system')==='system')apply();});
+})();`} />

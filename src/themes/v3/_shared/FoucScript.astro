@@ -1,0 +1,6 @@
+---
+interface Props { defaultMode?: 'light' | 'dark'; }
+const { defaultMode = 'light' } = Astro.props;
+const dd = defaultMode === 'dark';
+---
+<script is:inline set:html={`(function(){var s=localStorage.getItem('themeMode');var d=window.matchMedia('(prefers-color-scheme:dark)').matches;var dk=s==='dark'||(s==='system'&&d)||(!s&&${dd}&&d);var el=document.documentElement;el.classList.remove('light','dark');el.classList.add(dk?'dark':'light');})();`} />

@@ -33,7 +33,7 @@ async function seed() {
     name: 'Al-Noor Islamic Academy',
     tagline: 'Illuminating Minds Through Faith and Knowledge',
     primaryColor: '#065f46',
-    theme: 'scholar',
+    theme: 'aurora',
     ownerId: owner1.id,
     status: 'active',
   }).returning().all();
@@ -126,7 +126,7 @@ async function seed() {
     name: 'Darul Hikmah School',
     tagline: 'The House of Wisdom — Where Faith Meets Excellence',
     primaryColor: '#1e3a5f',
-    theme: 'prestige',
+    theme: 'heritage',
     ownerId: owner2.id,
     status: 'active',
   }).returning().all();

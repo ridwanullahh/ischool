@@ -1,48 +1,41 @@
 ---
-import { getThemeLayout } from '../../themes/index.js';
+import { getV3Theme, getThemeLayout, themeList } from '../../themes/index.js';
 import { getDb } from '../../lib/db/index.js';
-import { schools, faqs } from '../../lib/db/schema.js';
-import { eq, asc } from 'drizzle-orm';
+import { schools } from '../../lib/db/schema.js';
+import { eq, desc, and } from 'drizzle-orm';
 
 const slug = Astro.params.slug!;
 const db = getDb();
 const school = db.select().from(schools).where(eq(schools.slug, slug)).get();
 if (!school) return Astro.redirect('/404');
 
-const Layout = getThemeLayout(school.theme || 'harmony');
+const previewTheme = Astro.url.searchParams.get('preview_theme');
+const user = Astro.locals.user;
+const isPreviewing = previewTheme && themeList.includes(previewTheme) && user;
+const activeTheme = isPreviewing ? previewTheme : (school.theme || 'aurora');
 
-const items = db.select().from(faqs).where(eq(faqs.schoolId, school.id)).orderBy(asc(faqs.sortOrder)).all();
-const categories = [...new Set(items.map(f => f.category || 'General'))];
+const v3Theme = getV3Theme(activeTheme);
+const Layout = v3Theme?.Layout || getThemeLayout(activeTheme);
+const PageComponent = v3Theme?.FaqsPage;
+import { faqs } from '../../lib/db/schema.js';
+const schoolFaqs = db.select().from(faqs).where(eq(faqs.schoolId, school.id)).all();
+const pageData = { items: schoolFaqs };
 ---
-
-<Layout school={school} title="FAQ">
-  <section class="py-16 bg-[var(--bg)]">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <h1 class="text-4xl font-bold text-[var(--text)]">Frequently Asked Questions</h1>
-      <p class="mt-2 text-[var(--muted)]">Find answers to common questions about {school.name}</p>
+<Layout school={school} title="{PageComponent ? '' : 'Faqs'}">
+  {isPreviewing && (
+    <div class="bg-blue-600 text-white py-2 px-4 text-center text-sm font-medium sticky top-0 z-[100]">
+      Previewing <strong>{previewTheme}</strong> theme
+      <a href={`/${slug}`} class="underline text-xs hover:text-blue-200 ml-2">Close</a>
     </div>
-  </section>
-
-  <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-12">
-    {items.length === 0 ? (
-      <p class="text-center py-12 text-[var(--muted)]">FAQs coming soon.</p>
-    ) : (
-      categories.map(cat => (
-        <div>
-          <h2 class="text-xl font-semibold text-[var(--text)] mb-6">{cat}</h2>
-          <div class="space-y-4">
-            {items.filter(f => (f.category || 'General') === cat).map(faq => (
-              <details class="group bg-[var(--surface)] rounded-xl border border-[var(--border)] overflow-hidden">
-                <summary class="px-6 py-4 cursor-pointer flex items-center justify-between font-medium text-[var(--text)] hover:bg-[var(--bg)] transition-colors">
-                  {faq.question}
-                  <svg class="w-5 h-5 group-open:rotate-180 transition-transform text-[var(--muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-                </summary>
-                <div class="px-6 pb-4 leading-relaxed text-[var(--muted)]">{faq.answer}</div>
-              </details>
-            ))}
-          </div>
-        </div>
-      ))
-    )}
-  </div>
+  )}
+  {PageComponent ? (
+    <PageComponent school={school} {...pageData} />
+  ) : (
+    <div class="px-4 py-16">
+      <div class="max-w-4xl mx-auto">
+        <h1 class="text-4xl font-bold text-[var(--text)] mb-8">Faqs</h1>
+        <p class="text-[var(--muted)]">This page uses a legacy theme. Please switch to a v3 theme for full page autonomy.</p>
+      </div>
+    </div>
+  )}
 </Layout>

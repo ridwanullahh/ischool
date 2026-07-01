@@ -1,0 +1,15 @@
+---
+import { getSchoolNav, getSchoolContacts } from '../../../lib/school.ts';
+import { normalizeSocialUrl } from '../../../lib/social.ts';
+import { getSocialIconPath } from '../_shared/social-icons';
+
+interface Props { school: any; [key: string]: any; }
+const { school, ...data } = Astro.props;
+const nav = getSchoolNav(school.id);
+const contacts = getSchoolContacts(school.id);
+const prefix = '/' + school.slug;
+const social = (school.socialHandles as Record<string, string>) || {};
+const socialEntries = Object.entries(social).filter(([, v]) => v && v !== '#');
+const formatDate = (d: string | Date | null) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+---
+<div class="px-4 py-12"><article class="max-w-3xl mx-auto"><a href={`/${school.slug}/announcements`} class="inline-flex items-center gap-1.5 text-sm font-bold mb-4 hover:opacity-70" style="color:var(--muted)"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>Back</a><div class="bloom-card p-8" style="background:var(--surface);border:1px solid var(--border)">{data.item?.isPinned && <span class="bloom-pill px-2 py-0.5 text-[10px] font-bold text-white inline-block mb-4" style="background:var(--primary)">PINNED</span>}<h1 class="text-3xl font-extrabold mb-4" style="color:var(--text)">{data.item?.title || 'Announcement'}</h1><p class="text-sm mb-6 font-medium" style="color:var(--muted)">{formatDate(data.item?.publishedAt || data.item?.createdAt)}</p><div class="prose max-w-none whitespace-pre-wrap font-medium" style="color:var(--text)">{data.item?.content || ''}</div></div></article></div>
