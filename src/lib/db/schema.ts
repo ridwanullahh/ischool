@@ -985,6 +985,26 @@ export const roleOverrides = sqliteTable('role_overrides', {
 });
 
 // ═══════════════════════════════════════════════════════
+// FINANCE: Fee-Access Linkage Configuration
+// Per-school config for blocking module access when fees are overdue.
+// ═══════════════════════════════════════════════════════
+
+export const feeAccessRules = sqliteTable('fee_access_rules', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
+  enabled: integer('enabled', { mode: 'boolean' }).default(false),
+  // How many days overdue before blocking kicks in
+  gracePeriodDays: integer('grace_period_days').default(0),
+  // Which modules to block: json array of module keys ['lms', 'exams', 'cbt', 'portal']
+  blockedModules: text('blocked_modules', { mode: 'json' }).default('[]'),
+  // Threshold amount: only block if outstanding exceeds this (0 = any amount)
+  thresholdAmount: integer('threshold_amount').default(0),
+  // Custom message shown to blocked students
+  blockMessage: text('block_message'),
+  ...timestamps,
+});
+
+// ═══════════════════════════════════════════════════════
 // MODULE 16: e-EXAM & CBT
 // ═══════════════════════════════════════════════════════
 

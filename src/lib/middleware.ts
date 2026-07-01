@@ -5,6 +5,7 @@ import { schools, schoolMembers, schoolSubscriptions, subscriptionPlans } from '
 import { eq } from 'drizzle-orm';
 import { checkRateLimit } from './security.js';
 import { getUserPermissions } from './rbac.js';
+import { isStudentBlockedFromModule } from './fee-access.js';
 
 const authPaths = ['/api/auth/login', '/api/auth/register', '/api/auth/password-reset'];
 
@@ -77,6 +78,30 @@ export const onRequest = defineMiddleware(async (context, next) => {
     const portalRoles = ['student', 'parent', 'teacher', 'school_admin'];
     if (!portalRoles.includes(user.role)) {
       return context.redirect('/dashboard');
+    }
+
+    // Fee-access linkage: block students with overdue fees from specific modules
+    if (user.role === 'student') {
+      // Determine which module the student is trying to access
+      let module = '';
+      if (pathname.startsWith('/portal/student/assignments') || pathname.startsWith('/portal/student/quizzes') || pathname.startsWith('/portal/student/grades')) {
+        module = 'lms';
+      } else if (pathname.startsWith('/portal/student/timetable')) {
+        module = 'lms';
+      } else if (pathname.startsWith('/api/portal/student/')) {
+        module = 'lms';
+      }
+
+      if (module && isStudentBlockedFromModule(user.id, module)) {
+        // For API calls, return JSON error; for pages, redirect to blocked page
+        if (pathname.startsWith('/api/')) {
+          return new Response(JSON.stringify({ error: 'Fee access restricted', code: 'FEE_BLOCKED' }), {
+            status: 403,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+        return context.redirect('/portal/student/fees?blocked=true');
+      }
     }
   }
 
