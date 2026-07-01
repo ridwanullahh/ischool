@@ -350,6 +350,46 @@ export function clearPermissionCache(userId?: number): void {
 }
 
 /**
+ * API endpoint guard: checks if the authenticated user has a permission.
+ * Returns a 403 Response if not, or null if allowed.
+ *
+ * Usage in API routes:
+ *   import { guardPermission } from '../../../lib/rbac';
+ *   const denied = guardPermission(Astro.locals.user, 'students.create');
+ *   if (denied) return denied;
+ */
+export function guardPermission(user: any, permission: Permission, schoolId?: number): Response | null {
+  if (!user) {
+    return new Response(JSON.stringify({ error: 'Authentication required' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+  // Use the permissions already attached by middleware if available
+  const perms = (user as any).permissions;
+  const has = perms ? perms.has(permission) : hasPermission(user.id, permission, schoolId);
+  if (!has) {
+    return new Response(JSON.stringify({ error: `Permission denied: ${permission} required` }), {
+      status: 403,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+  return null;
+}
+
+/**
+ * Page guard: checks if the user has a permission, returns true if allowed.
+ * Use in .astro frontmatter:
+ *   import { checkPermission } from '../../lib/rbac';
+ *   if (!checkPermission(Astro.locals.user, 'students.view')) return Astro.redirect('/dashboard');
+ */
+export function pageGuard(user: any, permission: Permission): boolean {
+  if (!user) return false;
+  const perms = (user as any).permissions;
+  return perms ? perms.has(permission) : hasPermission(user.id, permission);
+}
+
+/**
  * Returns all permissions for a role, formatted for display.
  */
 export function getPermissionsForRole(role: Role): { permission: Permission; module: string; action: string }[] {

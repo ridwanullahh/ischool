@@ -4,6 +4,7 @@ import { getDb } from './db/index.js';
 import { schools, schoolMembers, schoolSubscriptions, subscriptionPlans } from './db/schema.js';
 import { eq } from 'drizzle-orm';
 import { checkRateLimit } from './security.js';
+import { getUserPermissions } from './rbac.js';
 
 const authPaths = ['/api/auth/login', '/api/auth/register', '/api/auth/password-reset'];
 
@@ -44,12 +45,22 @@ export const onRequest = defineMiddleware(async (context, next) => {
     if (result) user = result.user;
   }
 
+  // RBAC enrichment: resolve the user's schoolId and effective permissions,
+  // then attach them to locals.user so endpoints and pages can call
+  // Astro.locals.user.permissions.has('students.view') directly.
+  if (user) {
+    const db2 = getDb();
+    const membership = db2.select().from(schoolMembers).where(eq(schoolMembers.userId, user.id)).get();
+    const schoolId = membership?.schoolId ?? null;
+    const permissions = getUserPermissions(user.id, schoolId ?? undefined);
+    (user as any).schoolId = schoolId;
+    (user as any).permissions = permissions;
+  }
+
   context.locals.user = user;
 
   if (user && user.role === 'school_admin' && !pathname.startsWith('/onboarding') && !pathname.startsWith('/auth') && !pathname.startsWith('/api/') && !pathname.startsWith('/portal')) {
-    const db2 = getDb();
-    const hasMembership = db2.select().from(schoolMembers).where(eq(schoolMembers.userId, user.id)).get();
-    if (!hasMembership) {
+    if (!user.schoolId) {
       return context.redirect('/onboarding');
     }
   }
