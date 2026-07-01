@@ -720,6 +720,71 @@ export const leaveBalances = sqliteTable('leave_balances', {
   ...timestamps,
 });
 
+// ═══════════════════════════════════════════════════════
+// HR: Recruitment (Job Postings + Applications + Interviews)
+// ═══════════════════════════════════════════════════════
+
+export const jobPostings = sqliteTable('job_postings', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
+  title: text('title').notNull(),
+  department: text('department'),
+  description: text('description'),
+  requirements: text('requirements', { mode: 'json' }).default('[]'),
+  employmentType: text('employment_type', { enum: ['full_time', 'part_time', 'contract', 'volunteer'] }).notNull().default('full_time'),
+  salaryRange: text('salary_range'),
+  startDate: text('start_date'),
+  applicationDeadline: text('application_deadline'),
+  status: text('status', { enum: ['draft', 'open', 'closed', 'filled'] }).notNull().default('draft'),
+  createdBy: integer('created_by').references(() => users.id),
+  ...timestamps,
+});
+
+export const jobApplications = sqliteTable('job_applications', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  jobId: integer('job_id').notNull().references(() => jobPostings.id, { onDelete: 'cascade' }),
+  applicantName: text('applicant_name').notNull(),
+  applicantEmail: text('applicant_email').notNull(),
+  applicantPhone: text('applicant_phone'),
+  coverLetter: text('cover_letter'),
+  resumeUrl: text('resume_url'),
+  status: text('status', { enum: ['submitted', 'reviewing', 'interviewed', 'offered', 'hired', 'rejected'] }).notNull().default('submitted'),
+  ...timestamps,
+});
+
+export const interviews = sqliteTable('interviews', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  applicationId: integer('application_id').notNull().references(() => jobApplications.id, { onDelete: 'cascade' }),
+  schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
+  scheduledAt: text('scheduled_at').notNull(),
+  duration: integer('duration').default(60),
+  location: text('location'),
+  interviewerId: integer('interviewer_id').references(() => users.id),
+  notes: text('notes'),
+  status: text('status', { enum: ['scheduled', 'completed', 'cancelled', 'no_show'] }).notNull().default('scheduled'),
+  ...timestamps,
+});
+
+// ═══════════════════════════════════════════════════════
+// HR: Performance Appraisals
+// ═══════════════════════════════════════════════════════
+
+export const performanceAppraisals = sqliteTable('performance_appraisals', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
+  staffId: integer('staff_id').notNull().references(() => staff.id, { onDelete: 'cascade' }),
+  cycle: text('cycle').notNull(), // e.g., "2024 Annual", "2024 H1"
+  type: text('type', { enum: ['self_assessment', 'manager_assessment', 'final'] }).notNull(),
+  kpis: text('kpis', { mode: 'json' }).default('[]'), // array of {kpi, rating, comment}
+  strengths: text('strengths'),
+  improvements: text('improvements'),
+  goals: text('goals'),
+  overallRating: integer('overall_rating'), // 1-5
+  reviewerId: integer('reviewer_id').references(() => users.id),
+  status: text('status', { enum: ['pending', 'submitted', 'reviewed', 'completed'] }).notNull().default('pending'),
+  ...timestamps,
+});
+
 export const payroll = sqliteTable('payroll', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
@@ -977,6 +1042,24 @@ export const suppliers = sqliteTable('suppliers', {
   email: text('email'),
   phone: text('phone'),
   address: text('address'),
+  ...timestamps,
+});
+
+// ═══════════════════════════════════════════════════════
+// INVENTORY: Purchase Requests / Procurement
+// ═══════════════════════════════════════════════════════
+
+export const purchaseRequests = sqliteTable('purchase_requests', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
+  requestedBy: integer('requested_by').notNull().references(() => users.id),
+  supplierId: integer('supplier_id').references(() => suppliers.id),
+  items: text('items', { mode: 'json' }).notNull(), // array of {name, quantity, unitPrice, category}
+  totalAmount: integer('total_amount'),
+  reason: text('reason'),
+  status: text('status', { enum: ['pending', 'approved', 'rejected', 'ordered', 'received', 'cancelled'] }).notNull().default('pending'),
+  approvedBy: integer('approved_by').references(() => users.id),
+  approvedAt: text('approved_at'),
   ...timestamps,
 });
 
