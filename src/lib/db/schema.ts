@@ -268,6 +268,75 @@ export const students = sqliteTable('students', {
   enrollmentDate: text('enrollment_date'),
   customFields: text('custom_fields', { mode: 'json' }).default('{}'),
   documents: text('documents', { mode: 'json' }).default('[]'),
+  familyGroupId: integer('family_group_id'),
+  bloodGroup: text('blood_group'),
+  nationality: text('nationality'),
+  religion: text('religion'),
+  previousSchool: text('previous_school'),
+  ...timestamps,
+});
+
+// ═══════════════════════════════════════════════════════
+// SIS: Student Documents Vault
+// ═══════════════════════════════════════════════════════
+
+export const studentDocuments = sqliteTable('student_documents', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  studentId: integer('student_id').notNull().references(() => students.id, { onDelete: 'cascade' }),
+  schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
+  category: text('category', { enum: ['birth_certificate', 'passport', 'health_record', 'transfer_certificate', 'report_card', 'id_card', 'other'] }).notNull(),
+  title: text('title').notNull(),
+  fileUrl: text('file_url').notNull(),
+  fileName: text('file_name'),
+  fileType: text('file_type'),
+  uploadedBy: integer('uploaded_by').references(() => users.id),
+  ...timestamps,
+});
+
+// ═══════════════════════════════════════════════════════
+// SIS: Student Medical Records
+// ═══════════════════════════════════════════════════════
+
+export const studentMedicalRecords = sqliteTable('student_medical_records', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  studentId: integer('student_id').notNull().references(() => students.id, { onDelete: 'cascade' }),
+  schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
+  type: text('type', { enum: ['condition', 'allergy', 'medication', 'immunization', 'nurse_visit', 'incident', 'action_plan'] }).notNull(),
+  title: text('title').notNull(),
+  description: text('description'),
+  severity: text('severity', { enum: ['low', 'medium', 'high', 'critical'] }),
+  date: text('date'),
+  recordedBy: integer('recorded_by').references(() => users.id),
+  ...timestamps,
+});
+
+// ═══════════════════════════════════════════════════════
+// SIS: Student Emergency Contacts
+// ═══════════════════════════════════════════════════════
+
+export const studentEmergencyContacts = sqliteTable('student_emergency_contacts', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  studentId: integer('student_id').notNull().references(() => students.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  relationship: text('relationship'),
+  phone: text('phone').notNull(),
+  email: text('email'),
+  address: text('address'),
+  isPrimary: integer('is_primary', { mode: 'boolean' }).default(false),
+  ...timestamps,
+});
+
+// ═══════════════════════════════════════════════════════
+// SIS: Family Groups (sibling linking)
+// ═══════════════════════════════════════════════════════
+
+export const familyGroups = sqliteTable('family_groups', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
+  familyName: text('family_name').notNull(),
+  primaryContactName: text('primary_contact_name'),
+  primaryContactPhone: text('primary_contact_phone'),
+  primaryContactEmail: text('primary_contact_email'),
   ...timestamps,
 });
 
