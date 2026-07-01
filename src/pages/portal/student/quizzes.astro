@@ -1,0 +1,125 @@
+---
+/**
+ * Student Portal - Quizzes
+ *
+ * Lists available quizzes and past attempts. Students can start a new
+ * quiz attempt or review past results.
+ */
+import StudentPortalLayout from '../../../layouts/StudentPortalLayout.astro';
+import { getDb } from '../../../lib/db/index.js';
+import { quizzes, quizAttempts, courses } from '../../../lib/db/schema.js';
+import { eq, and, desc } from 'drizzle-orm';
+import { getStudentForUser, getUserSchoolId } from '../../../lib/portal.js';
+
+const user = Astro.locals.user;
+if (!user) return Astro.redirect('/auth/login?redirect=/portal/student/quizzes');
+
+const student = getStudentForUser(user.id);
+if (!student) return Astro.redirect('/portal/no-profile');
+const schoolId = getUserSchoolId(user.id) ?? student.schoolId;
+const db = getDb();
+
+// All published quizzes for the school
+const allQuizzes = db.select().from(quizzes)
+  .where(eq(quizzes.schoolId, schoolId))
+  .orderBy(desc(quizzes.createdAt)).all();
+
+// Student's attempts
+const myAttempts = db.select().from(quizAttempts)
+  .where(eq(quizAttempts.studentId, student.id))
+  .orderBy(desc(quizAttempts.startedAt)).all();
+
+// Group attempts by quiz
+const attemptsByQuiz: Record<number, typeof myAttempts> = {};
+for (const a of myAttempts) {
+  if (!attemptsByQuiz[a.quizId]) attemptsByQuiz[a.quizId] = [];
+  attemptsByQuiz[a.quizId].push(a);
+}
+
+const formatDate = (d: string | Date | null) => {
+  if (!d) return '';
+  try { return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); } catch { return ''; }
+};
+
+// Determine quiz availability
+const now = new Date();
+const isAvailable = (q: any) => {
+  if (q.status === 'draft') return false;
+  if (q.startDate && new Date(q.startDate) > now) return false;
+  if (q.endDate && new Date(q.endDate) < now) return false;
+  // Check attempt limits
+  const attempts = attemptsByQuiz[q.id] || [];
+  if (q.maxAttempts && attempts.length >= q.maxAttempts) return false;
+  return true;
+};
+---
+
+<StudentPortalLayout title="Quizzes - Student Portal">
+  <div class="space-y-6">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Quizzes</h1>
+      <p class="text-sm text-gray-500 mt-1">Take quizzes and review your results</p>
+    </div>
+
+    {allQuizzes.length > 0 ? (
+      <div class="space-y-3">
+        {allQuizzes.map(q => {
+          const course = q.courseId ? db.select().from(courses).where(eq(courses.id, q.courseId)).get() : null;
+          const attempts = attemptsByQuiz[q.id] || [];
+          const bestScore = attempts.length > 0
+            ? attempts.reduce((best, a) => (a.score != null && (best == null || a.score > best)) ? a.score : best, null as number | null)
+            : null;
+          const available = isAvailable(q);
+          const hasInProgress = attempts.some(a => !a.completedAt);
+
+          return (
+            <div class="bg-white rounded-xl border border-gray-200 p-5">
+              <div class="flex items-start justify-between gap-4">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 mb-1">
+                    {course && <span class="text-xs font-medium text-primary-600">{course.title}</span>}
+                    {available ? (
+                      <span class="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700">AVAILABLE</span>
+                    ) : (
+                      <span class="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-500">CLOSED</span>
+                    )}
+                  </div>
+                  <h3 class="text-sm font-semibold text-gray-900">{q.title}</h3>
+                  {q.description && <p class="text-xs text-gray-500 mt-1 line-clamp-2">{q.description}</p>}
+                  <div class="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                    {q.duration && <span>Duration: {q.duration} min</span>}
+                    {q.maxScore && <span>Max score: {q.maxScore}</span>}
+                    {q.maxAttempts && <span>Attempts allowed: {q.maxAttempts}</span>}
+                    <span>Your attempts: {attempts.length}</span>
+                  </div>
+                </div>
+                <div class="text-right shrink-0">
+                  {bestScore != null && (
+                    <div class="mb-2">
+                      <p class="text-[10px] uppercase tracking-wider text-gray-400">Best Score</p>
+                      <p class="text-lg font-bold text-gray-900">{bestScore}{q.maxScore ? `/${q.maxScore}` : ''}</p>
+                    </div>
+                  )}
+                  {available ? (
+                    hasInProgress ? (
+                      <a href={`/portal/student/quizzes/take?id=${q.id}`} class="inline-flex px-4 py-2 text-xs font-medium text-white bg-amber-600 rounded-lg hover:bg-amber-700">Resume</a>
+                    ) : (
+                      <a href={`/portal/student/quizzes/take?id=${q.id}`} class="inline-flex px-4 py-2 text-xs font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">Start Quiz</a>
+                    )
+                  ) : attempts.length > 0 ? (
+                    <a href={`/portal/student/quizzes/review?id=${q.id}`} class="inline-flex px-4 py-2 text-xs font-medium text-primary-600 border border-primary-200 rounded-lg hover:bg-primary-50">Review</a>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    ) : (
+      <div class="bg-white rounded-xl border border-gray-200 p-12 text-center">
+        <svg class="w-12 h-12 mx-auto text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+        <p class="text-sm text-gray-500 mt-2">No quizzes available yet.</p>
+      </div>
+    )}
+  </div>
+</StudentPortalLayout>

@@ -1,0 +1,201 @@
+---
+/**
+ * Student Portal - Assignments
+ *
+ * Lists all assignments for the student's courses with submission status.
+ * Students can submit assignments (file upload or text) directly from here.
+ */
+import StudentPortalLayout from '../../../layouts/StudentPortalLayout.astro';
+import { getDb } from '../../../lib/db/index.js';
+import { assignments, submissions, courses } from '../../../lib/db/schema.js';
+import { eq, and, desc, sql } from 'drizzle-orm';
+import { getStudentForUser, getUserSchoolId } from '../../../lib/portal.js';
+
+const user = Astro.locals.user;
+if (!user) return Astro.redirect('/auth/login?redirect=/portal/student/assignments');
+
+const student = getStudentForUser(user.id);
+if (!student) return Astro.redirect('/portal/no-profile');
+const schoolId = getUserSchoolId(user.id) ?? student.schoolId;
+const db = getDb();
+
+// All assignments for the school, ordered by due date
+const allAssignments = db.select().from(assignments)
+  .where(eq(assignments.schoolId, schoolId))
+  .orderBy(desc(assignments.dueDate)).all();
+
+// Student's submissions
+const mySubmissions = db.select().from(submissions)
+  .where(eq(submissions.studentId, student.id)).all();
+const submissionMap = new Map(mySubmissions.map(s => [s.assignmentId, s]));
+
+// Enrich assignments with course name and submission status
+const enriched = allAssignments.map(a => {
+  const course = a.courseId ? db.select().from(courses).where(eq(courses.id, a.courseId)).get() : null;
+  const submission = submissionMap.get(a.id);
+  let status = 'pending';
+  if (submission) {
+    status = submission.gradedAt ? 'graded' : 'submitted';
+  } else if (a.dueDate && new Date(a.dueDate) < new Date()) {
+    status = 'overdue';
+  }
+  return { ...a, courseName: course?.title || 'General', status, submission };
+});
+
+const pending = enriched.filter(a => a.status === 'pending' || a.status === 'overdue');
+const submitted = enriched.filter(a => a.status === 'submitted' || a.status === 'graded');
+
+const formatDate = (d: string | Date | null) => {
+  if (!d) return 'No due date';
+  try { return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); } catch { return String(d); }
+};
+---
+
+<StudentPortalLayout title="Assignments - Student Portal">
+  <div class="space-y-6">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Assignments</h1>
+      <p class="text-sm text-gray-500 mt-1">View and submit your assignments</p>
+    </div>
+
+    <!-- Pending assignments -->
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <h2 class="text-base font-semibold text-gray-900 mb-4">To Do ({pending.length})</h2>
+      {pending.length > 0 ? (
+        <div class="space-y-3">
+          {pending.map(a => (
+            <div id={`assignment-${a.id}`} class="border border-gray-200 rounded-lg p-4">
+              <div class="flex items-start justify-between gap-4">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 mb-1">
+                    <span class="text-xs font-medium text-primary-600">{a.courseName}</span>
+                    {a.status === 'overdue' && (
+                      <span class="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700">OVERDUE</span>
+                    )}
+                  </div>
+                  <h3 class="text-sm font-semibold text-gray-900">{a.title}</h3>
+                  {a.description && <p class="text-xs text-gray-500 mt-1 line-clamp-2">{a.description}</p>}
+                  <div class="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                    <span>Due: {formatDate(a.dueDate)}</span>
+                    {a.maxPoints && <span>Points: {a.maxPoints}</span>}
+                  </div>
+                </div>
+                <button onclick={`openSubmitModal(${a.id})`} class="shrink-0 px-3 py-1.5 text-xs font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">
+                  Submit
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div class="py-8 text-center">
+          <svg class="w-12 h-12 mx-auto text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <p class="text-sm text-gray-500 mt-2">No pending assignments. You are all caught up!</p>
+        </div>
+      )}
+    </div>
+
+    <!-- Submitted/graded assignments -->
+    {submitted.length > 0 && (
+      <div class="bg-white rounded-xl border border-gray-200 p-6">
+        <h2 class="text-base font-semibold text-gray-900 mb-4">Submitted ({submitted.length})</h2>
+        <div class="space-y-3">
+          {submitted.map(a => (
+            <div class="border border-gray-200 rounded-lg p-4">
+              <div class="flex items-start justify-between gap-4">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 mb-1">
+                    <span class="text-xs font-medium text-primary-600">{a.courseName}</span>
+                    {a.status === 'graded' ? (
+                      <span class="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700">GRADED</span>
+                    ) : (
+                      <span class="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700">SUBMITTED</span>
+                    )}
+                  </div>
+                  <h3 class="text-sm font-semibold text-gray-900">{a.title}</h3>
+                  <div class="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                    <span>Submitted: {formatDate(a.submission?.submittedAt)}</span>
+                    {a.status === 'graded' && a.submission?.score != null && (
+                      <span class="font-bold text-gray-900">Score: {a.submission.score}{a.maxPoints ? `/${a.maxPoints}` : ''}</span>
+                    )}
+                  </div>
+                  {a.submission?.feedback && (
+                    <p class="text-xs text-gray-600 mt-2 p-2 bg-gray-50 rounded">Feedback: {a.submission.feedback}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+  </div>
+
+  <!-- Submit modal -->
+  <div id="submitModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl max-w-lg w-full p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-bold text-gray-900">Submit Assignment</h3>
+        <button onclick="closeSubmitModal()" class="text-gray-400 hover:text-gray-600" aria-label="Close">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <form id="submitForm" class="space-y-4">
+        <input type="hidden" id="submitAssignmentId" name="assignmentId" />
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Submission Text (optional)</label>
+          <textarea name="content" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none" placeholder="Type your answer or notes..."></textarea>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Attach File (optional)</label>
+          <input type="file" name="file" class="w-full text-sm text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100" />
+        </div>
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <button type="button" onclick="closeSubmitModal()" class="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
+          <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">Submit</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script is:inline define:vars={{ studentId: student.id }}>
+    function openSubmitModal(assignmentId) {
+      document.getElementById('submitAssignmentId').value = assignmentId;
+      document.getElementById('submitModal').classList.remove('hidden');
+    }
+    function closeSubmitModal() {
+      document.getElementById('submitModal').classList.add('hidden');
+    }
+    document.getElementById('submitForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const fd = new FormData(this);
+      const assignmentId = fd.get('assignmentId');
+      const content = fd.get('content') || '';
+      const file = fd.get('file');
+      // If file attached, upload first
+      let fileUrl = null;
+      if (file && file.size > 0) {
+        const uploadFd = new FormData();
+        uploadFd.append('file', file);
+        uploadFd.append('folder', 'submissions');
+        try {
+          const upRes = await fetch('/api/upload', { method: 'POST', body: uploadFd });
+          const upData = await upRes.json();
+          if (upRes.ok && upData[0]?.url) fileUrl = upData[0].url;
+          else { alert('File upload failed'); return; }
+        } catch { alert('File upload failed'); return; }
+      }
+      const res = await fetch('/api/portal/student/submissions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assignmentId: parseInt(assignmentId), studentId, content, fileUrl }),
+      });
+      if (res.ok) {
+        window.location.reload();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || 'Failed to submit assignment');
+      }
+    });
+  </script>
+</StudentPortalLayout>

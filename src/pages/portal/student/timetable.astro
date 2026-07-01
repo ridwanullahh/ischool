@@ -1,0 +1,97 @@
+---
+/**
+ * Student Portal - Timetable
+ *
+ * Shows the student's weekly timetable in a day-by-day grid layout.
+ */
+import StudentPortalLayout from '../../../layouts/StudentPortalLayout.astro';
+import { getDb } from '../../../lib/db/index.js';
+import { timetableEntries, classes, enrollments } from '../../../lib/db/schema.js';
+import { eq, and } from 'drizzle-orm';
+import { getStudentForUser, getUserSchoolId, getStudentEnrollment } from '../../../lib/portal.js';
+
+const user = Astro.locals.user;
+if (!user) return Astro.redirect('/auth/login?redirect=/portal/student/timetable');
+
+const student = getStudentForUser(user.id);
+if (!student) return Astro.redirect('/portal/no-profile');
+const schoolId = getUserSchoolId(user.id) ?? student.schoolId;
+const db = getDb();
+
+// Get student's class
+const enrollment = getStudentEnrollment(student.id);
+const classId = enrollment?.classId;
+
+// Fetch timetable entries for the school, optionally filtered by class
+const allEntries = classId
+  ? db.select().from(timetableEntries).where(and(eq(timetableEntries.schoolId, schoolId), eq(timetableEntries.classId, classId))).all()
+  : db.select().from(timetableEntries).where(eq(timetableEntries.schoolId, schoolId)).all();
+
+// Group by day of week (0=Sunday ... 6=Saturday)
+const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const byDay: Record<number, typeof allEntries> = {};
+for (let i = 0; i < 7; i++) byDay[i] = [];
+for (const e of allEntries) {
+  if (e.dayOfWeek != null && byDay[e.dayOfWeek]) byDay[e.dayOfWeek].push(e);
+}
+// Sort each day by start time
+for (const d of Object.keys(byDay)) byDay[Number(d)].sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
+
+const formatTime = (t: string | null) => {
+  if (!t) return '';
+  try { return new Date(`2000-01-01T${t}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }); } catch { return t; }
+};
+
+const todayDow = new Date().getDay();
+const todayName = days[todayDow];
+---
+
+<StudentPortalLayout title="Timetable - Student Portal">
+  <div class="space-y-6">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">My Timetable</h1>
+      <p class="text-sm text-gray-500 mt-1">Your weekly class schedule. Today is {todayName}.</p>
+    </div>
+
+    {allEntries.length > 0 ? (
+      <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+        {days.map((day, dow) => {
+          const entries = byDay[dow] || [];
+          const isToday = dow === todayDow;
+          return (
+            <div class:list={["bg-white rounded-xl border p-5", isToday ? "border-primary-300 ring-1 ring-primary-200" : "border-gray-200"]}>
+              <div class="flex items-center justify-between mb-3">
+                <h2 class="text-sm font-bold text-gray-900">{day}</h2>
+                {isToday && <span class="text-[10px] font-bold text-primary-600 uppercase tracking-wider">Today</span>}
+              </div>
+              {entries.length > 0 ? (
+                <div class="space-y-2">
+                  {entries.map(e => (
+                    <div class="flex items-start gap-3 p-2.5 rounded-lg bg-gray-50">
+                      <div class="text-center min-w-[55px] pt-0.5">
+                        <p class="text-xs font-bold text-gray-900">{formatTime(e.startTime)}</p>
+                        <p class="text-[10px] text-gray-400">{formatTime(e.endTime)}</p>
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-gray-900 truncate">{e.subject || 'Period'}</p>
+                        {e.teacherName && <p class="text-xs text-gray-500">{e.teacherName}</p>}
+                        {e.room && <p class="text-xs text-gray-400">Room: {e.room}</p>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p class="text-xs text-gray-400 py-6 text-center">No classes</p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    ) : (
+      <div class="bg-white rounded-xl border border-gray-200 p-12 text-center">
+        <svg class="w-12 h-12 mx-auto text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <p class="text-sm text-gray-500 mt-2">No timetable has been published yet.</p>
+      </div>
+    )}
+  </div>
+</StudentPortalLayout>
