@@ -133,13 +133,38 @@ export const onRequest = defineMiddleware(async (context, next) => {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
   }
 
-  const response = await next();
-  response.headers.set('X-Content-Type-Options', 'nosniff');
-  response.headers.set('X-Frame-Options', 'DENY');
-  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-  response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  try {
+    const response = await next();
+    response.headers.set('X-Content-Type-Options', 'nosniff');
+    response.headers.set('X-Frame-Options', 'DENY');
+    response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+    response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
 
-  return response;
+    return response;
+  } catch (error: any) {
+    // Global error handler — catches ALL unhandled errors from pages and APIs
+    const { logError } = await import('./error-logger.js');
+    logError(error, {
+      url: pathname,
+      method: context.request.method,
+      userId: user?.id,
+      schoolId: (user as any)?.schoolId,
+    });
+
+    // Return appropriate error response based on request type
+    if (pathname.startsWith('/api/')) {
+      return new Response(
+        JSON.stringify({ error: 'An internal error occurred. Please try again.' }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // For pages, return a user-friendly error page
+    return new Response(
+      `<!doctype html><html><head><title>Error - iSchool</title><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><style>body{font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#f8fafc;color:#1e293b}.container{text-align:center;max-width:400px;padding:2rem}h1{font-size:1.5rem;margin-bottom:0.5rem}p{color:#64748b;margin-bottom:1.5rem}a{display:inline-block;padding:0.5rem 1.5rem;background:#2563eb;color:#fff;text-decoration:none;border-radius:0.5rem;font-weight:500}</style></head><body><div class="container"><h1>Something went wrong</h1><p>We are working to fix this issue. Please try again in a moment.</p><a href="/">Go Home</a></div></body></html>`,
+      { status: 500, headers: { 'Content-Type': 'text/html' } }
+    );
+  }
 });
 
 export function getSchoolForUser(userId: string) {

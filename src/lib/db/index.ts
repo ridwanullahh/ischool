@@ -103,6 +103,7 @@ function autoMigrate(sqlite: Database.Database) {
       slug TEXT NOT NULL,
       content TEXT,
       excerpt TEXT,
+      banner_image_url TEXT,
       cta_text TEXT,
       cta_url TEXT,
       is_pinned INTEGER DEFAULT 0,
@@ -1595,6 +1596,84 @@ function autoMigrate(sqlite: Database.Database) {
 
   // Fix live_class_messages — ensure type column
   addColumnIfMissing('live_class_messages', 'type', "TEXT DEFAULT 'chat'");
+
+  // Fix announcements — add banner_image_url
+  addColumnIfMissing('announcements', 'banner_image_url', 'TEXT');
+
+  // Fix class_subjects — ensure id column exists (should be PK but just in case)
+  addColumnIfMissing('class_subjects', 'description', 'TEXT');
+
+  // Fix schools — add locale if missing (should exist but just in case)
+  addColumnIfMissing('schools', 'locale', "TEXT DEFAULT 'en'");
+
+  // Fix blog_posts — ensure category and tags columns
+  addColumnIfMissing('blog_posts', 'category', 'TEXT');
+  addColumnIfMissing('blog_posts', 'tags', "TEXT DEFAULT '[]'");
+
+  // Fix classes — ensure homeroom_teacher_id and grade_level
+  addColumnIfMissing('classes', 'homeroom_teacher_id', 'INTEGER');
+  addColumnIfMissing('classes', 'grade_level', 'TEXT');
+
+  // Fix gallery_items — ensure caption and album_id
+  addColumnIfMissing('gallery_items', 'caption', 'TEXT');
+
+  // Fix contact_info — ensure type column
+  addColumnIfMissing('contact_info', 'type', 'TEXT');
+
+  // Fix staff — ensure designation and employment_type
+  addColumnIfMissing('staff', 'designation', 'TEXT');
+  addColumnIfMissing('staff', 'employment_type', "TEXT NOT NULL DEFAULT 'full_time'");
+  addColumnIfMissing('staff', 'salary', 'INTEGER');
+  addColumnIfMissing('staff', 'bank_details', 'TEXT');
+  addColumnIfMissing('staff', 'emergency_contact', 'TEXT');
+
+  // Fix quizzes — ensure start_date, end_date, max_attempts
+  addColumnIfMissing('quizzes', 'start_date', 'TEXT');
+  addColumnIfMissing('quizzes', 'end_date', 'TEXT');
+  addColumnIfMissing('quizzes', 'max_attempts', 'INTEGER DEFAULT 1');
+
+  // Fix submissions — ensure score, feedback, graded_by, graded_at
+  addColumnIfMissing('submissions', 'score', 'REAL');
+  addColumnIfMissing('submissions', 'feedback', 'TEXT');
+  addColumnIfMissing('submissions', 'graded_by', 'INTEGER');
+  addColumnIfMissing('submissions', 'graded_at', 'INTEGER');
+  addColumnIfMissing('submissions', 'school_id', 'INTEGER');
+
+  // Fix quiz_attempts — ensure score, max_score, status
+  addColumnIfMissing('quiz_attempts', 'score', 'REAL');
+  addColumnIfMissing('quiz_attempts', 'max_score', 'REAL');
+  addColumnIfMissing('quiz_attempts', 'status', "TEXT DEFAULT 'in_progress'");
+  addColumnIfMissing('quiz_attempts', 'school_id', 'INTEGER');
+
+  // Fix grades — ensure assignment_title, exam_title
+  addColumnIfMissing('grades', 'assignment_title', 'TEXT');
+  addColumnIfMissing('grades', 'exam_title', 'TEXT');
+
+  // Fix invoices — ensure due_date
+  addColumnIfMissing('invoices', 'due_date', 'TEXT');
+
+  // Fix programs — ensure content, icon, has_detail_page
+  addColumnIfMissing('programs', 'content', 'TEXT');
+  addColumnIfMissing('programs', 'icon', 'TEXT');
+  addColumnIfMissing('programs', 'has_detail_page', 'INTEGER DEFAULT 0');
+
+  // Fix timetable_entries — ensure subject, teacher_name, room
+  addColumnIfMissing('timetable_entries', 'subject', 'TEXT');
+  addColumnIfMissing('timetable_entries', 'teacher_name', 'TEXT');
+  addColumnIfMissing('timetable_entries', 'room', 'TEXT');
+
+  // Fix exams — ensure series_id
+  addColumnIfMissing('exams', 'series_id', 'INTEGER');
+  addColumnIfMissing('exams', 'class_id', 'INTEGER');
+  addColumnIfMissing('exams', 'subject', 'TEXT');
+
+  // Fix cbt_candidates — ensure access_pin
+  addColumnIfMissing('cbt_candidates', 'access_pin', 'TEXT');
+
+  // Fix live_class_rooms — ensure class_id, teacher_id
+  addColumnIfMissing('live_class_rooms', 'class_id', 'INTEGER');
+  addColumnIfMissing('live_class_rooms', 'teacher_id', 'INTEGER');
+  addColumnIfMissing('live_class_rooms', 'duration', 'INTEGER');
 }
 
 export function getDb() {
