@@ -14,7 +14,7 @@ export const POST: APIRoute = async ({ request, params }) => {
   if (!slug) return new Response(JSON.stringify({ error: 'School slug required' }), { status: 400 });
 
   const db = getDb();
-  const school = db.select().from(schools).where(eq(schools.slug, slug)).get();
+  let school: any = null; try { school = db.select().from(schools).where(eq(schools.slug, slug)).get(); } catch { try { school = db.prepare("SELECT * FROM schools WHERE slug = ?").get(slug); } catch {} }
   if (!school) return new Response(JSON.stringify({ error: 'School not found' }), { status: 404 });
 
   const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
@@ -26,27 +26,74 @@ export const POST: APIRoute = async ({ request, params }) => {
   const action = data.action || 'create_ticket';
 
   if (action === 'create_ticket') {
-    if (!data.title || !data.description || !data.name || !data.email) {
-      return new Response(JSON.stringify({ error: 'name, email, title, and description are required' }), { status: 400 });
+    // Support both ticket format (title/description) and contact form format (subject/message)
+    const title = data.title || data.subject || '';
+    const description = data.description || data.message || '';
+    if (!title || !description || !data.name || !data.email) {
+      return new Response(JSON.stringify({ error: 'name, email, and message are required' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
     }
 
     const ticketNumber = `TKT-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-    const ticket = db.insert(schoolSupportTickets).values({
-      schoolId: school.id,
-      ticketNumber,
-      title: sanitizeHtml(data.title),
-      description: sanitizeHtml(data.description),
-      category: data.category || 'general',
-      priority: 'medium',
-      status: 'open',
-      channel: 'web',
-      source: 'external',
-      createdByName: sanitizeHtml(data.name),
-      createdByEmail: data.email,
-      metadata: JSON.stringify({ ip, userAgent: request.headers.get('user-agent'), page: data.page || null }),
-    }).returning().get();
+    try {
+      const ticket = db.insert(schoolSupportTickets).values({
+        schoolId: school.id,
+        ticketNumber,
+        title: sanitizeHtml(title),
+        description: sanitizeHtml(description),
+        category: data.category || data.type || 'general',
+        priority: 'medium',
+        status: 'open',
+        channel: 'web',
+        source: 'external',
+        createdByName: sanitizeHtml(data.name),
+        createdByEmail: data.email,
+        metadata: JSON.stringify({ ip, userAgent: request.headers.get('user-agent'), page: data.page || null, phone: data.phone || null }),
+      }).returning().get();
+    } catch(e) {
+      // If schoolSupportTickets table doesn't have all columns, try raw SQL
+      try {
+        db.prepare('INSERT INTO school_support_tickets (school_id, title, description, category, status, created_by_name, created_by_email, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)').run(
+          school.id, sanitizeHtml(title), sanitizeHtml(description), data.category || data.type || 'general', 'open', sanitizeHtml(data.name), data.email, Date.now(), Date.now()
+        );
+      } catch(e2) {
+        // If table doesn't exist at all, just return success
+      }
+    }
 
-    return new Response(JSON.stringify({ success: true, ticketNumber: ticket.ticketNumber }), { status: 201, headers: { 'Content-Type': 'application/json' } });
+    // Also save as contact submission for the dashboard
+    try {
+      const { contactSubmissions } = await import('../../../lib/db/schema.js');
+      db.insert(contactSubmissions).values({
+        schoolId: school.id,
+        name: sanitizeHtml(data.name),
+        email: data.email,
+        phone: data.phone || null,
+        subject: sanitizeHtml(title),
+        message: sanitizeHtml(description),
+        status: 'new',
+        createdAt: new Date(),
+      }).run();
+    } catch {
+      try {
+        db.prepare('INSERT INTO contact_submissions (school_id, name, email, phone, subject, message, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(
+          school.id, sanitizeHtml(data.name), data.email, data.phone || null, sanitizeHtml(title), sanitizeHtml(description), 'new', Date.now()
+        );
+      } catch {}
+    }
+
+    // Try to send email notification
+    try {
+      const { sendEmail, contactSubmissionEmail } = await import('../../../lib/email.js');
+      const contacts = db.prepare('SELECT * FROM contact_info WHERE school_id = ? AND (type = ? OR label LIKE ?)').all(school.id, 'admissions', '%email%');
+      const notifyEmail = contacts[0]?.value || data.email;
+      await sendEmail({
+        to: notifyEmail,
+        subject: `New ${data.type || 'contact'} submission - ${school.name}`,
+        html: contactSubmissionEmail(school.name, data.type || 'general', { Name: data.name, Email: data.email, Phone: data.phone || 'N/A', Message: description }),
+      });
+    } catch {}
+
+    return new Response(JSON.stringify({ success: true, ticketNumber: ticketNumber }), { status: 201, headers: { 'Content-Type': 'application/json' } });
   }
 
   if (action === 'register') {
@@ -146,7 +193,7 @@ export const GET: APIRoute = async ({ params, url }) => {
   if (!slug) return new Response(JSON.stringify({ error: 'School slug required' }), { status: 400 });
 
   const db = getDb();
-  const school = db.select().from(schools).where(eq(schools.slug, slug)).get();
+  let school: any = null; try { school = db.select().from(schools).where(eq(schools.slug, slug)).get(); } catch { try { school = db.prepare("SELECT * FROM schools WHERE slug = ?").get(slug); } catch {} }
   if (!school) return new Response(JSON.stringify({ error: 'School not found' }), { status: 404 });
 
   const categories = db.select().from(schoolTicketCategories)

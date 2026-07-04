@@ -1,7 +1,6 @@
 ---
 import { getV3Theme, getThemeLayout, themeList } from '../../themes/index.js';
-import { getDb } from '../../lib/db/index.js';
-import { getSchoolBySlug } from '../../lib/school-safe.ts';
+import { getSchoolBySlug, getSchoolAbout, getSchoolGallery, getSchoolPrograms, getSchoolClasses, getSchoolFaqs, getSchoolAnnouncements, getSchoolPosts } from '../../lib/school-safe.ts';
 import { eq, desc, and } from 'drizzle-orm';
 
 const slug = Astro.params.slug!;
@@ -17,7 +16,6 @@ const activeTheme = isPreviewing ? previewTheme : (school.theme || 'aurora');
 const v3Theme = getV3Theme(activeTheme);
 const Layout = v3Theme?.Layout || getThemeLayout(activeTheme);
 const PageComponent = v3Theme?.AboutPage;
-import { aboutPages, galleryItems } from '../../lib/db/schema.js';
 const about = getSchoolAbout(school.id);
 const features = Array.isArray(about?.features) ? about.features as any : [];
 const stats = Array.isArray(about?.stats) ? about.stats as any : [];

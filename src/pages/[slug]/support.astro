@@ -1,7 +1,6 @@
 ---
 import { getV3Theme, getThemeLayout, themeList } from '../../themes/index.js';
-import { getDb } from '../../lib/db/index.js';
-import { getSchoolBySlug } from '../../lib/school-safe.ts';
+import { getSchoolBySlug, getSchoolAbout, getSchoolGallery, getSchoolPrograms, getSchoolClasses, getSchoolFaqs, getSchoolAnnouncements, getSchoolPosts } from '../../lib/school-safe.ts';
 import { eq, desc, and } from 'drizzle-orm';
 
 const slug = Astro.params.slug!;

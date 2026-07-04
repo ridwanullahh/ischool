@@ -51,6 +51,7 @@ function autoMigrate(sqlite: Database.Database) {
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       token TEXT NOT NULL UNIQUE,
       expires_at INTEGER NOT NULL,
+      used INTEGER DEFAULT 0,
       created_at INTEGER
     );
 
@@ -1674,6 +1675,24 @@ function autoMigrate(sqlite: Database.Database) {
   addColumnIfMissing('live_class_rooms', 'class_id', 'INTEGER');
   addColumnIfMissing('live_class_rooms', 'teacher_id', 'INTEGER');
   addColumnIfMissing('live_class_rooms', 'duration', 'INTEGER');
+
+  // Fix password_reset_tokens — add 'used' column
+  addColumnIfMissing('password_reset_tokens', 'used', 'INTEGER DEFAULT 0');
+
+  // Fix school_support_tickets — add missing columns
+  addColumnIfMissing('school_support_tickets', 'ticket_number', 'TEXT');
+  addColumnIfMissing('school_support_tickets', 'title', 'TEXT');
+  addColumnIfMissing('school_support_tickets', 'description', 'TEXT');
+  addColumnIfMissing('school_support_tickets', 'category', 'TEXT');
+  addColumnIfMissing('school_support_tickets', 'priority', "TEXT DEFAULT 'medium'");
+  addColumnIfMissing('school_support_tickets', 'channel', "TEXT DEFAULT 'web'");
+  addColumnIfMissing('school_support_tickets', 'source', "TEXT DEFAULT 'external'");
+  addColumnIfMissing('school_support_tickets', 'created_by_name', 'TEXT');
+  addColumnIfMissing('school_support_tickets', 'created_by_email', 'TEXT');
+  addColumnIfMissing('school_support_tickets', 'metadata', "TEXT DEFAULT '{}'");
+
+  // Fix contact_submissions — add status if missing
+  addColumnIfMissing('contact_submissions', 'status', "TEXT DEFAULT 'new'");
 }
 
 export function getDb() {
