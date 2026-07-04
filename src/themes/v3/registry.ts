@@ -337,6 +337,87 @@ import tideGalleryPage from './tide/GalleryPage.astro';
 import tideFaqsPage from './tide/FaqsPage.astro';
 import tideContactPage from './tide/ContactPage.astro';
 
+// --- 5 mobile native app-like themes ---
+import mobilePulseConfig from './mobile-pulse/theme.config';
+import mobilePulseLayout from './mobile-pulse/Layout.astro';
+import mobilePulseHomePage from './mobile-pulse/HomePage.astro';
+import mobilePulseAboutPage from './mobile-pulse/AboutPage.astro';
+import mobilePulseAdmissionsPage from './mobile-pulse/AdmissionsPage.astro';
+import mobilePulseProgramsPage from './mobile-pulse/ProgramsPage.astro';
+import mobilePulseProgramDetailPage from './mobile-pulse/ProgramDetailPage.astro';
+import mobilePulseClassesPage from './mobile-pulse/ClassesPage.astro';
+import mobilePulseBlogIndexPage from './mobile-pulse/BlogIndexPage.astro';
+import mobilePulseBlogPostPage from './mobile-pulse/BlogPostPage.astro';
+import mobilePulseAnnouncementsIndexPage from './mobile-pulse/AnnouncementsIndexPage.astro';
+import mobilePulseAnnouncementDetailPage from './mobile-pulse/AnnouncementDetailPage.astro';
+import mobilePulseGalleryPage from './mobile-pulse/GalleryPage.astro';
+import mobilePulseFaqsPage from './mobile-pulse/FaqsPage.astro';
+import mobilePulseContactPage from './mobile-pulse/ContactPage.astro';
+
+import mobileBloomConfig from './mobile-bloom/theme.config';
+import mobileBloomLayout from './mobile-bloom/Layout.astro';
+import mobileBloomHomePage from './mobile-bloom/HomePage.astro';
+import mobileBloomAboutPage from './mobile-bloom/AboutPage.astro';
+import mobileBloomAdmissionsPage from './mobile-bloom/AdmissionsPage.astro';
+import mobileBloomProgramsPage from './mobile-bloom/ProgramsPage.astro';
+import mobileBloomProgramDetailPage from './mobile-bloom/ProgramDetailPage.astro';
+import mobileBloomClassesPage from './mobile-bloom/ClassesPage.astro';
+import mobileBloomBlogIndexPage from './mobile-bloom/BlogIndexPage.astro';
+import mobileBloomBlogPostPage from './mobile-bloom/BlogPostPage.astro';
+import mobileBloomAnnouncementsIndexPage from './mobile-bloom/AnnouncementsIndexPage.astro';
+import mobileBloomAnnouncementDetailPage from './mobile-bloom/AnnouncementDetailPage.astro';
+import mobileBloomGalleryPage from './mobile-bloom/GalleryPage.astro';
+import mobileBloomFaqsPage from './mobile-bloom/FaqsPage.astro';
+import mobileBloomContactPage from './mobile-bloom/ContactPage.astro';
+
+import mobileAuroraConfig from './mobile-aurora/theme.config';
+import mobileAuroraLayout from './mobile-aurora/Layout.astro';
+import mobileAuroraHomePage from './mobile-aurora/HomePage.astro';
+import mobileAuroraAboutPage from './mobile-aurora/AboutPage.astro';
+import mobileAuroraAdmissionsPage from './mobile-aurora/AdmissionsPage.astro';
+import mobileAuroraProgramsPage from './mobile-aurora/ProgramsPage.astro';
+import mobileAuroraProgramDetailPage from './mobile-aurora/ProgramDetailPage.astro';
+import mobileAuroraClassesPage from './mobile-aurora/ClassesPage.astro';
+import mobileAuroraBlogIndexPage from './mobile-aurora/BlogIndexPage.astro';
+import mobileAuroraBlogPostPage from './mobile-aurora/BlogPostPage.astro';
+import mobileAuroraAnnouncementsIndexPage from './mobile-aurora/AnnouncementsIndexPage.astro';
+import mobileAuroraAnnouncementDetailPage from './mobile-aurora/AnnouncementDetailPage.astro';
+import mobileAuroraGalleryPage from './mobile-aurora/GalleryPage.astro';
+import mobileAuroraFaqsPage from './mobile-aurora/FaqsPage.astro';
+import mobileAuroraContactPage from './mobile-aurora/ContactPage.astro';
+
+import mobileApexConfig from './mobile-apex/theme.config';
+import mobileApexLayout from './mobile-apex/Layout.astro';
+import mobileApexHomePage from './mobile-apex/HomePage.astro';
+import mobileApexAboutPage from './mobile-apex/AboutPage.astro';
+import mobileApexAdmissionsPage from './mobile-apex/AdmissionsPage.astro';
+import mobileApexProgramsPage from './mobile-apex/ProgramsPage.astro';
+import mobileApexProgramDetailPage from './mobile-apex/ProgramDetailPage.astro';
+import mobileApexClassesPage from './mobile-apex/ClassesPage.astro';
+import mobileApexBlogIndexPage from './mobile-apex/BlogIndexPage.astro';
+import mobileApexBlogPostPage from './mobile-apex/BlogPostPage.astro';
+import mobileApexAnnouncementsIndexPage from './mobile-apex/AnnouncementsIndexPage.astro';
+import mobileApexAnnouncementDetailPage from './mobile-apex/AnnouncementDetailPage.astro';
+import mobileApexGalleryPage from './mobile-apex/GalleryPage.astro';
+import mobileApexFaqsPage from './mobile-apex/FaqsPage.astro';
+import mobileApexContactPage from './mobile-apex/ContactPage.astro';
+
+import mobileHeritageConfig from './mobile-heritage/theme.config';
+import mobileHeritageLayout from './mobile-heritage/Layout.astro';
+import mobileHeritageHomePage from './mobile-heritage/HomePage.astro';
+import mobileHeritageAboutPage from './mobile-heritage/AboutPage.astro';
+import mobileHeritageAdmissionsPage from './mobile-heritage/AdmissionsPage.astro';
+import mobileHeritageProgramsPage from './mobile-heritage/ProgramsPage.astro';
+import mobileHeritageProgramDetailPage from './mobile-heritage/ProgramDetailPage.astro';
+import mobileHeritageClassesPage from './mobile-heritage/ClassesPage.astro';
+import mobileHeritageBlogIndexPage from './mobile-heritage/BlogIndexPage.astro';
+import mobileHeritageBlogPostPage from './mobile-heritage/BlogPostPage.astro';
+import mobileHeritageAnnouncementsIndexPage from './mobile-heritage/AnnouncementsIndexPage.astro';
+import mobileHeritageAnnouncementDetailPage from './mobile-heritage/AnnouncementDetailPage.astro';
+import mobileHeritageGalleryPage from './mobile-heritage/GalleryPage.astro';
+import mobileHeritageFaqsPage from './mobile-heritage/FaqsPage.astro';
+import mobileHeritageContactPage from './mobile-heritage/ContactPage.astro';
+
 const registry: Record<string, RegisteredTheme> = {
   aurora: {
     config: auroraConfig,
@@ -438,6 +519,11 @@ const registry: Record<string, RegisteredTheme> = {
   quartz: { config: quartzConfig, Layout: quartzLayout, HomePage: quartzHomePage, AboutPage: quartzAboutPage, AdmissionsPage: quartzAdmissionsPage, ProgramsPage: quartzProgramsPage, ProgramDetailPage: quartzProgramDetailPage, ClassesPage: quartzClassesPage, BlogIndexPage: quartzBlogIndexPage, BlogPostPage: quartzBlogPostPage, AnnouncementsIndexPage: quartzAnnouncementsIndexPage, AnnouncementDetailPage: quartzAnnouncementDetailPage, GalleryPage: quartzGalleryPage, FaqsPage: quartzFaqsPage, ContactPage: quartzContactPage },
   summit: { config: summitConfig, Layout: summitLayout, HomePage: summitHomePage, AboutPage: summitAboutPage, AdmissionsPage: summitAdmissionsPage, ProgramsPage: summitProgramsPage, ProgramDetailPage: summitProgramDetailPage, ClassesPage: summitClassesPage, BlogIndexPage: summitBlogIndexPage, BlogPostPage: summitBlogPostPage, AnnouncementsIndexPage: summitAnnouncementsIndexPage, AnnouncementDetailPage: summitAnnouncementDetailPage, GalleryPage: summitGalleryPage, FaqsPage: summitFaqsPage, ContactPage: summitContactPage },
   tide: { config: tideConfig, Layout: tideLayout, HomePage: tideHomePage, AboutPage: tideAboutPage, AdmissionsPage: tideAdmissionsPage, ProgramsPage: tideProgramsPage, ProgramDetailPage: tideProgramDetailPage, ClassesPage: tideClassesPage, BlogIndexPage: tideBlogIndexPage, BlogPostPage: tideBlogPostPage, AnnouncementsIndexPage: tideAnnouncementsIndexPage, AnnouncementDetailPage: tideAnnouncementDetailPage, GalleryPage: tideGalleryPage, FaqsPage: tideFaqsPage, ContactPage: tideContactPage },
+  'mobile-pulse': { config: mobilePulseConfig, Layout: mobilePulseLayout, HomePage: mobilePulseHomePage, AboutPage: mobilePulseAboutPage, AdmissionsPage: mobilePulseAdmissionsPage, ProgramsPage: mobilePulseProgramsPage, ProgramDetailPage: mobilePulseProgramDetailPage, ClassesPage: mobilePulseClassesPage, BlogIndexPage: mobilePulseBlogIndexPage, BlogPostPage: mobilePulseBlogPostPage, AnnouncementsIndexPage: mobilePulseAnnouncementsIndexPage, AnnouncementDetailPage: mobilePulseAnnouncementDetailPage, GalleryPage: mobilePulseGalleryPage, FaqsPage: mobilePulseFaqsPage, ContactPage: mobilePulseContactPage },
+  'mobile-bloom': { config: mobileBloomConfig, Layout: mobileBloomLayout, HomePage: mobileBloomHomePage, AboutPage: mobileBloomAboutPage, AdmissionsPage: mobileBloomAdmissionsPage, ProgramsPage: mobileBloomProgramsPage, ProgramDetailPage: mobileBloomProgramDetailPage, ClassesPage: mobileBloomClassesPage, BlogIndexPage: mobileBloomBlogIndexPage, BlogPostPage: mobileBloomBlogPostPage, AnnouncementsIndexPage: mobileBloomAnnouncementsIndexPage, AnnouncementDetailPage: mobileBloomAnnouncementDetailPage, GalleryPage: mobileBloomGalleryPage, FaqsPage: mobileBloomFaqsPage, ContactPage: mobileBloomContactPage },
+  'mobile-aurora': { config: mobileAuroraConfig, Layout: mobileAuroraLayout, HomePage: mobileAuroraHomePage, AboutPage: mobileAuroraAboutPage, AdmissionsPage: mobileAuroraAdmissionsPage, ProgramsPage: mobileAuroraProgramsPage, ProgramDetailPage: mobileAuroraProgramDetailPage, ClassesPage: mobileAuroraClassesPage, BlogIndexPage: mobileAuroraBlogIndexPage, BlogPostPage: mobileAuroraBlogPostPage, AnnouncementsIndexPage: mobileAuroraAnnouncementsIndexPage, AnnouncementDetailPage: mobileAuroraAnnouncementDetailPage, GalleryPage: mobileAuroraGalleryPage, FaqsPage: mobileAuroraFaqsPage, ContactPage: mobileAuroraContactPage },
+  'mobile-apex': { config: mobileApexConfig, Layout: mobileApexLayout, HomePage: mobileApexHomePage, AboutPage: mobileApexAboutPage, AdmissionsPage: mobileApexAdmissionsPage, ProgramsPage: mobileApexProgramsPage, ProgramDetailPage: mobileApexProgramDetailPage, ClassesPage: mobileApexClassesPage, BlogIndexPage: mobileApexBlogIndexPage, BlogPostPage: mobileApexBlogPostPage, AnnouncementsIndexPage: mobileApexAnnouncementsIndexPage, AnnouncementDetailPage: mobileApexAnnouncementDetailPage, GalleryPage: mobileApexGalleryPage, FaqsPage: mobileApexFaqsPage, ContactPage: mobileApexContactPage },
+  'mobile-heritage': { config: mobileHeritageConfig, Layout: mobileHeritageLayout, HomePage: mobileHeritageHomePage, AboutPage: mobileHeritageAboutPage, AdmissionsPage: mobileHeritageAdmissionsPage, ProgramsPage: mobileHeritageProgramsPage, ProgramDetailPage: mobileHeritageProgramDetailPage, ClassesPage: mobileHeritageClassesPage, BlogIndexPage: mobileHeritageBlogIndexPage, BlogPostPage: mobileHeritageBlogPostPage, AnnouncementsIndexPage: mobileHeritageAnnouncementsIndexPage, AnnouncementDetailPage: mobileHeritageAnnouncementDetailPage, GalleryPage: mobileHeritageGalleryPage, FaqsPage: mobileHeritageFaqsPage, ContactPage: mobileHeritageContactPage },
 };
 
 export function getTheme(name: string): RegisteredTheme | null {

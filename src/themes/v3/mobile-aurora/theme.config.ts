@@ -1,0 +1,10 @@
+import type { ThemeConfig } from '../types';
+const config: ThemeConfig = {
+  name: 'mobile-aurora', label: 'Mobile Aurora',
+  description: 'Mobile native app-like with glassmorphism and gradients',
+  category: 'mobile', defaultMode: 'light', typography: 'Sora',
+  iconPath: 'M3 12c0-5 4-9 9-9s9 4 9 9-4 9-9 9-9-4-9-9z',
+  defaultPrimaryColor: '#8b5cf6',
+  tags: ['mobile', 'app-like', 'native', 'glassmorphism', 'gradient'],
+};
+export default config;
