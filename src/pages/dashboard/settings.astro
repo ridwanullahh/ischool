@@ -6,9 +6,11 @@ import { getUserSchool } from '../../lib/school.js';
 import { generateDefaultPalette } from '../../lib/palette.js';
 import { socialPlatforms } from '../../lib/social.js';
 import { listV2Themes } from '../../themes/index.js';
+import { PALETTE_PRESETS } from '../../lib/palette-presets.js';
+import { FONT_PRESETS } from '../../lib/font-presets.js';
 
-// Issue #1: theme selector shows ONLY the newly reimplemented v2 themes.
-const v2Themes = listV2Themes();
+// Issue #1: theme selector shows ONLY the newly reimplemented v3 themes.
+const v3Themes = listV2Themes();
 
 const user = Astro.locals.user!;
 const school = getUserSchool(user.id);
@@ -16,6 +18,7 @@ const success = Astro.url.searchParams.get('success');
 
 const settings = (school?.settings as any) || {};
 const palette = settings.palette || {};
+const fontPresetId = settings.fontPresetId || '';
 const socialHandles = (school?.socialHandles as Record<string, string>) || {};
 const defaultPalette = generateDefaultPalette(school?.primaryColor || '#2563eb');
 ---
@@ -114,24 +117,68 @@ const defaultPalette = generateDefaultPalette(school?.primaryColor || '#2563eb')
           </div>
         ))}
       </div>
+
+      {/* Palette Presets */}
+      <div class="mt-6">
+        <h3 class="text-sm font-semibold text-gray-900 mb-3">Predefined Palette Library</h3>
+        <p class="text-xs text-gray-500 mb-4">Click a preset to apply a professionally curated color combination. You can still customize individual colors above after selecting a preset.</p>
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          {PALETTE_PRESETS.map(preset => (
+            <button type="button" data-palette-preset={preset.id} class="relative flex flex-col p-3 rounded-lg border-2 cursor-pointer transition-all hover:border-primary-300" style={fontPresetId === preset.id ? 'border-color: var(--primary, #2563eb)' : 'border-color: #e5e7eb'}>
+              <div class="flex items-center gap-1.5 mb-2">
+                <div class="w-5 h-5 rounded-full" style={`background:${preset.palette.primary}`}></div>
+                <div class="w-5 h-5 rounded-full" style={`background:${preset.palette.accent}`}></div>
+                <div class="w-5 h-5 rounded-full border" style={`background:${preset.palette.backgroundLight};border-color:${preset.palette.borderLight}`}></div>
+                <div class="w-5 h-5 rounded-full" style={`background:${preset.palette.backgroundDark}`}></div>
+              </div>
+              <span class="text-xs font-semibold text-gray-900">{preset.name}</span>
+              <span class="text-[10px] text-gray-500 leading-tight mt-0.5">{preset.description}</span>
+            </button>
+          ))}
+        </div>
+        <input type="hidden" name="palettePresetId" id="palettePresetId" value="" />
+      </div>
+    </div>
+
+    {/* Font Customization */}
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <h2 class="text-base font-semibold text-gray-900 mb-4">Typography</h2>
+      <p class="text-xs text-gray-500 mb-4">Choose a font combination for your school website. Each preset has been curated for readability and aesthetics.</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {FONT_PRESETS.map(font => (
+          <button type="button" data-font-preset={font.id} class:list={[
+            'relative flex flex-col p-4 rounded-lg border-2 cursor-pointer transition-all hover:border-primary-300 text-left',
+            fontPresetId === font.id ? 'border-primary-500 bg-primary-50/30' : 'border-gray-200'
+          ]}>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-sm font-semibold text-gray-900">{font.name}</span>
+              {fontPresetId === font.id && <svg class="w-4 h-4 text-primary-600" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>}
+            </div>
+            <p class="text-lg mb-1" style={`font-family: '${font.headingFont}', sans-serif`}>Heading Sample</p>
+            <p class="text-sm text-gray-600" style={`font-family: '${font.bodyFont}', sans-serif`}>Body text sample for readability.</p>
+            <p class="text-[10px] text-gray-400 mt-2">{font.description}</p>
+          </button>
+        ))}
+      </div>
+      <input type="hidden" name="fontPresetId" id="fontPresetId" value={fontPresetId} />
     </div>
 
     <div class="bg-white rounded-xl border border-gray-200 p-6">
       <div class="flex items-center justify-between mb-4">
         <div>
           <h2 class="text-base font-semibold text-gray-900">Theme</h2>
-          <p class="text-xs text-gray-500 mt-1">Reimplemented v2 themes with full layout autonomy. Each theme ships its own header, footer, and chat widget design.</p>
+          <p class="text-xs text-gray-500 mt-1">Each theme has full layout autonomy with its own header, footer, and page designs.</p>
         </div>
         <div class="flex items-center gap-2 text-xs">
-          <span class="px-2 py-1 rounded-full bg-gray-100 text-gray-600 font-medium">{v2Themes.filter(t => t.category === 'conventional').length} conventional</span>
-          <span class="px-2 py-1 rounded-full bg-gray-100 text-gray-600 font-medium">{v2Themes.filter(t => t.category === 'mobile').length} mobile</span>
+          <span class="px-2 py-1 rounded-full bg-gray-100 text-gray-600 font-medium">{v3Themes.filter(t => t.category === 'conventional').length} conventional</span>
+          <span class="px-2 py-1 rounded-full bg-gray-100 text-gray-600 font-medium">{v3Themes.filter(t => t.category === 'mobile').length} mobile</span>
         </div>
       </div>
-      {v2Themes.length === 0 ? (
+      {v3Themes.length === 0 ? (
         <p class="text-sm text-gray-500 py-8 text-center">No v2 themes registered yet.</p>
       ) : (
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-          {v2Themes.map(theme => {
+          {v3Themes.map(theme => {
             const isActive = school?.theme === theme.name;
             const primary = theme.defaultPrimaryColor || school?.primaryColor || '#2563eb';
             return (
@@ -219,6 +266,33 @@ const defaultPalette = generateDefaultPalette(school?.primaryColor || '#2563eb')
     primaryInput?.addEventListener('input', () => {
       const label = document.getElementById('primaryColorLabel');
       if (label) label.textContent = primaryInput.value;
+    });
+
+    // Palette preset selection
+    document.querySelectorAll('[data-palette-preset]').forEach((btn) => {
+      btn.addEventListener('click', function() {
+        const presetId = this.getAttribute('data-palette-preset');
+        document.getElementById('palettePresetId')?.setAttribute('value', presetId);
+        // Visual feedback
+        document.querySelectorAll('[data-palette-preset]').forEach(b => b.classList.remove('border-primary-500'));
+        this.classList.add('border-primary-500');
+      });
+    });
+
+    // Font preset selection
+    document.querySelectorAll('[data-font-preset]').forEach((btn) => {
+      btn.addEventListener('click', function() {
+        const presetId = this.getAttribute('data-font-preset');
+        const hidden = document.getElementById('fontPresetId') as HTMLInputElement;
+        if (hidden) hidden.value = presetId;
+        // Visual feedback
+        document.querySelectorAll('[data-font-preset]').forEach(b => {
+          b.classList.remove('border-primary-500', 'bg-primary-50/30');
+          b.classList.add('border-gray-200');
+        });
+        this.classList.remove('border-gray-200');
+        this.classList.add('border-primary-500', 'bg-primary-50/30');
+      });
     });
   </script>
 </DashboardLayout>

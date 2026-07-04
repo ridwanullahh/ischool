@@ -4,6 +4,7 @@ import { getDb } from '../../../lib/db/index.js';
 import { schools } from '../../../lib/db/schema.js';
 import { eq } from 'drizzle-orm';
 import { getSessionIdFromCookie, validateSession } from '../../../lib/auth.js';
+import { getPreset as getPalettePreset } from '../../../lib/palette-presets.js';
 
 export const POST: APIRoute = async ({ request }) => {
   const form = await request.formData();
@@ -25,6 +26,18 @@ export const POST: APIRoute = async ({ request }) => {
     if (val) palette[key] = val;
   }
 
+  // Apply palette preset if selected
+  const palettePresetId = form.get('palettePresetId')?.toString();
+  if (palettePresetId) {
+    const preset = getPalettePreset(palettePresetId);
+    if (preset) {
+      // Override with preset values (but keep custom overrides if any)
+      for (const key of paletteKeys) {
+        if (!palette[key]) palette[key] = (preset.palette as any)[key];
+      }
+    }
+  }
+
   const socialKeys = ['facebook', 'instagram', 'twitter', 'youtube', 'linkedin', 'tiktok', 'whatsapp', 'email'];
   const socialHandles: Record<string, string> = {};
   for (const key of socialKeys) {
@@ -32,9 +45,12 @@ export const POST: APIRoute = async ({ request }) => {
     if (val && val.trim()) socialHandles[key] = val.trim();
   }
 
+  const fontPresetId = form.get('fontPresetId')?.toString() || '';
+
   const updatedSettings = {
     ...existingSettings,
     palette: Object.keys(palette).length > 0 ? palette : existingSettings.palette,
+    fontPresetId: fontPresetId || undefined,
   };
 
   const newSlug = form.get('slug')?.toString()?.trim();

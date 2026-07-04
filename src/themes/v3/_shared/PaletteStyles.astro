@@ -1,9 +1,24 @@
 ---
-import { getSchoolPalette } from '../../../lib/school.ts';
+import { getSchoolPalette, getSchoolFontPreset } from '../../../lib/school.ts';
 interface Props { school: any; }
 const { school } = Astro.props;
 const palette = getSchoolPalette(school);
+const fontPreset = getSchoolFontPreset(school);
 ---
+{fontPreset && (
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+)}
+{fontPreset && (
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+)}
+{fontPreset && fontPreset.headingUrl === fontPreset.bodyUrl ? (
+  <link href={fontPreset.headingUrl} rel="stylesheet" />
+) : (
+  <>
+    {fontPreset && <link href={fontPreset.headingUrl} rel="stylesheet" />}
+    {fontPreset && <link href={fontPreset.bodyUrl} rel="stylesheet" />}
+  </>
+)}
 <style is:inline>{`
   html.light {
     --bg: ${palette.backgroundLight}; --surface: ${palette.surfaceLight};
@@ -17,4 +32,8 @@ const palette = getSchoolPalette(school);
   }
   :root { --tp: ${palette.primary}; }
   .tp { color: var(--tp); } .tbg { background: var(--primary); } .tbd { border-color: var(--primary); }
+  ${fontPreset ? `
+    body, .font-body { font-family: '${fontPreset.bodyFont}', system-ui, sans-serif !important; }
+    h1, h2, h3, h4, h5, h6, .font-heading { font-family: '${fontPreset.headingFont}', system-ui, sans-serif !important; }
+  ` : ''}
 `}</style>

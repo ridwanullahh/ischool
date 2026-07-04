@@ -52,3 +52,22 @@ export function getSchoolPalette(school: any): Palette {
   const stored = school?.settings?.palette;
   return mergePalette(stored, school?.primaryColor || '#2563eb');
 }
+
+/**
+ * Returns the font preset for a school, if one is configured.
+ * Falls back to null (theme default fonts are used).
+ */
+export function getSchoolFontPreset(school: any): { headingFont: string; bodyFont: string; headingUrl: string; bodyUrl: string } | null {
+  const fontPresetId = school?.settings?.fontPresetId;
+  if (!fontPresetId) return null;
+  // Import here to avoid circular dependency
+  const { getFontPreset } = require('./font-presets.js');
+  const preset = getFontPreset(fontPresetId);
+  if (!preset) return null;
+  return {
+    headingFont: preset.headingFont,
+    bodyFont: preset.bodyFont,
+    headingUrl: preset.headingUrl,
+    bodyUrl: preset.bodyUrl,
+  };
+}
