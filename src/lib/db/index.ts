@@ -1514,6 +1514,87 @@ function autoMigrate(sqlite: Database.Database) {
   addColumnIfMissing('messages', 'parent_message_id', 'INTEGER');
   addColumnIfMissing('messages', 'is_read', 'INTEGER DEFAULT 0');
   addColumnIfMissing('messages', 'updated_at', 'INTEGER');
+
+  // Fix exams table — add missing columns
+  addColumnIfMissing('exams', 'type', "TEXT NOT NULL DEFAULT 'custom'");
+  addColumnIfMissing('exams', 'passing_marks', 'INTEGER');
+  addColumnIfMissing('exams', 'duration', 'INTEGER');
+  addColumnIfMissing('exams', 'venue', 'TEXT');
+  addColumnIfMissing('exams', 'invigilator', 'TEXT');
+  addColumnIfMissing('exams', 'instructions', 'TEXT');
+
+  // Fix gallery_items — add missing columns
+  addColumnIfMissing('gallery_items', 'type', "TEXT NOT NULL DEFAULT 'image'");
+  addColumnIfMissing('gallery_items', 'album_id', 'INTEGER');
+
+  // Fix job_postings — add missing columns
+  addColumnIfMissing('job_postings', 'type', 'TEXT');
+
+  // Fix staff_attendance — add missing columns
+  addColumnIfMissing('staff_attendance', 'type', 'TEXT');
+
+  // Fix forms — add missing columns
+  addColumnIfMissing('forms', 'type', "TEXT NOT NULL DEFAULT 'general'");
+
+  // Fix platform_settings — add missing columns
+  addColumnIfMissing('platform_settings', 'type', "TEXT NOT NULL DEFAULT 'string'");
+  addColumnIfMissing('platform_settings', 'description', 'TEXT');
+
+  // Fix about_pages — add missing columns
+  addColumnIfMissing('about_pages', 'history', 'TEXT');
+
+  // Fix lessons — add missing columns
+  addColumnIfMissing('lessons', 'type', "TEXT DEFAULT 'text'");
+  addColumnIfMissing('lessons', 'is_published', 'INTEGER DEFAULT 0');
+
+  // Fix assignments — add missing columns
+  addColumnIfMissing('assignments', 'type', "TEXT DEFAULT 'file_upload'");
+
+  // Fix notifications — ensure type column
+  addColumnIfMissing('notifications', 'type', 'TEXT');
+  addColumnIfMissing('notifications', 'link', 'TEXT');
+
+  // Fix behavior_logs — ensure type column
+  addColumnIfMissing('behavior_logs', 'type', 'TEXT');
+
+  // Fix academic_periods — ensure type column
+  addColumnIfMissing('academic_periods', 'type', 'TEXT');
+
+  // Fix leave_balances — ensure type column
+  addColumnIfMissing('leave_balances', 'type', 'TEXT');
+
+  // Fix performance_appraisals — ensure type column
+  addColumnIfMissing('performance_appraisals', 'type', 'TEXT');
+
+  // Fix transport_dispatch — ensure type column
+  addColumnIfMissing('transport_dispatch', 'type', 'TEXT');
+
+  // Fix cbt_exams — ensure type column
+  addColumnIfMissing('cbt_exams', 'type', "TEXT NOT NULL DEFAULT 'academic'");
+
+  // Fix cbt_question_tags — ensure type column
+  addColumnIfMissing('cbt_question_tags', 'type', "TEXT NOT NULL DEFAULT 'topic'");
+
+  // Fix data_requests — ensure type column
+  addColumnIfMissing('data_requests', 'type', 'TEXT');
+
+  // Fix hostels — ensure type column
+  addColumnIfMissing('hostels', 'type', 'TEXT');
+
+  // Fix hostel_rooms — ensure type column
+  addColumnIfMissing('hostel_rooms', 'type', 'TEXT');
+
+  // Fix vehicles — ensure type column
+  addColumnIfMissing('vehicles', 'type', 'TEXT');
+
+  // Fix media_uploads — ensure type column
+  addColumnIfMissing('media_uploads', 'type', 'TEXT');
+
+  // Fix coupons — ensure type column
+  addColumnIfMissing('coupons', 'type', 'TEXT');
+
+  // Fix live_class_messages — ensure type column
+  addColumnIfMissing('live_class_messages', 'type', "TEXT DEFAULT 'chat'");
 }
 
 export function getDb() {
