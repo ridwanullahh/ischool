@@ -1,0 +1,39 @@
+---
+/**
+ * No Profile Page
+ *
+ * Shown when a user logs in but has no student/staff/parent profile
+ * linked to their account.
+ */
+import Layout from '../../layouts/Layout.astro';
+
+const user = Astro.locals.user;
+if (!user) return Astro.redirect('/auth/login');
+---
+
+<Layout title="Profile Not Found - iSchool">
+  <div class="min-h-screen flex items-center justify-center px-4">
+    <div class="max-w-md w-full text-center">
+      <div class="w-16 h-16 mx-auto mb-6 rounded-full bg-amber-100 flex items-center justify-center">
+        <svg class="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+        </svg>
+      </div>
+      <h1 class="text-2xl font-bold text-gray-900 mb-2">Profile Not Found</h1>
+      <p class="text-sm text-gray-500 mb-6">
+        Your account is not linked to a student, staff, or parent profile.
+        Please contact your school administrator to complete your setup.
+      </p>
+      <div class="flex items-center justify-center gap-3">
+        <a href="/dashboard" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">
+          Go to Dashboard
+        </a>
+        <form method="POST" action="/api/auth/logout" class="inline">
+          <button type="submit" class="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">
+            Sign Out
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</Layout>

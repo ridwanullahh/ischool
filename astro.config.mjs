@@ -6,13 +6,11 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig({
   output: 'server',
   adapter: node({ mode: 'standalone' }),
+  site: process.env.PUBLIC_BASE_URL || 'http://localhost:4321',
   security: {
-    checkOrigin: false,
+    checkOrigin: true,
   },
   vite: {
     plugins: [tailwindcss()],
-    server: {
-      allowedHosts: true,
-    },
   },
 });

@@ -28,7 +28,8 @@ export const POST: APIRoute = async ({ request }) => {
     expiresAt,
   }).run();
 
-  const resetUrl = `${request.headers.get('origin') || 'http://localhost:4321'}/auth/reset-password?token=${token}`;
+  const baseUrl = process.env.PUBLIC_BASE_URL || 'http://localhost:4321';
+  const resetUrl = `${baseUrl}/auth/reset-password?token=${token}`;
   await notifyPasswordReset(user.email, user.name, resetUrl);
 
   return new Response(JSON.stringify({ success: true, message: 'If the email exists, a reset link has been sent.' }), { headers: { 'Content-Type': 'application/json' } });

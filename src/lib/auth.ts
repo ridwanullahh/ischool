@@ -56,11 +56,13 @@ export async function deleteSession(sessionId: string): Promise<void> {
 }
 
 export function setSessionCookie(headers: Headers, sessionId: string): void {
-  headers.append('Set-Cookie', `session=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESSION_DURATION}`);
+  const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
+  headers.append('Set-Cookie', `session=${sessionId}; Path=/; HttpOnly; SameSite=Lax${secure}; Max-Age=${SESSION_DURATION}`);
 }
 
 export function clearSessionCookie(headers: Headers): void {
-  headers.append('Set-Cookie', 'session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0');
+  const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
+  headers.append('Set-Cookie', `session=; Path=/; HttpOnly; SameSite=Lax${secure}; Max-Age=0`);
 }
 
 export function getSessionIdFromCookie(request: Request): string | null {
