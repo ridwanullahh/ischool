@@ -1,0 +1,130 @@
+---
+/**
+ * Public Form Page
+ *
+ * Renders a form using the school's active theme layout.
+ */
+import { getV3Theme, getThemeLayout, themeList } from '../../../themes/index.js';
+import { getDb } from '../../../lib/db/index.js';
+import { schools, forms } from '../../../lib/db/schema.js';
+import { eq, and } from 'drizzle-orm';
+
+const slug = Astro.params.slug!;
+const formSlug = Astro.params.formSlug!;
+const db = getDb();
+const school = db.select().from(schools).where(eq(schools.slug, slug)).get();
+if (!school) return Astro.redirect('/404');
+
+const form = db.select().from(forms).where(and(eq(forms.slug, formSlug), eq(forms.schoolId, school.id))).get();
+if (!form) return Astro.redirect('/404');
+
+const activeTheme = school.theme || 'aurora';
+const v3Theme = getV3Theme(activeTheme);
+const Layout = v3Theme?.Layout || getThemeLayout(activeTheme);
+const pageTitle = form.title;
+const fields = (form.fields as any[]) || [];
+---
+
+<Layout school={school} title={pageTitle}>
+  <div class="px-4 py-16">
+    <div class="max-w-2xl mx-auto">
+      <div class="bg-white rounded-xl border border-gray-200 p-8" style="background:var(--surface);border-color:var(--border)">
+        <h1 class="text-3xl font-bold mb-2" style="color:var(--text)">{form.title}</h1>
+        {form.description && <p class="text-sm mb-6" style="color:var(--muted)">{form.description}</p>}
+
+        {form.status !== 'published' ? (
+          <div class="p-4 rounded-lg bg-amber-50 border border-amber-200">
+            <p class="text-sm text-amber-700">This form is currently {form.status} and not accepting submissions.</p>
+          </div>
+        ) : (
+          <form id="publicForm" class="space-y-4">
+            {fields.map((field, i) => (
+              <div class="form-field" data-field-index={i}>
+                {field.type === 'heading' ? (
+                  <h3 class="text-lg font-bold mt-6 mb-2" style="color:var(--text)">{field.label}</h3>
+                ) : field.type === 'paragraph' ? (
+                  <p class="text-sm" style="color:var(--muted)">{field.helpText || field.label}</p>
+                ) : (
+                  <>
+                    <label class="block text-sm font-medium mb-1" style="color:var(--text)">
+                      {field.label}
+                      {field.required && <span class="text-red-500 ml-0.5">*</span>}
+                    </label>
+                    {field.helpText && <p class="text-xs mb-1.5" style="color:var(--muted)">{field.helpText}</p>}
+                    {field.type === 'text' && <input type="text" name={field.label} required={field.required} placeholder={field.placeholder} class="w-full px-3 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary-500" style="background:var(--bg);border-color:var(--border);color:var(--text)" />}
+                    {field.type === 'textarea' && <textarea name={field.label} required={field.required} rows="4" placeholder={field.placeholder} class="w-full px-3 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary-500" style="background:var(--bg);border-color:var(--border);color:var(--text)"></textarea>}
+                    {field.type === 'email' && <input type="email" name={field.label} required={field.required} placeholder={field.placeholder || 'email@example.com'} class="w-full px-3 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary-500" style="background:var(--bg);border-color:var(--border);color:var(--text)" />}
+                    {field.type === 'phone' && <input type="tel" name={field.label} required={field.required} placeholder={field.placeholder || '+1234567890'} class="w-full px-3 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary-500" style="background:var(--bg);border-color:var(--border);color:var(--text)" />}
+                    {field.type === 'number' && <input type="number" name={field.label} required={field.required} class="w-full px-3 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary-500" style="background:var(--bg);border-color:var(--border);color:var(--text)" />}
+                    {field.type === 'select' && <select name={field.label} required={field.required} class="w-full px-3 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary-500" style="background:var(--bg);border-color:var(--border);color:var(--text)"><option value="">Choose...</option>{(field.options || []).map((o: string) => <option value={o}>{o}</option>)}</select>}
+                    {field.type === 'radio' && <div class="space-y-2">{(field.options || []).map((o: string) => <label class="flex items-center gap-2 text-sm" style="color:var(--text)"><input type="radio" name={field.label} value={o} required={field.required} /> {o}</label>)}</div>}
+                    {field.type === 'checkbox' && <div class="space-y-2">{(field.options || []).map((o: string, idx: number) => <label class="flex items-center gap-2 text-sm" style="color:var(--text)"><input type="checkbox" name={field.label + '[]'} value={o} /> {o}</label>)}</div>}
+                    {field.type === 'date' && <input type="date" name={field.label} required={field.required} class="w-full px-3 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary-500" style="background:var(--bg);border-color:var(--border);color:var(--text)" />}
+                    {field.type === 'file' && <input type="file" name={field.label} required={field.required} class="w-full text-sm" style="color:var(--text)" />}
+                  </>
+                )}
+              </div>
+            ))}
+
+            {form.requiresAuth && !Astro.locals.user && (
+              <div class="p-3 rounded-lg bg-amber-50 border border-amber-200">
+                <p class="text-sm text-amber-700">Please <a href={`/auth/login?redirect=/${slug}/forms/${formSlug}`} class="underline font-medium">log in</a> to submit this form.</p>
+              </div>
+            )}
+
+            <div id="formMessage" class="hidden"></div>
+
+            <button type="submit" class="px-6 py-2.5 text-sm font-semibold text-white rounded-lg" style="background:var(--primary)">
+              {form.submitButtonText || 'Submit'}
+            </button>
+          </form>
+        )}
+      </div>
+    </div>
+  </div>
+
+  <script is:inline define:vars={{ schoolSlug: slug, formSlug }}>
+    document.getElementById('publicForm')?.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      var formData = new FormData(this);
+      var data = {};
+      var submitterName = '', submitterEmail = '';
+      formData.forEach(function(val, key) {
+        if (key.endsWith('[]')) {
+          var realKey = key.slice(0, -2);
+          if (!data[realKey]) data[realKey] = [];
+          data[realKey].push(val);
+        } else {
+          data[key] = val;
+          if (key.toLowerCase().includes('name')) submitterName = val;
+          if (key.toLowerCase().includes('email')) submitterEmail = val;
+        }
+      });
+
+      var msgEl = document.getElementById('formMessage');
+      try {
+        var res = await fetch('/api/' + schoolSlug + '/forms/' + formSlug + '/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ data: data, submitterName: submitterName, submitterEmail: submitterEmail }),
+        });
+        var result = await res.json();
+        if (res.ok) {
+          msgEl.className = 'p-4 rounded-lg bg-green-50 border border-green-200';
+          msgEl.innerHTML = '<p class="text-sm text-green-700">' + (result.message || 'Submitted successfully!') + '</p>';
+          msgEl.classList.remove('hidden');
+          this.reset();
+          this.style.display = 'none';
+        } else {
+          msgEl.className = 'p-4 rounded-lg bg-red-50 border border-red-200';
+          msgEl.innerHTML = '<p class="text-sm text-red-700">' + (result.error || 'Submission failed') + '</p>';
+          msgEl.classList.remove('hidden');
+        }
+      } catch(err) {
+        msgEl.className = 'p-4 rounded-lg bg-red-50 border border-red-200';
+        msgEl.innerHTML = '<p class="text-sm text-red-700">Network error. Please try again.</p>';
+        msgEl.classList.remove('hidden');
+      }
+    });
+  </script>
+</Layout>

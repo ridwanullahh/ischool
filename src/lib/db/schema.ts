@@ -1833,3 +1833,38 @@ export const dataRequests = sqliteTable('data_requests', {
   responseNote: text('response_note'),
   ...timestamps,
 });
+
+// ═══════════════════════════════════════════════════════
+// FORM BUILDER MODULE
+// ═══════════════════════════════════════════════════════
+
+export const forms = sqliteTable('forms', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
+  title: text('title').notNull(),
+  description: text('description'),
+  slug: text('slug').notNull(),
+  fields: text('fields', { mode: 'json' }).default('[]'),
+  settings: text('settings', { mode: 'json' }).default('{}'),
+  status: text('status', { enum: ['draft', 'published', 'closed', 'archived'] }).notNull().default('draft'),
+  isPublic: integer('is_public', { mode: 'boolean' }).default(true),
+  requiresAuth: integer('requires_auth', { mode: 'boolean' }).default(false),
+  successMessage: text('success_message'),
+  redirectUrl: text('redirect_url'),
+  submitButtonText: text('submit_button_text').default('Submit'),
+  createdBy: integer('created_by').references(() => users.id),
+  ...timestamps,
+});
+
+export const formSubmissions = sqliteTable('form_submissions', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  formId: integer('form_id').notNull().references(() => forms.id, { onDelete: 'cascade' }),
+  schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
+  data: text('data', { mode: 'json' }).notNull(),
+  submittedBy: integer('submitted_by').references(() => users.id),
+  submittedByName: text('submitted_by_name'),
+  submittedByEmail: text('submitted_by_email'),
+  ipAddress: text('ip_address'),
+  status: text('status', { enum: ['new', 'reviewed', 'archived'] }).notNull().default('new'),
+  ...timestamps,
+});
