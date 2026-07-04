@@ -1,12 +1,12 @@
 ---
 import { getV3Theme, getThemeLayout, themeList } from '../../themes/index.js';
 import { getDb } from '../../lib/db/index.js';
-import { schools } from '../../lib/db/schema.js';
+import { getSchoolBySlug } from '../../lib/school-safe.ts';
 import { eq, desc, and } from 'drizzle-orm';
 
 const slug = Astro.params.slug!;
-const db = getDb();
-const school = db.select().from(schools).where(eq(schools.slug, slug)).get();
+
+const school = getSchoolBySlug(slug);
 if (!school) return Astro.redirect('/404');
 
 const previewTheme = Astro.url.searchParams.get('preview_theme');
@@ -18,7 +18,7 @@ const v3Theme = getV3Theme(activeTheme);
 const Layout = v3Theme?.Layout || getThemeLayout(activeTheme);
 const PageComponent = v3Theme?.ClassesPage;
 import { classes } from '../../lib/db/schema.js';
-const schoolClasses = db.select().from(classes).where(eq(classes.schoolId, school.id)).all();
+const schoolClasses = getSchoolClasses(school.id);
 const pageData = { items: schoolClasses };
 ---
 <Layout school={school} title="{PageComponent ? '' : 'Classes'}">

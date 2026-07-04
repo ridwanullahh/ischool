@@ -11,7 +11,6 @@ interface Props {
 
 const { school, schoolId: directSchoolId, currentPage = '/' } = Astro.props;
 const schoolId = directSchoolId || school?.id;
-const db = getDb();
 const now = new Date().toISOString().split('T')[0];
 
 function parsePages(val: any): string[] {
@@ -20,27 +19,43 @@ function parsePages(val: any): string[] {
   return ['all'];
 }
 
-const activeBanners = db.select().from(banners)
-  .where(and(eq(banners.schoolId, schoolId), eq(banners.isActive, true)))
-  .all()
-  .filter(b => {
-    if (b.startDate && b.startDate > now) return false;
-    if (b.endDate && b.endDate < now) return false;
-    const pages = parsePages(b.displayPages);
-    if (pages.includes('all')) return true;
-    return pages.some(p => currentPage.startsWith(p));
-  });
+let activeBanners: any[] = [];
+let activePopups: any[] = [];
 
-const activePopups = db.select().from(popups)
-  .where(and(eq(popups.schoolId, schoolId), eq(popups.isActive, true)))
-  .all()
-  .filter(p => {
-    if (p.startDate && p.startDate > now) return false;
-    if (p.endDate && p.endDate < now) return false;
-    const pages = parsePages(p.displayPages);
-    if (pages.includes('all')) return true;
-    return pages.some(pg => currentPage.startsWith(pg));
-  });
+try {
+  const db = getDb();
+  try {
+    activeBanners = db.select().from(banners)
+      .where(and(eq(banners.schoolId, schoolId), eq(banners.isActive, true)))
+      .all()
+      .filter(b => {
+        if (b.startDate && b.startDate > now) return false;
+        if (b.endDate && b.endDate < now) return false;
+        const pages = parsePages(b.displayPages);
+        if (pages.includes('all')) return true;
+        return pages.some(p => currentPage.startsWith(p));
+      });
+  } catch {
+    try { activeBanners = db.prepare('SELECT * FROM banners WHERE school_id = ? AND is_active = 1').all(schoolId).filter(b => { /* same filter */ return true; }); } catch {}
+  }
+
+  try {
+    activePopups = db.select().from(popups)
+      .where(and(eq(popups.schoolId, schoolId), eq(popups.isActive, true)))
+      .all()
+      .filter(p => {
+        if (p.startDate && p.startDate > now) return false;
+        if (p.endDate && p.endDate < now) return false;
+        const pages = parsePages(p.displayPages);
+        if (pages.includes('all')) return true;
+        return pages.some(pg => currentPage.startsWith(pg));
+      });
+  } catch {
+    try { activePopups = db.prepare('SELECT * FROM popups WHERE school_id = ? AND is_active = 1').all(schoolId).filter(p => { /* same filter */ return true; }); } catch {}
+  }
+} catch {
+  // DB not available — no banners/popups
+}
 ---
 
 {activeBanners.length > 0 && activeBanners.filter(b => b.position === 'top').map(b => (

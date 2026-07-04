@@ -21,31 +21,47 @@ export function getUserSchoolId(userId: number): number | null {
 
 export function getSchoolBySlug(slug: string) {
   const db = getDb();
-  return db.select().from(schools).where(eq(schools.slug, slug)).get() || null;
+  try {
+    return db.select().from(schools).where(eq(schools.slug, slug)).get() || null;
+  } catch {
+    try { return db.prepare('SELECT * FROM schools WHERE slug = ?').get(slug) || null; } catch { return null; }
+  }
 }
 
 export function getSchoolNav(schoolId: number) {
   const db = getDb();
-  return db.select().from(navigationItems)
-    .where(eq(navigationItems.schoolId, schoolId))
-    .orderBy(asc(navigationItems.sortOrder))
-    .all();
+  try {
+    return db.select().from(navigationItems)
+      .where(eq(navigationItems.schoolId, schoolId))
+      .orderBy(asc(navigationItems.sortOrder))
+      .all();
+  } catch {
+    try { return db.prepare('SELECT * FROM navigation_items WHERE school_id = ? ORDER BY sort_order').all(schoolId); } catch { return []; }
+  }
 }
 
 export function getSchoolInfo(schoolId: number) {
   const db = getDb();
-  return db.select().from(contactInfo)
-    .where(eq(contactInfo.schoolId, schoolId))
-    .orderBy(asc(contactInfo.sortOrder))
-    .get() || null;
+  try {
+    return db.select().from(contactInfo)
+      .where(eq(contactInfo.schoolId, schoolId))
+      .orderBy(asc(contactInfo.sortOrder))
+      .get() || null;
+  } catch {
+    try { return db.prepare('SELECT * FROM contact_info WHERE school_id = ? ORDER BY sort_order LIMIT 1').get(schoolId) || null; } catch { return null; }
+  }
 }
 
 export function getSchoolContacts(schoolId: number) {
   const db = getDb();
-  return db.select().from(contactInfo)
-    .where(eq(contactInfo.schoolId, schoolId))
-    .orderBy(asc(contactInfo.sortOrder))
-    .all();
+  try {
+    return db.select().from(contactInfo)
+      .where(eq(contactInfo.schoolId, schoolId))
+      .orderBy(asc(contactInfo.sortOrder))
+      .all();
+  } catch {
+    try { return db.prepare('SELECT * FROM contact_info WHERE school_id = ? ORDER BY sort_order').all(schoolId); } catch { return []; }
+  }
 }
 
 export function getSchoolPalette(school: any): Palette {

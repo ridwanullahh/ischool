@@ -6,7 +6,18 @@ import { eq, desc } from 'drizzle-orm';
 
 const slug = Astro.params.slug!;
 const db = getDb();
-const school = db.select().from(schools).where(eq(schools.slug, slug)).get();
+let school: any = null;
+try {
+  school = db.select().from(schools).where(eq(schools.slug, slug)).get();
+} catch (e) {
+  // Table might not exist or column missing — try raw SQL
+  try {
+    const row = db.prepare('SELECT * FROM schools WHERE slug = ?').get(slug);
+    if (row) {
+      school = row;
+    }
+  } catch {}
+}
 if (!school) return Astro.redirect('/404');
 
 const previewTheme = Astro.url.searchParams.get('preview_theme');
@@ -14,18 +25,55 @@ const user = Astro.locals.user;
 const isPreviewing = previewTheme && themeList.includes(previewTheme) && user;
 const activeTheme = isPreviewing ? previewTheme : (school.theme || 'aurora');
 
-const about = db.select().from(aboutPages).where(eq(aboutPages.schoolId, school.id)).get();
-const features: Array<{ title: string; description: string }> = Array.isArray(about?.features) ? about!.features as any : [];
-const stats: Array<{ label: string; value: string }> = Array.isArray(about?.stats) ? about!.stats as any : [];
+// All DB queries wrapped in try/catch — gracefully degrade to empty arrays
+let about: any = null;
+let features: Array<{ title: string; description: string }> = [];
+let stats: Array<{ label: string; value: string }> = [];
+let recentAnnouncements: any[] = [];
+let recentPosts: any[] = [];
+let schoolPrograms: any[] = [];
 
-const recentAnnouncements = db.select().from(announcements)
-  .where(eq(announcements.schoolId, school.id)).orderBy(desc(announcements.createdAt)).limit(3).all();
+try {
+  about = db.select().from(aboutPages).where(eq(aboutPages.schoolId, school.id)).get();
+  features = Array.isArray(about?.features) ? about.features as any : [];
+  stats = Array.isArray(about?.stats) ? about.stats as any : [];
+} catch (e) {
+  // Column missing — try raw SQL
+  try {
+    about = db.prepare('SELECT * FROM about_pages WHERE school_id = ?').get(school.id);
+    if (about) {
+      try { features = JSON.parse(about.features || '[]'); } catch { features = []; }
+      try { stats = JSON.parse(about.stats || '[]'); } catch { stats = []; }
+    }
+  } catch {}
+}
 
-const recentPosts = db.select().from(blogPosts)
-  .where(eq(blogPosts.schoolId, school.id)).orderBy(desc(blogPosts.createdAt)).limit(3).all();
+try {
+  recentAnnouncements = db.select().from(announcements)
+    .where(eq(announcements.schoolId, school.id)).orderBy(desc(announcements.createdAt)).limit(3).all();
+} catch (e) {
+  try {
+    recentAnnouncements = db.prepare('SELECT * FROM announcements WHERE school_id = ? ORDER BY created_at DESC LIMIT 3').all(school.id);
+  } catch {}
+}
 
-const schoolPrograms = db.select().from(programs)
-  .where(eq(programs.schoolId, school.id)).all();
+try {
+  recentPosts = db.select().from(blogPosts)
+    .where(eq(blogPosts.schoolId, school.id)).orderBy(desc(blogPosts.createdAt)).limit(3).all();
+} catch (e) {
+  try {
+    recentPosts = db.prepare('SELECT * FROM blog_posts WHERE school_id = ? ORDER BY created_at DESC LIMIT 3').all(school.id);
+  } catch {}
+}
+
+try {
+  schoolPrograms = db.select().from(programs)
+    .where(eq(programs.schoolId, school.id)).all();
+} catch (e) {
+  try {
+    schoolPrograms = db.prepare('SELECT * FROM programs WHERE school_id = ?').all(school.id);
+  } catch {}
+}
 
 // Get v3 theme with page templates
 const v3Theme = getV3Theme(activeTheme);
@@ -62,14 +110,13 @@ const HomePage = v3Theme?.HomePage;
     />
   ) : (
     <section class="relative overflow-hidden">
-      <div class="absolute inset-0" style="background:linear-gradient(to bottom right, var(--bg), color-mix(in srgb, var(--border) 30%, var(--bg)))"></div>
-      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28 lg:py-36">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28 lg:py-36">
         <div class="max-w-3xl">
-          <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-tight tracking-tight text-[var(--text)]">{school.name}</h1>
-          {school.tagline && <p class="mt-4 text-xl leading-relaxed text-[var(--muted)]">{school.tagline}</p>}
+          <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-tight tracking-tight" style="color:var(--text)">{school.name}</h1>
+          {school.tagline && <p class="mt-4 text-xl leading-relaxed" style="color:var(--muted)">{school.tagline}</p>}
           <div class="mt-8 flex flex-col sm:flex-row gap-4">
-            <a href={`/${slug}/admissions`} class="inline-flex items-center justify-center px-6 py-3 text-base font-semibold text-white rounded-xl bg-[var(--primary)] hover:opacity-90 shadow-lg transition-all">Apply for Admission</a>
-            <a href={`/${slug}/about`} class="inline-flex items-center justify-center px-6 py-3 text-base font-semibold rounded-xl border bg-[var(--surface)] border-[var(--border)] text-[var(--text)] hover:bg-[var(--bg)] transition-colors">Learn More</a>
+            <a href={`/${slug}/admissions`} class="inline-flex items-center justify-center px-6 py-3 text-base font-semibold text-white rounded-xl" style="background:var(--primary)">Apply for Admission</a>
+            <a href={`/${slug}/about`} class="inline-flex items-center justify-center px-6 py-3 text-base font-semibold rounded-xl border" style="border-color:var(--border);background:var(--surface);color:var(--text)">Learn More</a>
           </div>
         </div>
       </div>
