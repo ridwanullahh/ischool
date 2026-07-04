@@ -49,13 +49,21 @@ export const onRequest = defineMiddleware(async (context, next) => {
   // RBAC enrichment: resolve the user's schoolId and effective permissions,
   // then attach them to locals.user so endpoints and pages can call
   // Astro.locals.user.permissions.has('students.view') directly.
+  // Wrapped in try/catch so that a DB error (e.g. missing table) doesn't
+  // crash the entire site — the user simply gets no permissions enrichment.
   if (user) {
-    const db2 = getDb();
-    const membership = db2.select().from(schoolMembers).where(eq(schoolMembers.userId, user.id)).get();
-    const schoolId = membership?.schoolId ?? null;
-    const permissions = getUserPermissions(user.id, schoolId ?? undefined);
-    (user as any).schoolId = schoolId;
-    (user as any).permissions = permissions;
+    try {
+      const db2 = getDb();
+      const membership = db2.select().from(schoolMembers).where(eq(schoolMembers.userId, user.id)).get();
+      const schoolId = membership?.schoolId ?? null;
+      const permissions = getUserPermissions(user.id, schoolId ?? undefined);
+      (user as any).schoolId = schoolId;
+      (user as any).permissions = permissions;
+    } catch (e) {
+      // Gracefully degrade — user is authenticated but without RBAC enrichment
+      (user as any).schoolId = null;
+      (user as any).permissions = null;
+    }
   }
 
   context.locals.user = user;
@@ -92,15 +100,19 @@ export const onRequest = defineMiddleware(async (context, next) => {
         module = 'lms';
       }
 
-      if (module && isStudentBlockedFromModule(user.id, module)) {
-        // For API calls, return JSON error; for pages, redirect to blocked page
-        if (pathname.startsWith('/api/')) {
-          return new Response(JSON.stringify({ error: 'Fee access restricted', code: 'FEE_BLOCKED' }), {
-            status: 403,
-            headers: { 'Content-Type': 'application/json' },
-          });
+      if (module) {
+        let blocked = false;
+        try { blocked = isStudentBlockedFromModule(user.id, module); } catch { blocked = false; }
+        if (blocked) {
+          // For API calls, return JSON error; for pages, redirect to blocked page
+          if (pathname.startsWith('/api/')) {
+            return new Response(JSON.stringify({ error: 'Fee access restricted', code: 'FEE_BLOCKED' }), {
+              status: 403,
+              headers: { 'Content-Type': 'application/json' },
+            });
+          }
+          return context.redirect('/portal/student/fees?blocked=true');
         }
-        return context.redirect('/portal/student/fees?blocked=true');
       }
     }
   }

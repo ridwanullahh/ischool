@@ -1061,3 +1061,7 @@ export function migrate() {
 }
 
 migrate();
+
+// Run the migration patch to add tables/columns added after the initial migration
+import { migratePatch } from './migrate-patch.js';
+migratePatch();
