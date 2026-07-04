@@ -176,6 +176,167 @@ import vividGalleryPage from './vivid/GalleryPage.astro';
 import vividFaqsPage from './vivid/FaqsPage.astro';
 import vividContactPage from './vivid/ContactPage.astro';
 
+// --- 10 additional premium themes ---
+import sapphireConfig from './sapphire/theme.config';
+import sapphireLayout from './sapphire/Layout.astro';
+import sapphireHomePage from './sapphire/HomePage.astro';
+import sapphireAboutPage from './sapphire/AboutPage.astro';
+import sapphireAdmissionsPage from './sapphire/AdmissionsPage.astro';
+import sapphireProgramsPage from './sapphire/ProgramsPage.astro';
+import sapphireProgramDetailPage from './sapphire/ProgramDetailPage.astro';
+import sapphireClassesPage from './sapphire/ClassesPage.astro';
+import sapphireBlogIndexPage from './sapphire/BlogIndexPage.astro';
+import sapphireBlogPostPage from './sapphire/BlogPostPage.astro';
+import sapphireAnnouncementsIndexPage from './sapphire/AnnouncementsIndexPage.astro';
+import sapphireAnnouncementDetailPage from './sapphire/AnnouncementDetailPage.astro';
+import sapphireGalleryPage from './sapphire/GalleryPage.astro';
+import sapphireFaqsPage from './sapphire/FaqsPage.astro';
+import sapphireContactPage from './sapphire/ContactPage.astro';
+
+import driftConfig from './drift/theme.config';
+import driftLayout from './drift/Layout.astro';
+import driftHomePage from './drift/HomePage.astro';
+import driftAboutPage from './drift/AboutPage.astro';
+import driftAdmissionsPage from './drift/AdmissionsPage.astro';
+import driftProgramsPage from './drift/ProgramsPage.astro';
+import driftProgramDetailPage from './drift/ProgramDetailPage.astro';
+import driftClassesPage from './drift/ClassesPage.astro';
+import driftBlogIndexPage from './drift/BlogIndexPage.astro';
+import driftBlogPostPage from './drift/BlogPostPage.astro';
+import driftAnnouncementsIndexPage from './drift/AnnouncementsIndexPage.astro';
+import driftAnnouncementDetailPage from './drift/AnnouncementDetailPage.astro';
+import driftGalleryPage from './drift/GalleryPage.astro';
+import driftFaqsPage from './drift/FaqsPage.astro';
+import driftContactPage from './drift/ContactPage.astro';
+
+import forgeConfig from './forge/theme.config';
+import forgeLayout from './forge/Layout.astro';
+import forgeHomePage from './forge/HomePage.astro';
+import forgeAboutPage from './forge/AboutPage.astro';
+import forgeAdmissionsPage from './forge/AdmissionsPage.astro';
+import forgeProgramsPage from './forge/ProgramsPage.astro';
+import forgeProgramDetailPage from './forge/ProgramDetailPage.astro';
+import forgeClassesPage from './forge/ClassesPage.astro';
+import forgeBlogIndexPage from './forge/BlogIndexPage.astro';
+import forgeBlogPostPage from './forge/BlogPostPage.astro';
+import forgeAnnouncementsIndexPage from './forge/AnnouncementsIndexPage.astro';
+import forgeAnnouncementDetailPage from './forge/AnnouncementDetailPage.astro';
+import forgeGalleryPage from './forge/GalleryPage.astro';
+import forgeFaqsPage from './forge/FaqsPage.astro';
+import forgeContactPage from './forge/ContactPage.astro';
+
+import haloConfig from './halo/theme.config';
+import haloLayout from './halo/Layout.astro';
+import haloHomePage from './halo/HomePage.astro';
+import haloAboutPage from './halo/AboutPage.astro';
+import haloAdmissionsPage from './halo/AdmissionsPage.astro';
+import haloProgramsPage from './halo/ProgramsPage.astro';
+import haloProgramDetailPage from './halo/ProgramDetailPage.astro';
+import haloClassesPage from './halo/ClassesPage.astro';
+import haloBlogIndexPage from './halo/BlogIndexPage.astro';
+import haloBlogPostPage from './halo/BlogPostPage.astro';
+import haloAnnouncementsIndexPage from './halo/AnnouncementsIndexPage.astro';
+import haloAnnouncementDetailPage from './halo/AnnouncementDetailPage.astro';
+import haloGalleryPage from './halo/GalleryPage.astro';
+import haloFaqsPage from './halo/FaqsPage.astro';
+import haloContactPage from './halo/ContactPage.astro';
+
+import meadowConfig from './meadow/theme.config';
+import meadowLayout from './meadow/Layout.astro';
+import meadowHomePage from './meadow/HomePage.astro';
+import meadowAboutPage from './meadow/AboutPage.astro';
+import meadowAdmissionsPage from './meadow/AdmissionsPage.astro';
+import meadowProgramsPage from './meadow/ProgramsPage.astro';
+import meadowProgramDetailPage from './meadow/ProgramDetailPage.astro';
+import meadowClassesPage from './meadow/ClassesPage.astro';
+import meadowBlogIndexPage from './meadow/BlogIndexPage.astro';
+import meadowBlogPostPage from './meadow/BlogPostPage.astro';
+import meadowAnnouncementsIndexPage from './meadow/AnnouncementsIndexPage.astro';
+import meadowAnnouncementDetailPage from './meadow/AnnouncementDetailPage.astro';
+import meadowGalleryPage from './meadow/GalleryPage.astro';
+import meadowFaqsPage from './meadow/FaqsPage.astro';
+import meadowContactPage from './meadow/ContactPage.astro';
+
+import orbitConfig from './orbit/theme.config';
+import orbitLayout from './orbit/Layout.astro';
+import orbitHomePage from './orbit/HomePage.astro';
+import orbitAboutPage from './orbit/AboutPage.astro';
+import orbitAdmissionsPage from './orbit/AdmissionsPage.astro';
+import orbitProgramsPage from './orbit/ProgramsPage.astro';
+import orbitProgramDetailPage from './orbit/ProgramDetailPage.astro';
+import orbitClassesPage from './orbit/ClassesPage.astro';
+import orbitBlogIndexPage from './orbit/BlogIndexPage.astro';
+import orbitBlogPostPage from './orbit/BlogPostPage.astro';
+import orbitAnnouncementsIndexPage from './orbit/AnnouncementsIndexPage.astro';
+import orbitAnnouncementDetailPage from './orbit/AnnouncementDetailPage.astro';
+import orbitGalleryPage from './orbit/GalleryPage.astro';
+import orbitFaqsPage from './orbit/FaqsPage.astro';
+import orbitContactPage from './orbit/ContactPage.astro';
+
+import prismConfig from './prism/theme.config';
+import prismLayout from './prism/Layout.astro';
+import prismHomePage from './prism/HomePage.astro';
+import prismAboutPage from './prism/AboutPage.astro';
+import prismAdmissionsPage from './prism/AdmissionsPage.astro';
+import prismProgramsPage from './prism/ProgramsPage.astro';
+import prismProgramDetailPage from './prism/ProgramDetailPage.astro';
+import prismClassesPage from './prism/ClassesPage.astro';
+import prismBlogIndexPage from './prism/BlogIndexPage.astro';
+import prismBlogPostPage from './prism/BlogPostPage.astro';
+import prismAnnouncementsIndexPage from './prism/AnnouncementsIndexPage.astro';
+import prismAnnouncementDetailPage from './prism/AnnouncementDetailPage.astro';
+import prismGalleryPage from './prism/GalleryPage.astro';
+import prismFaqsPage from './prism/FaqsPage.astro';
+import prismContactPage from './prism/ContactPage.astro';
+
+import quartzConfig from './quartz/theme.config';
+import quartzLayout from './quartz/Layout.astro';
+import quartzHomePage from './quartz/HomePage.astro';
+import quartzAboutPage from './quartz/AboutPage.astro';
+import quartzAdmissionsPage from './quartz/AdmissionsPage.astro';
+import quartzProgramsPage from './quartz/ProgramsPage.astro';
+import quartzProgramDetailPage from './quartz/ProgramDetailPage.astro';
+import quartzClassesPage from './quartz/ClassesPage.astro';
+import quartzBlogIndexPage from './quartz/BlogIndexPage.astro';
+import quartzBlogPostPage from './quartz/BlogPostPage.astro';
+import quartzAnnouncementsIndexPage from './quartz/AnnouncementsIndexPage.astro';
+import quartzAnnouncementDetailPage from './quartz/AnnouncementDetailPage.astro';
+import quartzGalleryPage from './quartz/GalleryPage.astro';
+import quartzFaqsPage from './quartz/FaqsPage.astro';
+import quartzContactPage from './quartz/ContactPage.astro';
+
+import summitConfig from './summit/theme.config';
+import summitLayout from './summit/Layout.astro';
+import summitHomePage from './summit/HomePage.astro';
+import summitAboutPage from './summit/AboutPage.astro';
+import summitAdmissionsPage from './summit/AdmissionsPage.astro';
+import summitProgramsPage from './summit/ProgramsPage.astro';
+import summitProgramDetailPage from './summit/ProgramDetailPage.astro';
+import summitClassesPage from './summit/ClassesPage.astro';
+import summitBlogIndexPage from './summit/BlogIndexPage.astro';
+import summitBlogPostPage from './summit/BlogPostPage.astro';
+import summitAnnouncementsIndexPage from './summit/AnnouncementsIndexPage.astro';
+import summitAnnouncementDetailPage from './summit/AnnouncementDetailPage.astro';
+import summitGalleryPage from './summit/GalleryPage.astro';
+import summitFaqsPage from './summit/FaqsPage.astro';
+import summitContactPage from './summit/ContactPage.astro';
+
+import tideConfig from './tide/theme.config';
+import tideLayout from './tide/Layout.astro';
+import tideHomePage from './tide/HomePage.astro';
+import tideAboutPage from './tide/AboutPage.astro';
+import tideAdmissionsPage from './tide/AdmissionsPage.astro';
+import tideProgramsPage from './tide/ProgramsPage.astro';
+import tideProgramDetailPage from './tide/ProgramDetailPage.astro';
+import tideClassesPage from './tide/ClassesPage.astro';
+import tideBlogIndexPage from './tide/BlogIndexPage.astro';
+import tideBlogPostPage from './tide/BlogPostPage.astro';
+import tideAnnouncementsIndexPage from './tide/AnnouncementsIndexPage.astro';
+import tideAnnouncementDetailPage from './tide/AnnouncementDetailPage.astro';
+import tideGalleryPage from './tide/GalleryPage.astro';
+import tideFaqsPage from './tide/FaqsPage.astro';
+import tideContactPage from './tide/ContactPage.astro';
+
 const registry: Record<string, RegisteredTheme> = {
   aurora: {
     config: auroraConfig,
@@ -267,6 +428,16 @@ const registry: Record<string, RegisteredTheme> = {
   nexus: { config: nexusConfig, Layout: nexusLayout, HomePage: nexusHomePage, AboutPage: nexusAboutPage, AdmissionsPage: nexusAdmissionsPage, ProgramsPage: nexusProgramsPage, ProgramDetailPage: nexusProgramDetailPage, ClassesPage: nexusClassesPage, BlogIndexPage: nexusBlogIndexPage, BlogPostPage: nexusBlogPostPage, AnnouncementsIndexPage: nexusAnnouncementsIndexPage, AnnouncementDetailPage: nexusAnnouncementDetailPage, GalleryPage: nexusGalleryPage, FaqsPage: nexusFaqsPage, ContactPage: nexusContactPage },
   marble: { config: marbleConfig, Layout: marbleLayout, HomePage: marbleHomePage, AboutPage: marbleAboutPage, AdmissionsPage: marbleAdmissionsPage, ProgramsPage: marbleProgramsPage, ProgramDetailPage: marbleProgramDetailPage, ClassesPage: marbleClassesPage, BlogIndexPage: marbleBlogIndexPage, BlogPostPage: marbleBlogPostPage, AnnouncementsIndexPage: marbleAnnouncementsIndexPage, AnnouncementDetailPage: marbleAnnouncementDetailPage, GalleryPage: marbleGalleryPage, FaqsPage: marbleFaqsPage, ContactPage: marbleContactPage },
   vivid: { config: vividConfig, Layout: vividLayout, HomePage: vividHomePage, AboutPage: vividAboutPage, AdmissionsPage: vividAdmissionsPage, ProgramsPage: vividProgramsPage, ProgramDetailPage: vividProgramDetailPage, ClassesPage: vividClassesPage, BlogIndexPage: vividBlogIndexPage, BlogPostPage: vividBlogPostPage, AnnouncementsIndexPage: vividAnnouncementsIndexPage, AnnouncementDetailPage: vividAnnouncementDetailPage, GalleryPage: vividGalleryPage, FaqsPage: vividFaqsPage, ContactPage: vividContactPage },
+  sapphire: { config: sapphireConfig, Layout: sapphireLayout, HomePage: sapphireHomePage, AboutPage: sapphireAboutPage, AdmissionsPage: sapphireAdmissionsPage, ProgramsPage: sapphireProgramsPage, ProgramDetailPage: sapphireProgramDetailPage, ClassesPage: sapphireClassesPage, BlogIndexPage: sapphireBlogIndexPage, BlogPostPage: sapphireBlogPostPage, AnnouncementsIndexPage: sapphireAnnouncementsIndexPage, AnnouncementDetailPage: sapphireAnnouncementDetailPage, GalleryPage: sapphireGalleryPage, FaqsPage: sapphireFaqsPage, ContactPage: sapphireContactPage },
+  drift: { config: driftConfig, Layout: driftLayout, HomePage: driftHomePage, AboutPage: driftAboutPage, AdmissionsPage: driftAdmissionsPage, ProgramsPage: driftProgramsPage, ProgramDetailPage: driftProgramDetailPage, ClassesPage: driftClassesPage, BlogIndexPage: driftBlogIndexPage, BlogPostPage: driftBlogPostPage, AnnouncementsIndexPage: driftAnnouncementsIndexPage, AnnouncementDetailPage: driftAnnouncementDetailPage, GalleryPage: driftGalleryPage, FaqsPage: driftFaqsPage, ContactPage: driftContactPage },
+  forge: { config: forgeConfig, Layout: forgeLayout, HomePage: forgeHomePage, AboutPage: forgeAboutPage, AdmissionsPage: forgeAdmissionsPage, ProgramsPage: forgeProgramsPage, ProgramDetailPage: forgeProgramDetailPage, ClassesPage: forgeClassesPage, BlogIndexPage: forgeBlogIndexPage, BlogPostPage: forgeBlogPostPage, AnnouncementsIndexPage: forgeAnnouncementsIndexPage, AnnouncementDetailPage: forgeAnnouncementDetailPage, GalleryPage: forgeGalleryPage, FaqsPage: forgeFaqsPage, ContactPage: forgeContactPage },
+  halo: { config: haloConfig, Layout: haloLayout, HomePage: haloHomePage, AboutPage: haloAboutPage, AdmissionsPage: haloAdmissionsPage, ProgramsPage: haloProgramsPage, ProgramDetailPage: haloProgramDetailPage, ClassesPage: haloClassesPage, BlogIndexPage: haloBlogIndexPage, BlogPostPage: haloBlogPostPage, AnnouncementsIndexPage: haloAnnouncementsIndexPage, AnnouncementDetailPage: haloAnnouncementDetailPage, GalleryPage: haloGalleryPage, FaqsPage: haloFaqsPage, ContactPage: haloContactPage },
+  meadow: { config: meadowConfig, Layout: meadowLayout, HomePage: meadowHomePage, AboutPage: meadowAboutPage, AdmissionsPage: meadowAdmissionsPage, ProgramsPage: meadowProgramsPage, ProgramDetailPage: meadowProgramDetailPage, ClassesPage: meadowClassesPage, BlogIndexPage: meadowBlogIndexPage, BlogPostPage: meadowBlogPostPage, AnnouncementsIndexPage: meadowAnnouncementsIndexPage, AnnouncementDetailPage: meadowAnnouncementDetailPage, GalleryPage: meadowGalleryPage, FaqsPage: meadowFaqsPage, ContactPage: meadowContactPage },
+  orbit: { config: orbitConfig, Layout: orbitLayout, HomePage: orbitHomePage, AboutPage: orbitAboutPage, AdmissionsPage: orbitAdmissionsPage, ProgramsPage: orbitProgramsPage, ProgramDetailPage: orbitProgramDetailPage, ClassesPage: orbitClassesPage, BlogIndexPage: orbitBlogIndexPage, BlogPostPage: orbitBlogPostPage, AnnouncementsIndexPage: orbitAnnouncementsIndexPage, AnnouncementDetailPage: orbitAnnouncementDetailPage, GalleryPage: orbitGalleryPage, FaqsPage: orbitFaqsPage, ContactPage: orbitContactPage },
+  prism: { config: prismConfig, Layout: prismLayout, HomePage: prismHomePage, AboutPage: prismAboutPage, AdmissionsPage: prismAdmissionsPage, ProgramsPage: prismProgramsPage, ProgramDetailPage: prismProgramDetailPage, ClassesPage: prismClassesPage, BlogIndexPage: prismBlogIndexPage, BlogPostPage: prismBlogPostPage, AnnouncementsIndexPage: prismAnnouncementsIndexPage, AnnouncementDetailPage: prismAnnouncementDetailPage, GalleryPage: prismGalleryPage, FaqsPage: prismFaqsPage, ContactPage: prismContactPage },
+  quartz: { config: quartzConfig, Layout: quartzLayout, HomePage: quartzHomePage, AboutPage: quartzAboutPage, AdmissionsPage: quartzAdmissionsPage, ProgramsPage: quartzProgramsPage, ProgramDetailPage: quartzProgramDetailPage, ClassesPage: quartzClassesPage, BlogIndexPage: quartzBlogIndexPage, BlogPostPage: quartzBlogPostPage, AnnouncementsIndexPage: quartzAnnouncementsIndexPage, AnnouncementDetailPage: quartzAnnouncementDetailPage, GalleryPage: quartzGalleryPage, FaqsPage: quartzFaqsPage, ContactPage: quartzContactPage },
+  summit: { config: summitConfig, Layout: summitLayout, HomePage: summitHomePage, AboutPage: summitAboutPage, AdmissionsPage: summitAdmissionsPage, ProgramsPage: summitProgramsPage, ProgramDetailPage: summitProgramDetailPage, ClassesPage: summitClassesPage, BlogIndexPage: summitBlogIndexPage, BlogPostPage: summitBlogPostPage, AnnouncementsIndexPage: summitAnnouncementsIndexPage, AnnouncementDetailPage: summitAnnouncementDetailPage, GalleryPage: summitGalleryPage, FaqsPage: summitFaqsPage, ContactPage: summitContactPage },
+  tide: { config: tideConfig, Layout: tideLayout, HomePage: tideHomePage, AboutPage: tideAboutPage, AdmissionsPage: tideAdmissionsPage, ProgramsPage: tideProgramsPage, ProgramDetailPage: tideProgramDetailPage, ClassesPage: tideClassesPage, BlogIndexPage: tideBlogIndexPage, BlogPostPage: tideBlogPostPage, AnnouncementsIndexPage: tideAnnouncementsIndexPage, AnnouncementDetailPage: tideAnnouncementDetailPage, GalleryPage: tideGalleryPage, FaqsPage: tideFaqsPage, ContactPage: tideContactPage },
 };
 
 export function getTheme(name: string): RegisteredTheme | null {
