@@ -95,6 +95,87 @@ import apexGalleryPage from './apex/GalleryPage.astro';
 import apexFaqsPage from './apex/FaqsPage.astro';
 import apexContactPage from './apex/ContactPage.astro';
 
+// --- 5 additional premium themes ---
+import luminaConfig from './lumina/theme.config';
+import luminaLayout from './lumina/Layout.astro';
+import luminaHomePage from './lumina/HomePage.astro';
+import luminaAboutPage from './lumina/AboutPage.astro';
+import luminaAdmissionsPage from './lumina/AdmissionsPage.astro';
+import luminaProgramsPage from './lumina/ProgramsPage.astro';
+import luminaProgramDetailPage from './lumina/ProgramDetailPage.astro';
+import luminaClassesPage from './lumina/ClassesPage.astro';
+import luminaBlogIndexPage from './lumina/BlogIndexPage.astro';
+import luminaBlogPostPage from './lumina/BlogPostPage.astro';
+import luminaAnnouncementsIndexPage from './lumina/AnnouncementsIndexPage.astro';
+import luminaAnnouncementDetailPage from './lumina/AnnouncementDetailPage.astro';
+import luminaGalleryPage from './lumina/GalleryPage.astro';
+import luminaFaqsPage from './lumina/FaqsPage.astro';
+import luminaContactPage from './lumina/ContactPage.astro';
+
+import crestConfig from './crest/theme.config';
+import crestLayout from './crest/Layout.astro';
+import crestHomePage from './crest/HomePage.astro';
+import crestAboutPage from './crest/AboutPage.astro';
+import crestAdmissionsPage from './crest/AdmissionsPage.astro';
+import crestProgramsPage from './crest/ProgramsPage.astro';
+import crestProgramDetailPage from './crest/ProgramDetailPage.astro';
+import crestClassesPage from './crest/ClassesPage.astro';
+import crestBlogIndexPage from './crest/BlogIndexPage.astro';
+import crestBlogPostPage from './crest/BlogPostPage.astro';
+import crestAnnouncementsIndexPage from './crest/AnnouncementsIndexPage.astro';
+import crestAnnouncementDetailPage from './crest/AnnouncementDetailPage.astro';
+import crestGalleryPage from './crest/GalleryPage.astro';
+import crestFaqsPage from './crest/FaqsPage.astro';
+import crestContactPage from './crest/ContactPage.astro';
+
+import nexusConfig from './nexus/theme.config';
+import nexusLayout from './nexus/Layout.astro';
+import nexusHomePage from './nexus/HomePage.astro';
+import nexusAboutPage from './nexus/AboutPage.astro';
+import nexusAdmissionsPage from './nexus/AdmissionsPage.astro';
+import nexusProgramsPage from './nexus/ProgramsPage.astro';
+import nexusProgramDetailPage from './nexus/ProgramDetailPage.astro';
+import nexusClassesPage from './nexus/ClassesPage.astro';
+import nexusBlogIndexPage from './nexus/BlogIndexPage.astro';
+import nexusBlogPostPage from './nexus/BlogPostPage.astro';
+import nexusAnnouncementsIndexPage from './nexus/AnnouncementsIndexPage.astro';
+import nexusAnnouncementDetailPage from './nexus/AnnouncementDetailPage.astro';
+import nexusGalleryPage from './nexus/GalleryPage.astro';
+import nexusFaqsPage from './nexus/FaqsPage.astro';
+import nexusContactPage from './nexus/ContactPage.astro';
+
+import marbleConfig from './marble/theme.config';
+import marbleLayout from './marble/Layout.astro';
+import marbleHomePage from './marble/HomePage.astro';
+import marbleAboutPage from './marble/AboutPage.astro';
+import marbleAdmissionsPage from './marble/AdmissionsPage.astro';
+import marbleProgramsPage from './marble/ProgramsPage.astro';
+import marbleProgramDetailPage from './marble/ProgramDetailPage.astro';
+import marbleClassesPage from './marble/ClassesPage.astro';
+import marbleBlogIndexPage from './marble/BlogIndexPage.astro';
+import marbleBlogPostPage from './marble/BlogPostPage.astro';
+import marbleAnnouncementsIndexPage from './marble/AnnouncementsIndexPage.astro';
+import marbleAnnouncementDetailPage from './marble/AnnouncementDetailPage.astro';
+import marbleGalleryPage from './marble/GalleryPage.astro';
+import marbleFaqsPage from './marble/FaqsPage.astro';
+import marbleContactPage from './marble/ContactPage.astro';
+
+import vividConfig from './vivid/theme.config';
+import vividLayout from './vivid/Layout.astro';
+import vividHomePage from './vivid/HomePage.astro';
+import vividAboutPage from './vivid/AboutPage.astro';
+import vividAdmissionsPage from './vivid/AdmissionsPage.astro';
+import vividProgramsPage from './vivid/ProgramsPage.astro';
+import vividProgramDetailPage from './vivid/ProgramDetailPage.astro';
+import vividClassesPage from './vivid/ClassesPage.astro';
+import vividBlogIndexPage from './vivid/BlogIndexPage.astro';
+import vividBlogPostPage from './vivid/BlogPostPage.astro';
+import vividAnnouncementsIndexPage from './vivid/AnnouncementsIndexPage.astro';
+import vividAnnouncementDetailPage from './vivid/AnnouncementDetailPage.astro';
+import vividGalleryPage from './vivid/GalleryPage.astro';
+import vividFaqsPage from './vivid/FaqsPage.astro';
+import vividContactPage from './vivid/ContactPage.astro';
+
 const registry: Record<string, RegisteredTheme> = {
   aurora: {
     config: auroraConfig,
@@ -181,6 +262,11 @@ const registry: Record<string, RegisteredTheme> = {
     FaqsPage: apexFaqsPage,
     ContactPage: apexContactPage,
   },
+  lumina: { config: luminaConfig, Layout: luminaLayout, HomePage: luminaHomePage, AboutPage: luminaAboutPage, AdmissionsPage: luminaAdmissionsPage, ProgramsPage: luminaProgramsPage, ProgramDetailPage: luminaProgramDetailPage, ClassesPage: luminaClassesPage, BlogIndexPage: luminaBlogIndexPage, BlogPostPage: luminaBlogPostPage, AnnouncementsIndexPage: luminaAnnouncementsIndexPage, AnnouncementDetailPage: luminaAnnouncementDetailPage, GalleryPage: luminaGalleryPage, FaqsPage: luminaFaqsPage, ContactPage: luminaContactPage },
+  crest: { config: crestConfig, Layout: crestLayout, HomePage: crestHomePage, AboutPage: crestAboutPage, AdmissionsPage: crestAdmissionsPage, ProgramsPage: crestProgramsPage, ProgramDetailPage: crestProgramDetailPage, ClassesPage: crestClassesPage, BlogIndexPage: crestBlogIndexPage, BlogPostPage: crestBlogPostPage, AnnouncementsIndexPage: crestAnnouncementsIndexPage, AnnouncementDetailPage: crestAnnouncementDetailPage, GalleryPage: crestGalleryPage, FaqsPage: crestFaqsPage, ContactPage: crestContactPage },
+  nexus: { config: nexusConfig, Layout: nexusLayout, HomePage: nexusHomePage, AboutPage: nexusAboutPage, AdmissionsPage: nexusAdmissionsPage, ProgramsPage: nexusProgramsPage, ProgramDetailPage: nexusProgramDetailPage, ClassesPage: nexusClassesPage, BlogIndexPage: nexusBlogIndexPage, BlogPostPage: nexusBlogPostPage, AnnouncementsIndexPage: nexusAnnouncementsIndexPage, AnnouncementDetailPage: nexusAnnouncementDetailPage, GalleryPage: nexusGalleryPage, FaqsPage: nexusFaqsPage, ContactPage: nexusContactPage },
+  marble: { config: marbleConfig, Layout: marbleLayout, HomePage: marbleHomePage, AboutPage: marbleAboutPage, AdmissionsPage: marbleAdmissionsPage, ProgramsPage: marbleProgramsPage, ProgramDetailPage: marbleProgramDetailPage, ClassesPage: marbleClassesPage, BlogIndexPage: marbleBlogIndexPage, BlogPostPage: marbleBlogPostPage, AnnouncementsIndexPage: marbleAnnouncementsIndexPage, AnnouncementDetailPage: marbleAnnouncementDetailPage, GalleryPage: marbleGalleryPage, FaqsPage: marbleFaqsPage, ContactPage: marbleContactPage },
+  vivid: { config: vividConfig, Layout: vividLayout, HomePage: vividHomePage, AboutPage: vividAboutPage, AdmissionsPage: vividAdmissionsPage, ProgramsPage: vividProgramsPage, ProgramDetailPage: vividProgramDetailPage, ClassesPage: vividClassesPage, BlogIndexPage: vividBlogIndexPage, BlogPostPage: vividBlogPostPage, AnnouncementsIndexPage: vividAnnouncementsIndexPage, AnnouncementDetailPage: vividAnnouncementDetailPage, GalleryPage: vividGalleryPage, FaqsPage: vividFaqsPage, ContactPage: vividContactPage },
 };
 
 export function getTheme(name: string): RegisteredTheme | null {
