@@ -4,11 +4,13 @@ import { banners, popups } from '../lib/db/schema.js';
 import { eq, and, lte, gte, isNull } from 'drizzle-orm';
 
 interface Props {
-  schoolId: number;
+  school?: any;
+  schoolId?: number;
   currentPage?: string;
 }
 
-const { schoolId, currentPage = '/' } = Astro.props;
+const { school, schoolId: directSchoolId, currentPage = '/' } = Astro.props;
+const schoolId = directSchoolId || school?.id;
 const db = getDb();
 const now = new Date().toISOString().split('T')[0];
 

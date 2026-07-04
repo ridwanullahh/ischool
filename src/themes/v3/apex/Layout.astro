@@ -74,7 +74,7 @@ const rtl = ['ar','he','fa','ur'].includes(locale);
     </div>
     <div class="px-4 py-5 border-t flex items-center justify-between" style="border-color:var(--border)"><p class="apex-mono text-[11px] uppercase tracking-widest" style="color:var(--muted)">© {new Date().getFullYear()} {school.name}</p><a href="/" class="apex-mono text-[11px] uppercase tracking-widest" style="color:var(--primary)">[ iSchool ]</a></div>
   </footer>
-  <SchoolBannerPopup school={school} />
+  <SchoolBannerPopup school={school} currentPage={Astro.url.pathname} />
   <button id="apex-chat-toggle" type="button" class="fixed bottom-6 right-6 z-50 apex-hard px-4 py-3 shadow-lg border-2 flex items-center gap-2" style="background:var(--surface);border-color:var(--primary);color:var(--primary)" aria-label="Open chat"><span class="apex-mono text-xs font-bold">&gt;_</span><span class="apex-mono text-xs font-bold uppercase tracking-wider">Console</span></button>
   <div id="apex-chat-panel" class="fixed bottom-20 right-6 z-50 w-[min(400px,calc(100vw-3rem))] hidden flex-col shadow-2xl border-2 apex-hard" style="background:var(--surface);border-color:var(--primary);max-height:70vh">
     <div class="px-4 py-3 border-b flex items-center justify-between" style="border-color:var(--border)"><p class="apex-mono text-xs uppercase tracking-widest" style="color:var(--text)">&gt; assistant.log</p><button id="apex-chat-close" type="button" class="apex-mono text-xs" style="color:var(--muted)" aria-label="Close">[x]</button></div>
