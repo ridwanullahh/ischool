@@ -1,0 +1,27 @@
+---
+import { getSchoolNav, getSchoolContacts } from '../../../lib/school.ts';
+import { normalizeSocialUrl } from '../../../lib/social.ts';
+import { getSocialIconPath } from '../_shared/social-icons';
+
+interface Props { school: any; [key: string]: any; }
+const { school, ...data } = Astro.props;
+const nav = getSchoolNav(school.id);
+const contacts = getSchoolContacts(school.id);
+const prefix = '/' + school.slug;
+const social = (school.socialHandles as Record<string, string>) || {};
+const socialEntries = Object.entries(social).filter(([, v]) => v && v !== '#');
+const locale = school.locale || 'en';
+const formatDate = (d: string | Date | null) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+---
+<div class="px-4 py-16">
+  <div class="max-w-4xl mx-auto">
+    <a href={`/${school.slug}/programs`} class="inline-flex items-center gap-1.5 text-sm mb-4 hover:opacity-70" style="color:var(--muted)"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>Back to Programs</a>
+    <div class="aurora-glass-strong rounded-3xl p-8 sm:p-12">
+      <h1 class="text-4xl font-bold mb-4" style="color:var(--text)">{data.item?.name || 'Program'}</h1>
+      {data.item?.level && <p class="text-lg font-medium mb-4" style="color:var(--primary)">{data.item.level}</p>}
+      {data.item?.content && <div class="prose max-w-none mb-6 whitespace-pre-wrap" style="color:var(--text)">{data.item.content}</div>}
+      {data.item?.duration && <p class="text-sm" style="color:var(--muted)">Duration: {data.item.duration}</p>}
+      <a href={`/${school.slug}/admissions`} class="aurora-grad inline-flex mt-6 px-6 py-3 text-sm font-semibold text-white rounded-xl">Apply Now</a>
+    </div>
+  </div>
+</div>

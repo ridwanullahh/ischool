@@ -418,6 +418,166 @@ import mobileHeritageGalleryPage from './mobile-heritage/GalleryPage.astro';
 import mobileHeritageFaqsPage from './mobile-heritage/FaqsPage.astro';
 import mobileHeritageContactPage from './mobile-heritage/ContactPage.astro';
 
+import zenithConfig from './zenith/theme.config';
+import zenithLayout from './zenith/Layout.astro';
+import zenithHomePage from './zenith/HomePage.astro';
+import zenithAboutPage from './zenith/AboutPage.astro';
+import zenithAdmissionsPage from './zenith/AdmissionsPage.astro';
+import zenithProgramsPage from './zenith/ProgramsPage.astro';
+import zenithProgramDetailPage from './zenith/ProgramDetailPage.astro';
+import zenithClassesPage from './zenith/ClassesPage.astro';
+import zenithBlogIndexPage from './zenith/BlogIndexPage.astro';
+import zenithBlogPostPage from './zenith/BlogPostPage.astro';
+import zenithAnnouncementsIndexPage from './zenith/AnnouncementsIndexPage.astro';
+import zenithAnnouncementDetailPage from './zenith/AnnouncementDetailPage.astro';
+import zenithGalleryPage from './zenith/GalleryPage.astro';
+import zenithFaqsPage from './zenith/FaqsPage.astro';
+import zenithContactPage from './zenith/ContactPage.astro';
+
+import cascadeConfig from './cascade/theme.config';
+import cascadeLayout from './cascade/Layout.astro';
+import cascadeHomePage from './cascade/HomePage.astro';
+import cascadeAboutPage from './cascade/AboutPage.astro';
+import cascadeAdmissionsPage from './cascade/AdmissionsPage.astro';
+import cascadeProgramsPage from './cascade/ProgramsPage.astro';
+import cascadeProgramDetailPage from './cascade/ProgramDetailPage.astro';
+import cascadeClassesPage from './cascade/ClassesPage.astro';
+import cascadeBlogIndexPage from './cascade/BlogIndexPage.astro';
+import cascadeBlogPostPage from './cascade/BlogPostPage.astro';
+import cascadeAnnouncementsIndexPage from './cascade/AnnouncementsIndexPage.astro';
+import cascadeAnnouncementDetailPage from './cascade/AnnouncementDetailPage.astro';
+import cascadeGalleryPage from './cascade/GalleryPage.astro';
+import cascadeFaqsPage from './cascade/FaqsPage.astro';
+import cascadeContactPage from './cascade/ContactPage.astro';
+
+import serenityConfig from './serenity/theme.config';
+import serenityLayout from './serenity/Layout.astro';
+import serenityHomePage from './serenity/HomePage.astro';
+import serenityAboutPage from './serenity/AboutPage.astro';
+import serenityAdmissionsPage from './serenity/AdmissionsPage.astro';
+import serenityProgramsPage from './serenity/ProgramsPage.astro';
+import serenityProgramDetailPage from './serenity/ProgramDetailPage.astro';
+import serenityClassesPage from './serenity/ClassesPage.astro';
+import serenityBlogIndexPage from './serenity/BlogIndexPage.astro';
+import serenityBlogPostPage from './serenity/BlogPostPage.astro';
+import serenityAnnouncementsIndexPage from './serenity/AnnouncementsIndexPage.astro';
+import serenityAnnouncementDetailPage from './serenity/AnnouncementDetailPage.astro';
+import serenityGalleryPage from './serenity/GalleryPage.astro';
+import serenityFaqsPage from './serenity/FaqsPage.astro';
+import serenityContactPage from './serenity/ContactPage.astro';
+
+import horizonConfig from './horizon/theme.config';
+import horizonLayout from './horizon/Layout.astro';
+import horizonHomePage from './horizon/HomePage.astro';
+import horizonAboutPage from './horizon/AboutPage.astro';
+import horizonAdmissionsPage from './horizon/AdmissionsPage.astro';
+import horizonProgramsPage from './horizon/ProgramsPage.astro';
+import horizonProgramDetailPage from './horizon/ProgramDetailPage.astro';
+import horizonClassesPage from './horizon/ClassesPage.astro';
+import horizonBlogIndexPage from './horizon/BlogIndexPage.astro';
+import horizonBlogPostPage from './horizon/BlogPostPage.astro';
+import horizonAnnouncementsIndexPage from './horizon/AnnouncementsIndexPage.astro';
+import horizonAnnouncementDetailPage from './horizon/AnnouncementDetailPage.astro';
+import horizonGalleryPage from './horizon/GalleryPage.astro';
+import horizonFaqsPage from './horizon/FaqsPage.astro';
+import horizonContactPage from './horizon/ContactPage.astro';
+
+import prestigeConfig from './prestige/theme.config';
+import prestigeLayout from './prestige/Layout.astro';
+import prestigeHomePage from './prestige/HomePage.astro';
+import prestigeAboutPage from './prestige/AboutPage.astro';
+import prestigeAdmissionsPage from './prestige/AdmissionsPage.astro';
+import prestigeProgramsPage from './prestige/ProgramsPage.astro';
+import prestigeProgramDetailPage from './prestige/ProgramDetailPage.astro';
+import prestigeClassesPage from './prestige/ClassesPage.astro';
+import prestigeBlogIndexPage from './prestige/BlogIndexPage.astro';
+import prestigeBlogPostPage from './prestige/BlogPostPage.astro';
+import prestigeAnnouncementsIndexPage from './prestige/AnnouncementsIndexPage.astro';
+import prestigeAnnouncementDetailPage from './prestige/AnnouncementDetailPage.astro';
+import prestigeGalleryPage from './prestige/GalleryPage.astro';
+import prestigeFaqsPage from './prestige/FaqsPage.astro';
+import prestigeContactPage from './prestige/ContactPage.astro';
+
+import mobileSapphireConfig from './mobile-sapphire/theme.config';
+import mobileSapphireLayout from './mobile-sapphire/Layout.astro';
+import mobileSapphireHomePage from './mobile-sapphire/HomePage.astro';
+import mobileSapphireAboutPage from './mobile-sapphire/AboutPage.astro';
+import mobileSapphireAdmissionsPage from './mobile-sapphire/AdmissionsPage.astro';
+import mobileSapphireProgramsPage from './mobile-sapphire/ProgramsPage.astro';
+import mobileSapphireProgramDetailPage from './mobile-sapphire/ProgramDetailPage.astro';
+import mobileSapphireClassesPage from './mobile-sapphire/ClassesPage.astro';
+import mobileSapphireBlogIndexPage from './mobile-sapphire/BlogIndexPage.astro';
+import mobileSapphireBlogPostPage from './mobile-sapphire/BlogPostPage.astro';
+import mobileSapphireAnnouncementsIndexPage from './mobile-sapphire/AnnouncementsIndexPage.astro';
+import mobileSapphireAnnouncementDetailPage from './mobile-sapphire/AnnouncementDetailPage.astro';
+import mobileSapphireGalleryPage from './mobile-sapphire/GalleryPage.astro';
+import mobileSapphireFaqsPage from './mobile-sapphire/FaqsPage.astro';
+import mobileSapphireContactPage from './mobile-sapphire/ContactPage.astro';
+
+import mobileHaloConfig from './mobile-halo/theme.config';
+import mobileHaloLayout from './mobile-halo/Layout.astro';
+import mobileHaloHomePage from './mobile-halo/HomePage.astro';
+import mobileHaloAboutPage from './mobile-halo/AboutPage.astro';
+import mobileHaloAdmissionsPage from './mobile-halo/AdmissionsPage.astro';
+import mobileHaloProgramsPage from './mobile-halo/ProgramsPage.astro';
+import mobileHaloProgramDetailPage from './mobile-halo/ProgramDetailPage.astro';
+import mobileHaloClassesPage from './mobile-halo/ClassesPage.astro';
+import mobileHaloBlogIndexPage from './mobile-halo/BlogIndexPage.astro';
+import mobileHaloBlogPostPage from './mobile-halo/BlogPostPage.astro';
+import mobileHaloAnnouncementsIndexPage from './mobile-halo/AnnouncementsIndexPage.astro';
+import mobileHaloAnnouncementDetailPage from './mobile-halo/AnnouncementDetailPage.astro';
+import mobileHaloGalleryPage from './mobile-halo/GalleryPage.astro';
+import mobileHaloFaqsPage from './mobile-halo/FaqsPage.astro';
+import mobileHaloContactPage from './mobile-halo/ContactPage.astro';
+
+import mobileMeadowConfig from './mobile-meadow/theme.config';
+import mobileMeadowLayout from './mobile-meadow/Layout.astro';
+import mobileMeadowHomePage from './mobile-meadow/HomePage.astro';
+import mobileMeadowAboutPage from './mobile-meadow/AboutPage.astro';
+import mobileMeadowAdmissionsPage from './mobile-meadow/AdmissionsPage.astro';
+import mobileMeadowProgramsPage from './mobile-meadow/ProgramsPage.astro';
+import mobileMeadowProgramDetailPage from './mobile-meadow/ProgramDetailPage.astro';
+import mobileMeadowClassesPage from './mobile-meadow/ClassesPage.astro';
+import mobileMeadowBlogIndexPage from './mobile-meadow/BlogIndexPage.astro';
+import mobileMeadowBlogPostPage from './mobile-meadow/BlogPostPage.astro';
+import mobileMeadowAnnouncementsIndexPage from './mobile-meadow/AnnouncementsIndexPage.astro';
+import mobileMeadowAnnouncementDetailPage from './mobile-meadow/AnnouncementDetailPage.astro';
+import mobileMeadowGalleryPage from './mobile-meadow/GalleryPage.astro';
+import mobileMeadowFaqsPage from './mobile-meadow/FaqsPage.astro';
+import mobileMeadowContactPage from './mobile-meadow/ContactPage.astro';
+
+import mobileOrbitConfig from './mobile-orbit/theme.config';
+import mobileOrbitLayout from './mobile-orbit/Layout.astro';
+import mobileOrbitHomePage from './mobile-orbit/HomePage.astro';
+import mobileOrbitAboutPage from './mobile-orbit/AboutPage.astro';
+import mobileOrbitAdmissionsPage from './mobile-orbit/AdmissionsPage.astro';
+import mobileOrbitProgramsPage from './mobile-orbit/ProgramsPage.astro';
+import mobileOrbitProgramDetailPage from './mobile-orbit/ProgramDetailPage.astro';
+import mobileOrbitClassesPage from './mobile-orbit/ClassesPage.astro';
+import mobileOrbitBlogIndexPage from './mobile-orbit/BlogIndexPage.astro';
+import mobileOrbitBlogPostPage from './mobile-orbit/BlogPostPage.astro';
+import mobileOrbitAnnouncementsIndexPage from './mobile-orbit/AnnouncementsIndexPage.astro';
+import mobileOrbitAnnouncementDetailPage from './mobile-orbit/AnnouncementDetailPage.astro';
+import mobileOrbitGalleryPage from './mobile-orbit/GalleryPage.astro';
+import mobileOrbitFaqsPage from './mobile-orbit/FaqsPage.astro';
+import mobileOrbitContactPage from './mobile-orbit/ContactPage.astro';
+
+import mobileSummitConfig from './mobile-summit/theme.config';
+import mobileSummitLayout from './mobile-summit/Layout.astro';
+import mobileSummitHomePage from './mobile-summit/HomePage.astro';
+import mobileSummitAboutPage from './mobile-summit/AboutPage.astro';
+import mobileSummitAdmissionsPage from './mobile-summit/AdmissionsPage.astro';
+import mobileSummitProgramsPage from './mobile-summit/ProgramsPage.astro';
+import mobileSummitProgramDetailPage from './mobile-summit/ProgramDetailPage.astro';
+import mobileSummitClassesPage from './mobile-summit/ClassesPage.astro';
+import mobileSummitBlogIndexPage from './mobile-summit/BlogIndexPage.astro';
+import mobileSummitBlogPostPage from './mobile-summit/BlogPostPage.astro';
+import mobileSummitAnnouncementsIndexPage from './mobile-summit/AnnouncementsIndexPage.astro';
+import mobileSummitAnnouncementDetailPage from './mobile-summit/AnnouncementDetailPage.astro';
+import mobileSummitGalleryPage from './mobile-summit/GalleryPage.astro';
+import mobileSummitFaqsPage from './mobile-summit/FaqsPage.astro';
+import mobileSummitContactPage from './mobile-summit/ContactPage.astro';
+
 const registry: Record<string, RegisteredTheme> = {
   aurora: {
     config: auroraConfig,
@@ -524,6 +684,16 @@ const registry: Record<string, RegisteredTheme> = {
   'mobile-aurora': { config: mobileAuroraConfig, Layout: mobileAuroraLayout, HomePage: mobileAuroraHomePage, AboutPage: mobileAuroraAboutPage, AdmissionsPage: mobileAuroraAdmissionsPage, ProgramsPage: mobileAuroraProgramsPage, ProgramDetailPage: mobileAuroraProgramDetailPage, ClassesPage: mobileAuroraClassesPage, BlogIndexPage: mobileAuroraBlogIndexPage, BlogPostPage: mobileAuroraBlogPostPage, AnnouncementsIndexPage: mobileAuroraAnnouncementsIndexPage, AnnouncementDetailPage: mobileAuroraAnnouncementDetailPage, GalleryPage: mobileAuroraGalleryPage, FaqsPage: mobileAuroraFaqsPage, ContactPage: mobileAuroraContactPage },
   'mobile-apex': { config: mobileApexConfig, Layout: mobileApexLayout, HomePage: mobileApexHomePage, AboutPage: mobileApexAboutPage, AdmissionsPage: mobileApexAdmissionsPage, ProgramsPage: mobileApexProgramsPage, ProgramDetailPage: mobileApexProgramDetailPage, ClassesPage: mobileApexClassesPage, BlogIndexPage: mobileApexBlogIndexPage, BlogPostPage: mobileApexBlogPostPage, AnnouncementsIndexPage: mobileApexAnnouncementsIndexPage, AnnouncementDetailPage: mobileApexAnnouncementDetailPage, GalleryPage: mobileApexGalleryPage, FaqsPage: mobileApexFaqsPage, ContactPage: mobileApexContactPage },
   'mobile-heritage': { config: mobileHeritageConfig, Layout: mobileHeritageLayout, HomePage: mobileHeritageHomePage, AboutPage: mobileHeritageAboutPage, AdmissionsPage: mobileHeritageAdmissionsPage, ProgramsPage: mobileHeritageProgramsPage, ProgramDetailPage: mobileHeritageProgramDetailPage, ClassesPage: mobileHeritageClassesPage, BlogIndexPage: mobileHeritageBlogIndexPage, BlogPostPage: mobileHeritageBlogPostPage, AnnouncementsIndexPage: mobileHeritageAnnouncementsIndexPage, AnnouncementDetailPage: mobileHeritageAnnouncementDetailPage, GalleryPage: mobileHeritageGalleryPage, FaqsPage: mobileHeritageFaqsPage, ContactPage: mobileHeritageContactPage },
+'zenith': { config: zenithConfig, Layout: zenithLayout, HomePage: zenithHomePage, AboutPage: zenithAboutPage, AdmissionsPage: zenithAdmissionsPage, ProgramsPage: zenithProgramsPage, ProgramDetailPage: zenithProgramDetailPage, ClassesPage: zenithClassesPage, BlogIndexPage: zenithBlogIndexPage, BlogPostPage: zenithBlogPostPage, AnnouncementsIndexPage: zenithAnnouncementsIndexPage, AnnouncementDetailPage: zenithAnnouncementDetailPage, GalleryPage: zenithGalleryPage, FaqsPage: zenithFaqsPage, ContactPage: zenithContactPage },
+  'cascade': { config: cascadeConfig, Layout: cascadeLayout, HomePage: cascadeHomePage, AboutPage: cascadeAboutPage, AdmissionsPage: cascadeAdmissionsPage, ProgramsPage: cascadeProgramsPage, ProgramDetailPage: cascadeProgramDetailPage, ClassesPage: cascadeClassesPage, BlogIndexPage: cascadeBlogIndexPage, BlogPostPage: cascadeBlogPostPage, AnnouncementsIndexPage: cascadeAnnouncementsIndexPage, AnnouncementDetailPage: cascadeAnnouncementDetailPage, GalleryPage: cascadeGalleryPage, FaqsPage: cascadeFaqsPage, ContactPage: cascadeContactPage },
+  'serenity': { config: serenityConfig, Layout: serenityLayout, HomePage: serenityHomePage, AboutPage: serenityAboutPage, AdmissionsPage: serenityAdmissionsPage, ProgramsPage: serenityProgramsPage, ProgramDetailPage: serenityProgramDetailPage, ClassesPage: serenityClassesPage, BlogIndexPage: serenityBlogIndexPage, BlogPostPage: serenityBlogPostPage, AnnouncementsIndexPage: serenityAnnouncementsIndexPage, AnnouncementDetailPage: serenityAnnouncementDetailPage, GalleryPage: serenityGalleryPage, FaqsPage: serenityFaqsPage, ContactPage: serenityContactPage },
+  'horizon': { config: horizonConfig, Layout: horizonLayout, HomePage: horizonHomePage, AboutPage: horizonAboutPage, AdmissionsPage: horizonAdmissionsPage, ProgramsPage: horizonProgramsPage, ProgramDetailPage: horizonProgramDetailPage, ClassesPage: horizonClassesPage, BlogIndexPage: horizonBlogIndexPage, BlogPostPage: horizonBlogPostPage, AnnouncementsIndexPage: horizonAnnouncementsIndexPage, AnnouncementDetailPage: horizonAnnouncementDetailPage, GalleryPage: horizonGalleryPage, FaqsPage: horizonFaqsPage, ContactPage: horizonContactPage },
+  'prestige': { config: prestigeConfig, Layout: prestigeLayout, HomePage: prestigeHomePage, AboutPage: prestigeAboutPage, AdmissionsPage: prestigeAdmissionsPage, ProgramsPage: prestigeProgramsPage, ProgramDetailPage: prestigeProgramDetailPage, ClassesPage: prestigeClassesPage, BlogIndexPage: prestigeBlogIndexPage, BlogPostPage: prestigeBlogPostPage, AnnouncementsIndexPage: prestigeAnnouncementsIndexPage, AnnouncementDetailPage: prestigeAnnouncementDetailPage, GalleryPage: prestigeGalleryPage, FaqsPage: prestigeFaqsPage, ContactPage: prestigeContactPage },
+  'mobile-sapphire': { config: mobileSapphireConfig, Layout: mobileSapphireLayout, HomePage: mobileSapphireHomePage, AboutPage: mobileSapphireAboutPage, AdmissionsPage: mobileSapphireAdmissionsPage, ProgramsPage: mobileSapphireProgramsPage, ProgramDetailPage: mobileSapphireProgramDetailPage, ClassesPage: mobileSapphireClassesPage, BlogIndexPage: mobileSapphireBlogIndexPage, BlogPostPage: mobileSapphireBlogPostPage, AnnouncementsIndexPage: mobileSapphireAnnouncementsIndexPage, AnnouncementDetailPage: mobileSapphireAnnouncementDetailPage, GalleryPage: mobileSapphireGalleryPage, FaqsPage: mobileSapphireFaqsPage, ContactPage: mobileSapphireContactPage },
+  'mobile-halo': { config: mobileHaloConfig, Layout: mobileHaloLayout, HomePage: mobileHaloHomePage, AboutPage: mobileHaloAboutPage, AdmissionsPage: mobileHaloAdmissionsPage, ProgramsPage: mobileHaloProgramsPage, ProgramDetailPage: mobileHaloProgramDetailPage, ClassesPage: mobileHaloClassesPage, BlogIndexPage: mobileHaloBlogIndexPage, BlogPostPage: mobileHaloBlogPostPage, AnnouncementsIndexPage: mobileHaloAnnouncementsIndexPage, AnnouncementDetailPage: mobileHaloAnnouncementDetailPage, GalleryPage: mobileHaloGalleryPage, FaqsPage: mobileHaloFaqsPage, ContactPage: mobileHaloContactPage },
+  'mobile-meadow': { config: mobileMeadowConfig, Layout: mobileMeadowLayout, HomePage: mobileMeadowHomePage, AboutPage: mobileMeadowAboutPage, AdmissionsPage: mobileMeadowAdmissionsPage, ProgramsPage: mobileMeadowProgramsPage, ProgramDetailPage: mobileMeadowProgramDetailPage, ClassesPage: mobileMeadowClassesPage, BlogIndexPage: mobileMeadowBlogIndexPage, BlogPostPage: mobileMeadowBlogPostPage, AnnouncementsIndexPage: mobileMeadowAnnouncementsIndexPage, AnnouncementDetailPage: mobileMeadowAnnouncementDetailPage, GalleryPage: mobileMeadowGalleryPage, FaqsPage: mobileMeadowFaqsPage, ContactPage: mobileMeadowContactPage },
+  'mobile-orbit': { config: mobileOrbitConfig, Layout: mobileOrbitLayout, HomePage: mobileOrbitHomePage, AboutPage: mobileOrbitAboutPage, AdmissionsPage: mobileOrbitAdmissionsPage, ProgramsPage: mobileOrbitProgramsPage, ProgramDetailPage: mobileOrbitProgramDetailPage, ClassesPage: mobileOrbitClassesPage, BlogIndexPage: mobileOrbitBlogIndexPage, BlogPostPage: mobileOrbitBlogPostPage, AnnouncementsIndexPage: mobileOrbitAnnouncementsIndexPage, AnnouncementDetailPage: mobileOrbitAnnouncementDetailPage, GalleryPage: mobileOrbitGalleryPage, FaqsPage: mobileOrbitFaqsPage, ContactPage: mobileOrbitContactPage },
+  'mobile-summit': { config: mobileSummitConfig, Layout: mobileSummitLayout, HomePage: mobileSummitHomePage, AboutPage: mobileSummitAboutPage, AdmissionsPage: mobileSummitAdmissionsPage, ProgramsPage: mobileSummitProgramsPage, ProgramDetailPage: mobileSummitProgramDetailPage, ClassesPage: mobileSummitClassesPage, BlogIndexPage: mobileSummitBlogIndexPage, BlogPostPage: mobileSummitBlogPostPage, AnnouncementsIndexPage: mobileSummitAnnouncementsIndexPage, AnnouncementDetailPage: mobileSummitAnnouncementDetailPage, GalleryPage: mobileSummitGalleryPage, FaqsPage: mobileSummitFaqsPage, ContactPage: mobileSummitContactPage },
 };
 
 export function getTheme(name: string): RegisteredTheme | null {
