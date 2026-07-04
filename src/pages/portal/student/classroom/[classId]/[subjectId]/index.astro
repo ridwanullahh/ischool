@@ -1,0 +1,263 @@
+---
+/**
+ * Student Subject View — access learning materials for a subject
+ *
+ * Tabs: Lessons, Assignments, Assessments, Live Classes, Grades
+ */
+import StudentPortalLayout from '../../../../../../layouts/StudentPortalLayout.astro';
+import { getDb } from '../../../../../../lib/db/index.js';
+import {
+  classSubjects, classes, courses, courseUnits, lessons,
+  assignments, submissions, quizzes, quizAttempts, grades,
+  liveClassRooms, discussionBoards
+} from '../../../../../../lib/db/schema.js';
+import { eq, and, desc } from 'drizzle-orm';
+import { getStudentForUser, getUserSchoolId } from '../../../../../../lib/portal.js';
+
+const user = Astro.locals.user;
+if (!user) return Astro.redirect('/auth/login');
+const student = getStudentForUser(user.id);
+if (!student) return Astro.redirect('/portal/no-profile');
+const schoolId = getUserSchoolId(user.id) ?? student.schoolId;
+const classId = parseInt(Astro.params.classId);
+const subjectId = parseInt(Astro.params.subjectId);
+const db = getDb();
+
+// Get the subject assignment
+const assignment = db.select().from(classSubjects)
+  .where(and(eq(classSubjects.id, subjectId), eq(classSubjects.classId, classId)))
+  .get();
+if (!assignment) return Astro.redirect('/portal/student/classroom');
+
+const classInfo = db.select().from(classes).where(eq(classes.id, classId)).get();
+
+// Get data for each tab
+const allLessons = assignment.courseId
+  ? db.select().from(lessons).where(eq(lessons.courseId, assignment.courseId)).orderBy(lessons.sortOrder).all()
+  : [];
+
+const subjectAssignments = assignment.courseId
+  ? db.select().from(assignments).where(and(eq(assignments.courseId, assignment.courseId), eq(assignments.classId, classId))).orderBy(desc(assignments.createdAt)).all()
+  : [];
+
+const subjectQuizzes = assignment.courseId
+  ? db.select().from(quizzes).where(eq(quizzes.courseId, assignment.courseId)).orderBy(desc(quizzes.createdAt)).all()
+  : [];
+
+const mySubmissions = db.select().from(submissions).where(eq(submissions.studentId, student.id)).all();
+const submissionMap = new Map(mySubmissions.map(s => [s.assignmentId, s]));
+
+const myQuizAttempts = db.select().from(quizAttempts).where(eq(quizAttempts.studentId, student.id)).all();
+const attemptMap = new Map(myQuizAttempts.map(a => [a.quizId, a]));
+
+const myGrades = assignment.courseId
+  ? db.select().from(grades).where(and(eq(grades.studentId, student.id), eq(grades.courseId, assignment.courseId))).all()
+  : [];
+
+const liveClasses = db.select().from(liveClassRooms)
+  .where(eq(liveClassRooms.classId, classId))
+  .orderBy(desc(liveClassRooms.createdAt)).all();
+
+const discussionBoard = assignment.courseId
+  ? db.select().from(discussionBoards).where(eq(discussionBoards.courseId, assignment.courseId)).get()
+  : null;
+
+const formatDate = (d: string | Date | null) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+const now = new Date();
+const isAvailable = (q: any) => {
+  if (q.status === 'draft') return false;
+  if (q.startDate && new Date(q.startDate) > now) return false;
+  if (q.endDate && new Date(q.endDate) < now) return false;
+  const attempts = (attemptMap.get(q.id));
+  if (q.maxAttempts && attempts) return false;
+  return true;
+};
+---
+
+<StudentPortalLayout title={`${assignment.subjectName} - ${classInfo?.name || 'Class'} - Student Portal`}>
+  <div class="space-y-0">
+    <div class="mb-6">
+      <a href="/portal/student/classroom" class="text-sm text-gray-500 hover:text-gray-700 mb-2 inline-block">My Classes</a>
+      <h1 class="text-2xl font-bold text-gray-900">{assignment.subjectName}</h1>
+      <p class="text-sm text-gray-500">{classInfo?.name}{classInfo?.section ? ' - ' + classInfo.section : ''}</p>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-200">
+      <div class="border-b border-gray-200 overflow-x-auto">
+        <nav class="flex -mb-px">
+          <button onclick="switchTab('lessons')" id="tab-lessons" class="tab-btn px-5 py-3 text-sm font-medium border-b-2 border-primary-500 text-primary-600 whitespace-nowrap">Lessons ({allLessons.length})</button>
+          <button onclick="switchTab('assignments')" id="tab-assignments" class="tab-btn px-5 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 whitespace-nowrap">Assignments ({subjectAssignments.length})</button>
+          <button onclick="switchTab('quizzes')" id="tab-quizzes" class="tab-btn px-5 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 whitespace-nowrap">Assessments ({subjectQuizzes.length})</button>
+          <button onclick="switchTab('live')" id="tab-live" class="tab-btn px-5 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 whitespace-nowrap">Live Class ({liveClasses.length})</button>
+          <button onclick="switchTab('grades')" id="tab-grades" class="tab-btn px-5 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 whitespace-nowrap">My Grades ({myGrades.length})</button>
+        </nav>
+      </div>
+
+      {/* Lessons tab */}
+      <div id="panel-lessons" class="tab-panel p-6">
+        <h3 class="text-sm font-semibold text-gray-900 mb-4">Learning Materials</h3>
+        {allLessons.length > 0 ? (
+          <div class="space-y-3">
+            {allLessons.map(l => (
+              <div class="p-4 border border-gray-100 rounded-lg">
+                <div class="flex items-center gap-3">
+                  <span class="text-xs font-bold text-gray-400">#{l.sortOrder || 0}</span>
+                  <div class="flex-1">
+                    <p class="text-sm font-medium text-gray-900">{l.title}</p>
+                    <p class="text-xs text-gray-500 capitalize">{l.type}</p>
+                  </div>
+                  {l.isPublished ? <span class="text-[10px] font-bold uppercase text-green-600">Available</span> : <span class="text-[10px] font-bold uppercase text-gray-400">Not published</span>}
+                </div>
+                {l.content && l.isPublished && (
+                  <div class="mt-3 p-3 bg-gray-50 rounded text-sm text-gray-700 whitespace-pre-wrap">{l.content}</div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : <p class="text-sm text-gray-400 py-8 text-center">No learning materials available yet.</p>}
+      </div>
+
+      {/* Assignments tab */}
+      <div id="panel-assignments" class="tab-panel p-6 hidden">
+        <h3 class="text-sm font-semibold text-gray-900 mb-4">Assignments</h3>
+        {subjectAssignments.length > 0 ? (
+          <div class="space-y-3">
+            {subjectAssignments.map(a => {
+              const sub = submissionMap.get(a.id);
+              const isOverdue = a.dueDate && new Date(a.dueDate) < now && !sub;
+              return (
+                <div class="p-4 border border-gray-100 rounded-lg">
+                  <div class="flex items-start justify-between gap-4">
+                    <div class="flex-1">
+                      <p class="text-sm font-medium text-gray-900">{a.title}</p>
+                      {a.description && <p class="text-xs text-gray-500 mt-1 line-clamp-2">{a.description}</p>}
+                      <div class="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                        <span>Due: {formatDate(a.dueDate)}</span>
+                        {a.maxPoints && <span>Points: {a.maxPoints}</span>}
+                      </div>
+                    </div>
+                    <div class="shrink-0">
+                      {sub ? (
+                        sub.gradedAt ? (
+                          <div class="text-right">
+                            <span class="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700">GRADED</span>
+                            <p class="text-sm font-bold text-gray-900 mt-1">{sub.score}{a.maxPoints ? '/' + a.maxPoints : ''}</p>
+                          </div>
+                        ) : (
+                          <span class="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700">SUBMITTED</span>
+                        )
+                      ) : isOverdue ? (
+                        <span class="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700">OVERDUE</span>
+                      ) : (
+                        <a href={`/portal/student/assignments#${a.id}`} class="px-3 py-1.5 text-xs font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">Submit</a>
+                      )}
+                    </div>
+                  </div>
+                  {sub?.feedback && <p class="mt-2 text-xs p-2 bg-gray-50 rounded text-gray-600">Feedback: {sub.feedback}</p>}
+                </div>
+              );
+            })}
+          </div>
+        ) : <p class="text-sm text-gray-400 py-8 text-center">No assignments yet.</p>}
+      </div>
+
+      {/* Quizzes tab */}
+      <div id="panel-quizzes" class="tab-panel p-6 hidden">
+        <h3 class="text-sm font-semibold text-gray-900 mb-4">Quizzes & Assessments</h3>
+        {subjectQuizzes.length > 0 ? (
+          <div class="space-y-3">
+            {subjectQuizzes.map(q => {
+              const attempt = attemptMap.get(q.id);
+              const available = isAvailable(q);
+              return (
+                <div class="p-4 border border-gray-100 rounded-lg">
+                  <div class="flex items-start justify-between gap-4">
+                    <div class="flex-1">
+                      <p class="text-sm font-medium text-gray-900">{q.title}</p>
+                      {q.description && <p class="text-xs text-gray-500 mt-1 line-clamp-2">{q.description}</p>}
+                      <div class="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                        {q.duration && <span>Duration: {q.duration} min</span>}
+                        {q.maxScore && <span>Max: {q.maxScore}</span>}
+                        {q.maxAttempts && <span>Attempts: {q.maxAttempts}</span>}
+                      </div>
+                    </div>
+                    <div class="shrink-0">
+                      {attempt?.completedAt ? (
+                        <div class="text-right">
+                          <span class="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700">COMPLETED</span>
+                          <p class="text-sm font-bold text-gray-900 mt-1">{attempt.score}{q.maxScore ? '/' + q.maxScore : ''}</p>
+                        </div>
+                      ) : attempt && !attempt.completedAt ? (
+                        <a href={`/portal/student/quizzes/take?id=${q.id}`} class="px-3 py-1.5 text-xs font-medium text-white bg-amber-600 rounded-lg hover:bg-amber-700">Resume</a>
+                      ) : available ? (
+                        <a href={`/portal/student/quizzes/take?id=${q.id}`} class="px-3 py-1.5 text-xs font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">Start Quiz</a>
+                      ) : (
+                        <span class="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-500">CLOSED</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : <p class="text-sm text-gray-400 py-8 text-center">No quizzes available.</p>}
+      </div>
+
+      {/* Live Classes tab */}
+      <div id="panel-live" class="tab-panel p-6 hidden">
+        <h3 class="text-sm font-semibold text-gray-900 mb-4">Live Classes</h3>
+        {liveClasses.length > 0 ? (
+          <div class="space-y-3">
+            {liveClasses.map(lc => (
+              <div class="p-4 border border-gray-100 rounded-lg">
+                <div class="flex items-start justify-between gap-4">
+                  <div class="flex-1">
+                    <p class="text-sm font-medium text-gray-900">{lc.name}</p>
+                    {lc.description && <p class="text-xs text-gray-500 mt-1">{lc.description}</p>}
+                    <p class="text-xs text-gray-500 mt-1">{formatDate(lc.scheduledAt)} - {lc.duration} min</p>
+                  </div>
+                  <span class:list={["inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold uppercase", lc.status === 'live' ? 'bg-red-100 text-red-700' : lc.status === 'scheduled' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500']}>{lc.status}</span>
+                </div>
+                {lc.status === 'live' && (
+                  <a href={`/dashboard/live-classes/${lc.id}`} class="mt-3 inline-flex px-4 py-2 text-xs font-bold text-white bg-red-600 rounded-lg hover:bg-red-700">Join Now</a>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : <p class="text-sm text-gray-400 py-8 text-center">No live classes scheduled.</p>}
+      </div>
+
+      {/* Grades tab */}
+      <div id="panel-grades" class="tab-panel p-6 hidden">
+        <h3 class="text-sm font-semibold text-gray-900 mb-4">My Grades</h3>
+        {myGrades.length > 0 ? (
+          <div class="space-y-2">
+            {myGrades.map(g => (
+              <div class="flex items-center justify-between p-3 border border-gray-100 rounded-lg">
+                <div>
+                  <p class="text-sm font-medium text-gray-900">{g.assignmentTitle || g.examTitle || 'Assessment'}</p>
+                  <p class="text-xs text-gray-500">{formatDate(g.createdAt)}</p>
+                </div>
+                <div class="text-right">
+                  <span class="text-lg font-bold text-gray-900">{g.score}{g.maxScore ? '/' + g.maxScore : ''}</span>
+                  {g.grade && <span class="ml-2 inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary-100 text-primary-700">{g.grade}</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : <p class="text-sm text-gray-400 py-8 text-center">No grades published yet.</p>}
+      </div>
+    </div>
+  </div>
+
+  <script is:inline>
+    function switchTab(tab) {
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(b => { b.classList.remove('border-primary-500', 'text-primary-600'); b.classList.add('border-transparent', 'text-gray-500'); });
+      document.getElementById('panel-' + tab)?.classList.remove('hidden');
+      const btn = document.getElementById('tab-' + tab);
+      btn?.classList.remove('border-transparent', 'text-gray-500');
+      btn?.classList.add('border-primary-500', 'text-primary-600');
+    }
+  </script>
+</StudentPortalLayout>

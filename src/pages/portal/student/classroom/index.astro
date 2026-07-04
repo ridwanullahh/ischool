@@ -1,0 +1,77 @@
+---
+/**
+ * Student Classroom — List of their classes and subjects
+ */
+import StudentPortalLayout from '../../../../layouts/StudentPortalLayout.astro';
+import { getDb } from '../../../../lib/db/index.js';
+import { classSubjects, classes, enrollments, students, courses, assignments, submissions, quizzes, liveClassRooms } from '../../../../lib/db/schema.js';
+import { eq, and } from 'drizzle-orm';
+import { getStudentForUser, getUserSchoolId } from '../../../../lib/portal.js';
+
+const user = Astro.locals.user;
+if (!user) return Astro.redirect('/auth/login?redirect=/portal/student/classroom');
+const student = getStudentForUser(user.id);
+if (!student) return Astro.redirect('/portal/no-profile');
+const schoolId = getUserSchoolId(user.id) ?? student.schoolId;
+const db = getDb();
+
+// Get student's enrollments (classes)
+const myEnrollments = db.select().from(enrollments).where(eq(enrollments.studentId, student.id)).all();
+const myClasses = myEnrollments.map(e => {
+  const cls = db.select().from(classes).where(eq(classes.id, e.classId)).get();
+  if (!cls) return null;
+  // Get subjects for this class
+  const subjects = db.select().from(classSubjects)
+    .where(and(eq(classSubjects.classId, cls.id), eq(classSubjects.schoolId, schoolId)))
+    .all();
+  return { ...cls, subjects };
+}).filter(Boolean);
+
+const formatDate = (d: string | Date | null) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+---
+
+<StudentPortalLayout title="My Classes - Student Portal">
+  <div class="space-y-6">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">My Classes</h1>
+      <p class="text-sm text-gray-500 mt-1">Your classes and subjects</p>
+    </div>
+
+    {myClasses.length > 0 ? (
+      <div class="space-y-4">
+        {myClasses.map(cls => (
+          <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div class="p-5 border-b border-gray-100" style="background:color-mix(in srgb, var(--primary, #2563eb) 5%, transparent)">
+              <h2 class="text-lg font-bold text-gray-900">{cls.name}{cls.section ? ' - ' + cls.section : ''}</h2>
+              {cls.description && <p class="text-xs text-gray-500 mt-0.5">{cls.description}</p>}
+            </div>
+            <div class="p-5">
+              {cls.subjects && cls.subjects.length > 0 ? (
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {cls.subjects.map(s => (
+                    <a href={`/portal/student/classroom/${cls.id}/${s.id}`} class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-primary-300 hover:shadow-sm transition-all">
+                      <div class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style="background:color-mix(in srgb, var(--primary, #2563eb) 12%, transparent)">
+                        <svg class="w-5 h-5" style="color:var(--primary, #2563eb)" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <p class="text-sm font-semibold text-gray-900 truncate">{s.subjectName}</p>
+                        {s.description && <p class="text-xs text-gray-500 truncate">{s.description}</p>}
+                      </div>
+                      <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                <p class="text-sm text-gray-400">No subjects assigned to this class yet.</p>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    ) : (
+      <div class="bg-white rounded-xl border border-gray-200 p-12 text-center">
+        <p class="text-sm text-gray-500">You are not enrolled in any classes yet.</p>
+      </div>
+    )}
+  </div>
+</StudentPortalLayout>
