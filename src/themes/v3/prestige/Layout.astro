@@ -33,7 +33,7 @@ const rtl = ['ar','he','fa','ur'].includes(locale);
   <title>{pageTitle}</title>
   <FoucScript defaultMode="light" />
   <PaletteStyles school={school} />
-  <style is:inline>{`
+  <style is:inline set:html={`
     html, body { background: var(--bg); }
     body { font-family: 'Sora', system-ui, sans-serif; color: var(--text); min-height: 100vh; position: relative; overflow-x: hidden; }
     .aurora-orb { position: fixed; border-radius: 9999px; filter: blur(80px); opacity: 0.3; pointer-events: none; z-index: 0; }
@@ -44,7 +44,7 @@ const rtl = ['ar','he','fa','ur'].includes(locale);
     .aurora-glass-strong { background: color-mix(in srgb, var(--surface) 80%, transparent); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border: 1px solid color-mix(in srgb, var(--border) 40%, transparent); }
     .aurora-grad { background: linear-gradient(135deg, var(--primary), var(--accent)); }
     @media (prefers-reduced-motion: reduce) { .aurora-orb { transition: none; } }
-  `}</style>
+  `} />
 </head>
 <body>
   <div class="aurora-orb aurora-orb-1" aria-hidden="true"></div>

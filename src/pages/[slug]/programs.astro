@@ -19,7 +19,7 @@ const PageComponent = v3Theme?.ProgramsPage;
 const schoolPrograms = getSchoolPrograms(school.id);
 const pageData = { items: schoolPrograms };
 ---
-<Layout school={school} title="{PageComponent ? '' : 'Programs'}">
+<Layout school={school} title={PageComponent ? "" : "Programs"}>
   {isPreviewing && (
     <div class="bg-blue-600 text-white py-2 px-4 text-center text-sm font-medium sticky top-0 z-[100]">
       Previewing <strong>{previewTheme}</strong> theme

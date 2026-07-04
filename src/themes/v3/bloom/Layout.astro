@@ -30,7 +30,7 @@ const rtl = ['ar','he','fa','ur'].includes(locale);
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
   <title>{pageTitle}</title>
   <FoucScript defaultMode="light" /><PaletteStyles school={school} />
-  <style is:inline>{`
+  <style is:inline set:html={`
     html, body { background: var(--bg); }
     body { font-family: 'Nunito', system-ui, sans-serif; color: var(--text); min-height: 100vh; font-weight: 600; }
     .bloom-blob { border-radius: 42% 58% 63% 37% / 41% 44% 56% 59%; }
@@ -39,7 +39,7 @@ const rtl = ['ar','he','fa','ur'].includes(locale);
     .bloom-btn { border-radius: 9999px; box-shadow: 0 8px 20px -8px color-mix(in srgb, var(--primary) 60%, transparent); transition: transform 0.2s; }
     .bloom-btn:hover { transform: translateY(-2px) scale(1.02); }
     .bloom-nav-pill { border-radius: 9999px; box-shadow: 0 10px 40px -10px color-mix(in srgb, var(--primary) 30%, transparent); }
-  `}</style>
+  `} />
 </head>
 <body>
   <header class="sticky top-4 z-50 px-4">

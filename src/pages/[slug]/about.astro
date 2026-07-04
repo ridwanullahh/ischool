@@ -22,7 +22,7 @@ const stats = Array.isArray(about?.stats) ? about.stats as any : [];
 const galleryImages = getSchoolGallery(school.id).slice(0, 6);
 const pageData = { about, features, stats, items: galleryImages };
 ---
-<Layout school={school} title="{PageComponent ? '' : 'About'}">
+<Layout school={school} title={PageComponent ? "" : "About"}>
   {isPreviewing && (
     <div class="bg-blue-600 text-white py-2 px-4 text-center text-sm font-medium sticky top-0 z-[100]">
       Previewing <strong>{previewTheme}</strong> theme

@@ -4,22 +4,14 @@ interface Props { school: any; }
 const { school } = Astro.props;
 const palette = getSchoolPalette(school);
 const fontPreset = getSchoolFontPreset(school);
----
-{fontPreset && (
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-)}
-{fontPreset && (
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-)}
-{fontPreset && fontPreset.headingUrl === fontPreset.bodyUrl ? (
-  <link href={fontPreset.headingUrl} rel="stylesheet" />
-) : (
-  <>
-    {fontPreset && <link href={fontPreset.headingUrl} rel="stylesheet" />}
-    {fontPreset && <link href={fontPreset.bodyUrl} rel="stylesheet" />}
-  </>
-)}
-<style is:inline>{`
+
+const fontLink = fontPreset
+  ? (fontPreset.headingUrl === fontPreset.bodyUrl
+    ? fontPreset.headingUrl
+    : fontPreset.headingUrl + ' ' + fontPreset.bodyUrl)
+  : '';
+
+const css = `
   html.light {
     --bg: ${palette.backgroundLight}; --surface: ${palette.surfaceLight};
     --text: ${palette.textLight}; --muted: ${palette.mutedLight};
@@ -36,4 +28,15 @@ const fontPreset = getSchoolFontPreset(school);
     body, .font-body { font-family: '${fontPreset.bodyFont}', system-ui, sans-serif !important; }
     h1, h2, h3, h4, h5, h6, .font-heading { font-family: '${fontPreset.headingFont}', system-ui, sans-serif !important; }
   ` : ''}
-`}</style>
+`;
+---
+{fontPreset && (
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+)}
+{fontPreset && (
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+)}
+{fontPreset && (
+  <link href={fontLink} rel="stylesheet" />
+)}
+<style is:inline set:html={css} />

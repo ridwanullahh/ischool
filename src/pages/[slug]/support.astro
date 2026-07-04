@@ -18,7 +18,7 @@ const Layout = v3Theme?.Layout || getThemeLayout(activeTheme);
 const PageComponent = v3Theme?.ContactPage;
 const pageData = {};
 ---
-<Layout school={school} title="{PageComponent ? '' : 'Support'}">
+<Layout school={school} title={PageComponent ? "" : "Support"}>
   {isPreviewing && (
     <div class="bg-blue-600 text-white py-2 px-4 text-center text-sm font-medium sticky top-0 z-[100]">
       Previewing <strong>{previewTheme}</strong> theme

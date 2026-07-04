@@ -5,20 +5,20 @@
  * Renders a form using the school's active theme layout.
  */
 import { getV3Theme, getThemeLayout, themeList } from '../../../themes/index.js';
-import { getDb } from '../../../lib/db/index.js';
-import { schools, forms } from '../../../lib/db/schema.js';
-import { eq, and } from 'drizzle-orm';
+import { getSchoolBySlug, getSchoolFormBySlug } from '../../../lib/school-safe.ts';
 
 const slug = Astro.params.slug!;
 const formSlug = Astro.params.formSlug!;
-const db = getDb();
-const school = db.select().from(schools).where(eq(schools.slug, slug)).get();
+const school = getSchoolBySlug(slug);
 if (!school) return Astro.redirect('/404');
 
-const form = db.select().from(forms).where(and(eq(forms.slug, formSlug), eq(forms.schoolId, school.id))).get();
+const form = getSchoolFormBySlug(school.id, formSlug);
 if (!form) return Astro.redirect('/404');
 
-const activeTheme = school.theme || 'aurora';
+const previewTheme = Astro.url.searchParams.get('preview_theme');
+const user = Astro.locals.user;
+const isPreviewing = previewTheme && themeList.includes(previewTheme) && user;
+const activeTheme = isPreviewing ? previewTheme : (school.theme || 'aurora');
 const v3Theme = getV3Theme(activeTheme);
 const Layout = v3Theme?.Layout || getThemeLayout(activeTheme);
 const pageTitle = form.title;

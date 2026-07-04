@@ -20,7 +20,7 @@ import { blogPosts } from '../../../lib/db/schema.js';
 const posts = getSchoolPosts(school.id);
 const pageData = { items: posts };
 ---
-<Layout school={school} title="{PageComponent ? '' : 'Index'}">
+<Layout school={school} title={PageComponent ? "" : "Index"}>
   {isPreviewing && (
     <div class="bg-blue-600 text-white py-2 px-4 text-center text-sm font-medium sticky top-0 z-[100]">
       Previewing <strong>{previewTheme}</strong> theme

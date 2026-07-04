@@ -13,7 +13,7 @@ export const POST: APIRoute = async ({ request, params }) => {
   const slug = params.slug;
   if (!slug) return new Response(JSON.stringify({ error: 'School slug required' }), { status: 400 });
 
-  const db = getDb();
+  const drizzleDb = getDb(); const db = (drizzleDb as any).$client || (drizzleDb as any).session?.client || drizzleDb;
   let school: any = null; try { school = db.select().from(schools).where(eq(schools.slug, slug)).get(); } catch { try { school = db.prepare("SELECT * FROM schools WHERE slug = ?").get(slug); } catch {} }
   if (!school) return new Response(JSON.stringify({ error: 'School not found' }), { status: 404 });
 
@@ -192,7 +192,7 @@ export const GET: APIRoute = async ({ params, url }) => {
   const slug = params.slug;
   if (!slug) return new Response(JSON.stringify({ error: 'School slug required' }), { status: 400 });
 
-  const db = getDb();
+  const drizzleDb = getDb(); const db = (drizzleDb as any).$client || (drizzleDb as any).session?.client || drizzleDb;
   let school: any = null; try { school = db.select().from(schools).where(eq(schools.slug, slug)).get(); } catch { try { school = db.prepare("SELECT * FROM schools WHERE slug = ?").get(slug); } catch {} }
   if (!school) return new Response(JSON.stringify({ error: 'School not found' }), { status: 404 });
 

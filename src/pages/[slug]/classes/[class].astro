@@ -1,7 +1,6 @@
 ---
 import { getV3Theme, getThemeLayout, themeList } from '../../../themes/index.js';
-import { getSchoolBySlug, getSchoolAbout, getSchoolGallery, getSchoolPrograms, getSchoolClasses, getSchoolFaqs, getSchoolAnnouncements, getSchoolPosts } from '../../../lib/school-safe.ts';
-import { eq, desc, and } from 'drizzle-orm';
+import { getSchoolBySlug, getSchoolClassBySlug, getSchoolClasses } from '../../../lib/school-safe.ts';
 
 const slug = Astro.params.slug!;
 
@@ -15,12 +14,15 @@ const activeTheme = isPreviewing ? previewTheme : (school.theme || 'aurora');
 
 const v3Theme = getV3Theme(activeTheme);
 const Layout = v3Theme?.Layout || getThemeLayout(activeTheme);
-const PageComponent = v3Theme?.ClassesPage;
-import { classes } from '../../../lib/db/schema.js';
-const schoolClasses = getSchoolClasses(school.id);
-const pageData = { items: schoolClasses };
+const PageComponent = v3Theme?.ClassDetailPage;
+
+const classSlug = Astro.params.class!;
+const item = getSchoolClassBySlug(school.id, classSlug);
+if (!item) return Astro.redirect('/404');
+
+const pageData = { item };
 ---
-<Layout school={school} title="{PageComponent ? '' : 'Class'}">
+<Layout school={school} title={PageComponent ? '' : (item.name || 'Class')}>
   {isPreviewing && (
     <div class="bg-blue-600 text-white py-2 px-4 text-center text-sm font-medium sticky top-0 z-[100]">
       Previewing <strong>{previewTheme}</strong> theme
@@ -32,8 +34,8 @@ const pageData = { items: schoolClasses };
   ) : (
     <div class="px-4 py-16">
       <div class="max-w-4xl mx-auto">
-        <h1 class="text-4xl font-bold text-[var(--text)] mb-8">Class</h1>
-        <p class="text-[var(--muted)]">This page uses a legacy theme. Please switch to a v3 theme for full page autonomy.</p>
+        <h1 class="text-4xl font-bold mb-8" style="color:var(--text)">{item.name || 'Class'}</h1>
+        <p class="text-[var(--muted)]">Class details are not available for this theme.</p>
       </div>
     </div>
   )}

@@ -30,7 +30,7 @@ const rtl = ['ar','he','fa','ur'].includes(locale);
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <title>{pageTitle}</title>
   <FoucScript defaultMode="light" /><PaletteStyles school={school} />
-  <style is:inline>{`
+  <style is:inline set:html={`
     html, body { background: var(--bg); }
     body { font-family: 'Space Grotesk', system-ui, sans-serif; color: var(--text); min-height: 100vh; }
     .apex-mono { font-family: 'JetBrains Mono', monospace; }
@@ -41,7 +41,7 @@ const rtl = ['ar','he','fa','ur'].includes(locale);
     .apex-nav-item[data-active="true"]::before, .apex-nav-item:hover::before { transform: scaleY(1); }
     .apex-nav-item[data-active="true"] { color: var(--primary); }
     .apex-tri-btn { clip-path: polygon(10% 0, 100% 0, 90% 100%, 0 100%); }
-  `}</style>
+  `} />
 </head>
 <body>
   <header class="sticky top-0 z-40 border-b" style="background:var(--surface);border-color:var(--border)">

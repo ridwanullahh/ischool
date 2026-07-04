@@ -1,7 +1,6 @@
 ---
 import { getV3Theme, getThemeLayout, themeList } from '../../../themes/index.js';
-import { getSchoolBySlug, getSchoolAbout, getSchoolGallery, getSchoolPrograms, getSchoolClasses, getSchoolFaqs, getSchoolAnnouncements, getSchoolPosts } from '../../../lib/school-safe.ts';
-import { eq, desc, and } from 'drizzle-orm';
+import { getSchoolBySlug, getSchoolPostBySlug, getSchoolPosts } from '../../../lib/school-safe.ts';
 
 const slug = Astro.params.slug!;
 
@@ -16,13 +15,15 @@ const activeTheme = isPreviewing ? previewTheme : (school.theme || 'aurora');
 const v3Theme = getV3Theme(activeTheme);
 const Layout = v3Theme?.Layout || getThemeLayout(activeTheme);
 const PageComponent = v3Theme?.BlogPostPage;
-import { blogPosts } from '../../../lib/db/schema.js';
+
 const postSlug = Astro.params.post!;
-const item = db.select().from(blogPosts).where(and(eq(blogPosts.schoolId, school.id), eq(blogPosts.slug, postSlug))).get();
+const item = getSchoolPostBySlug(school.id, postSlug);
 if (!item) return Astro.redirect('/404');
-const pageData = { item };
+
+const relatedPosts = getSchoolPosts(school.id, 5).filter(p => p.id !== item.id).slice(0, 3);
+const pageData = { item, related: relatedPosts };
 ---
-<Layout school={school} title="{PageComponent ? '' : 'Post'}">
+<Layout school={school} title={PageComponent ? '' : (item.title || 'Blog Post')}>
   {isPreviewing && (
     <div class="bg-blue-600 text-white py-2 px-4 text-center text-sm font-medium sticky top-0 z-[100]">
       Previewing <strong>{previewTheme}</strong> theme
@@ -34,8 +35,8 @@ const pageData = { item };
   ) : (
     <div class="px-4 py-16">
       <div class="max-w-4xl mx-auto">
-        <h1 class="text-4xl font-bold text-[var(--text)] mb-8">Post</h1>
-        <p class="text-[var(--muted)]">This page uses a legacy theme. Please switch to a v3 theme for full page autonomy.</p>
+        <h1 class="text-4xl font-bold mb-8" style="color:var(--text)">{item.title || 'Blog Post'}</h1>
+        <p class="text-[var(--muted)]">Blog post details are not available for this theme.</p>
       </div>
     </div>
   )}
