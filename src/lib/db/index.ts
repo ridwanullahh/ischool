@@ -494,11 +494,18 @@ function autoMigrate(sqlite: Database.Database) {
 
     CREATE TABLE IF NOT EXISTS messages (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
       sender_id INTEGER NOT NULL REFERENCES users(id),
-      receiver_id INTEGER NOT NULL REFERENCES users(id),
+      recipient_id INTEGER REFERENCES users(id),
+      group_id TEXT,
+      subject TEXT,
       content TEXT NOT NULL,
+      attachments TEXT DEFAULT '[]',
+      parent_message_id INTEGER,
+      is_read INTEGER DEFAULT 0,
       read_at INTEGER,
-      created_at INTEGER
+      created_at INTEGER,
+      updated_at INTEGER
     );
 
     CREATE TABLE IF NOT EXISTS notifications (
@@ -1208,6 +1215,15 @@ function autoMigrate(sqlite: Database.Database) {
   addColumnIfMissing('coupons', 'name', 'TEXT');
   addColumnIfMissing('coupons', 'currency', "TEXT DEFAULT 'USD'");
   addColumnIfMissing('coupons', 'min_amount', 'INTEGER DEFAULT 0');
+
+  // Fix messages table — add missing columns for existing DBs that have the old schema
+  addColumnIfMissing('messages', 'school_id', 'INTEGER');
+  addColumnIfMissing('messages', 'group_id', 'TEXT');
+  addColumnIfMissing('messages', 'subject', 'TEXT');
+  addColumnIfMissing('messages', 'attachments', "TEXT DEFAULT '[]'");
+  addColumnIfMissing('messages', 'parent_message_id', 'INTEGER');
+  addColumnIfMissing('messages', 'is_read', 'INTEGER DEFAULT 0');
+  addColumnIfMissing('messages', 'updated_at', 'INTEGER');
 }
 
 export function getDb() {
