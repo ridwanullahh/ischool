@@ -2,16 +2,1218 @@ import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import * as schema from './schema.js';
 import { resolve } from 'path';
+import { existsSync } from 'fs';
 
 const DB_PATH = resolve(process.cwd(), 'ischool.db');
 
 let _db: ReturnType<typeof drizzle> | null = null;
+let _migrated = false;
+
+/**
+ * Runs the full migration (all CREATE TABLE IF NOT EXISTS statements)
+ * directly using raw SQL. This ensures the database schema is always
+ * up-to-date when the app starts, even on fresh deployments.
+ *
+ * This is a self-contained migration that doesn't depend on the
+ * migrate.ts script being run manually.
+ */
+function autoMigrate(sqlite: Database.Database) {
+  if (_migrated) return;
+  _migrated = true;
+
+  sqlite.pragma('journal_mode = WAL');
+  sqlite.pragma('foreign_keys = ON');
+
+  sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      email TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL,
+      name TEXT NOT NULL,
+      role TEXT NOT NULL DEFAULT 'school_admin',
+      avatar_url TEXT,
+      two_factor_enabled INTEGER DEFAULT 0,
+      two_factor_secret TEXT,
+      preferred_language TEXT DEFAULT 'en',
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS sessions (
+      id TEXT PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      expires_at INTEGER NOT NULL,
+      created_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS password_reset_tokens (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      token TEXT NOT NULL UNIQUE,
+      expires_at INTEGER NOT NULL,
+      created_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS schools (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      slug TEXT NOT NULL UNIQUE,
+      name TEXT NOT NULL,
+      tagline TEXT,
+      logo_url TEXT,
+      favicon_url TEXT,
+      primary_color TEXT DEFAULT '#2563eb',
+      theme TEXT DEFAULT 'aurora',
+      custom_domain TEXT,
+      settings TEXT DEFAULT '{}',
+      social_handles TEXT DEFAULT '{}',
+      owner_id INTEGER REFERENCES users(id),
+      status TEXT NOT NULL DEFAULT 'active',
+      locale TEXT DEFAULT 'en',
+      active_modules TEXT DEFAULT '[]',
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS school_members (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      role TEXT NOT NULL DEFAULT 'editor',
+      active INTEGER DEFAULT 1,
+      created_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS about_pages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE UNIQUE,
+      value_proposition TEXT,
+      mission TEXT,
+      vision TEXT,
+      history TEXT,
+      features TEXT DEFAULT '[]',
+      stats TEXT DEFAULT '[]',
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS announcements (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      slug TEXT NOT NULL,
+      content TEXT,
+      excerpt TEXT,
+      cta_text TEXT,
+      cta_url TEXT,
+      is_pinned INTEGER DEFAULT 0,
+      published INTEGER DEFAULT 1,
+      published_at TEXT,
+      author_id INTEGER REFERENCES users(id),
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS classes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      section TEXT,
+      grade_level TEXT,
+      description TEXT,
+      capacity INTEGER,
+      homeroom_teacher_id INTEGER,
+      sort_order INTEGER DEFAULT 0,
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS blog_posts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      slug TEXT NOT NULL,
+      content TEXT,
+      excerpt TEXT,
+      cover_image_url TEXT,
+      author_id INTEGER REFERENCES users(id),
+      is_published INTEGER DEFAULT 0,
+      published_at TEXT,
+      category TEXT,
+      tags TEXT DEFAULT '[]',
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS programs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      slug TEXT NOT NULL,
+      description TEXT,
+      content TEXT,
+      duration TEXT,
+      level TEXT,
+      icon TEXT,
+      has_detail_page INTEGER DEFAULT 0,
+      sort_order INTEGER DEFAULT 0,
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS faqs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      question TEXT NOT NULL,
+      answer TEXT NOT NULL,
+      category TEXT,
+      sort_order INTEGER DEFAULT 0,
+      is_published INTEGER DEFAULT 1,
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS gallery_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      title TEXT,
+      image_url TEXT NOT NULL,
+      description TEXT,
+      category TEXT,
+      sort_order INTEGER DEFAULT 0,
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS contact_info (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      label TEXT,
+      value TEXT NOT NULL,
+      type TEXT,
+      sort_order INTEGER DEFAULT 0,
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS contact_submissions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL,
+      phone TEXT,
+      subject TEXT,
+      message TEXT NOT NULL,
+      status TEXT DEFAULT 'new',
+      created_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS navigation_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      label TEXT NOT NULL,
+      url TEXT NOT NULL,
+      sort_order INTEGER DEFAULT 0,
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS banners (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      subtitle TEXT,
+      link_url TEXT,
+      link_text TEXT,
+      image_url TEXT,
+      position TEXT DEFAULT 'top',
+      is_active INTEGER DEFAULT 1,
+      start_date TEXT,
+      end_date TEXT,
+      display_pages TEXT DEFAULT '["all"]',
+      style_overrides TEXT DEFAULT '{}',
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS popups (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      content TEXT,
+      image_url TEXT,
+      link_url TEXT,
+      link_text TEXT,
+      trigger_type TEXT DEFAULT 'on_load',
+      trigger_delay INTEGER DEFAULT 0,
+      display_frequency TEXT DEFAULT 'once_per_session',
+      is_active INTEGER DEFAULT 1,
+      start_date TEXT,
+      end_date TEXT,
+      display_pages TEXT DEFAULT '["all"]',
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS students (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      user_id INTEGER REFERENCES users(id),
+      student_id TEXT NOT NULL,
+      first_name TEXT NOT NULL,
+      last_name TEXT NOT NULL,
+      date_of_birth TEXT,
+      gender TEXT,
+      photo_url TEXT,
+      email TEXT,
+      phone TEXT,
+      address TEXT,
+      emergency_contact_name TEXT,
+      emergency_contact_phone TEXT,
+      medical_notes TEXT,
+      allergies TEXT,
+      parent_id INTEGER REFERENCES users(id),
+      status TEXT NOT NULL DEFAULT 'active',
+      enrollment_date TEXT,
+      custom_fields TEXT DEFAULT '{}',
+      documents TEXT DEFAULT '[]',
+      family_group_id INTEGER,
+      blood_group TEXT,
+      nationality TEXT,
+      religion TEXT,
+      previous_school TEXT,
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS enrollments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+      class_id INTEGER REFERENCES classes(id),
+      academic_period_id INTEGER,
+      status TEXT DEFAULT 'enrolled',
+      enrollment_date TEXT,
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS attendance (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+      class_id INTEGER,
+      date TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'present',
+      notes TEXT,
+      marked_by INTEGER REFERENCES users(id),
+      marked_at INTEGER,
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS courses (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      description TEXT,
+      subject TEXT,
+      grade_level TEXT,
+      teacher_id INTEGER REFERENCES users(id),
+      is_published INTEGER DEFAULT 0,
+      sort_order INTEGER DEFAULT 0,
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS assignments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      course_id INTEGER REFERENCES courses(id) ON DELETE CASCADE,
+      class_id INTEGER REFERENCES classes(id),
+      title TEXT NOT NULL,
+      description TEXT,
+      due_date TEXT,
+      max_points REAL,
+      created_by INTEGER REFERENCES users(id),
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS submissions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      assignment_id INTEGER NOT NULL REFERENCES assignments(id) ON DELETE CASCADE,
+      student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      content TEXT,
+      file_url TEXT,
+      status TEXT DEFAULT 'submitted',
+      score REAL,
+      feedback TEXT,
+      graded_by INTEGER REFERENCES users(id),
+      graded_at INTEGER,
+      submitted_at INTEGER,
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS quizzes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      course_id INTEGER REFERENCES courses(id),
+      title TEXT NOT NULL,
+      description TEXT,
+      duration INTEGER,
+      max_score REAL,
+      max_attempts INTEGER DEFAULT 1,
+      start_date TEXT,
+      end_date TEXT,
+      status TEXT DEFAULT 'draft',
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS questions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      quiz_id INTEGER REFERENCES quizzes(id) ON DELETE CASCADE,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      type TEXT NOT NULL,
+      question TEXT NOT NULL,
+      options TEXT,
+      correct_answer TEXT,
+      points INTEGER DEFAULT 1,
+      difficulty TEXT DEFAULT 'medium',
+      tags TEXT DEFAULT '[]',
+      explanation TEXT,
+      sort_order INTEGER DEFAULT 0,
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS quiz_attempts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      quiz_id INTEGER NOT NULL REFERENCES quizzes(id) ON DELETE CASCADE,
+      student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      answers TEXT NOT NULL,
+      score REAL,
+      max_score REAL,
+      status TEXT DEFAULT 'in_progress',
+      started_at INTEGER,
+      completed_at INTEGER,
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS grades (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+      assignment_id INTEGER REFERENCES assignments(id),
+      submission_id INTEGER REFERENCES submissions(id),
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      course_id INTEGER REFERENCES courses(id),
+      assignment_title TEXT,
+      exam_title TEXT,
+      score REAL,
+      max_score REAL,
+      grade TEXT,
+      feedback TEXT,
+      graded_by INTEGER REFERENCES users(id),
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS staff (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      user_id INTEGER REFERENCES users(id),
+      staff_id TEXT NOT NULL,
+      first_name TEXT NOT NULL,
+      last_name TEXT NOT NULL,
+      photo_url TEXT,
+      department TEXT,
+      designation TEXT,
+      employment_type TEXT NOT NULL DEFAULT 'full_time',
+      email TEXT,
+      phone TEXT,
+      address TEXT,
+      qualifications TEXT DEFAULT '[]',
+      certifications TEXT DEFAULT '[]',
+      join_date TEXT,
+      salary INTEGER,
+      bank_details TEXT,
+      emergency_contact TEXT,
+      documents TEXT DEFAULT '[]',
+      status TEXT NOT NULL DEFAULT 'active',
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS invoices (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      student_id INTEGER REFERENCES students(id) ON DELETE CASCADE,
+      invoice_number TEXT,
+      description TEXT,
+      amount INTEGER NOT NULL,
+      amount_paid INTEGER DEFAULT 0,
+      balance INTEGER NOT NULL,
+      status TEXT DEFAULT 'unpaid',
+      due_date TEXT,
+      issued_at INTEGER,
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS payments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      invoice_id INTEGER NOT NULL REFERENCES invoices(id) ON DELETE CASCADE,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      amount INTEGER NOT NULL,
+      method TEXT NOT NULL,
+      reference TEXT,
+      status TEXT DEFAULT 'completed',
+      paid_by INTEGER REFERENCES users(id),
+      notes TEXT,
+      paid_at INTEGER,
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS fee_structures (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      amount INTEGER NOT NULL,
+      type TEXT DEFAULT 'one_time',
+      class_id INTEGER REFERENCES classes(id),
+      description TEXT,
+      is_active INTEGER DEFAULT 1,
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      sender_id INTEGER NOT NULL REFERENCES users(id),
+      receiver_id INTEGER NOT NULL REFERENCES users(id),
+      content TEXT NOT NULL,
+      read_at INTEGER,
+      created_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS notifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      school_id INTEGER REFERENCES schools(id),
+      title TEXT NOT NULL,
+      message TEXT,
+      type TEXT,
+      link TEXT,
+      read_at INTEGER,
+      created_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS library_books (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      author TEXT,
+      isbn TEXT,
+      publisher TEXT,
+      genre TEXT,
+      category TEXT,
+      cover_url TEXT,
+      description TEXT,
+      total_copies INTEGER DEFAULT 1,
+      available_copies INTEGER DEFAULT 1,
+      shelf_location TEXT,
+      barcode TEXT,
+      purchase_date TEXT,
+      price INTEGER,
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS library_loans (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      book_id INTEGER NOT NULL REFERENCES library_books(id) ON DELETE CASCADE,
+      borrower_id INTEGER NOT NULL REFERENCES users(id),
+      issued_by INTEGER REFERENCES users(id),
+      issue_date TEXT NOT NULL,
+      due_date TEXT NOT NULL,
+      return_date TEXT,
+      renewals INTEGER DEFAULT 0,
+      fine INTEGER DEFAULT 0,
+      fine_paid INTEGER DEFAULT 0,
+      status TEXT DEFAULT 'active',
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS hostels (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      type TEXT,
+      capacity INTEGER,
+      warden_id INTEGER REFERENCES users(id),
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS hostel_rooms (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      hostel_id INTEGER NOT NULL REFERENCES hostels(id) ON DELETE CASCADE,
+      room_number TEXT NOT NULL,
+      type TEXT,
+      capacity INTEGER DEFAULT 1,
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS hostel_allocations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      room_id INTEGER NOT NULL REFERENCES hostel_rooms(id) ON DELETE CASCADE,
+      student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      check_in_date TEXT,
+      check_out_date TEXT,
+      status TEXT DEFAULT 'active',
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS vehicles (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      registration_number TEXT NOT NULL,
+      type TEXT,
+      capacity INTEGER,
+      driver_name TEXT,
+      driver_phone TEXT,
+      condition TEXT,
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS transport_routes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      stops TEXT,
+      schedule TEXT,
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS transport_assignments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+      route_id INTEGER NOT NULL REFERENCES transport_routes(id),
+      stop_name TEXT,
+      status TEXT DEFAULT 'active',
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS assets (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      category TEXT,
+      serial_number TEXT,
+      description TEXT,
+      purchase_date TEXT,
+      purchase_price INTEGER,
+      current_value INTEGER,
+      assigned_to INTEGER REFERENCES users(id),
+      location TEXT,
+      condition TEXT DEFAULT 'good',
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS inventory_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      category TEXT,
+      quantity INTEGER DEFAULT 0,
+      unit TEXT,
+      reorder_level INTEGER DEFAULT 0,
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      description TEXT,
+      category TEXT,
+      start_date TEXT NOT NULL,
+      end_date TEXT,
+      start_time TEXT,
+      end_time TEXT,
+      venue TEXT,
+      is_recurring INTEGER DEFAULT 0,
+      recurrence_rule TEXT,
+      audience TEXT DEFAULT '[]',
+      rsvp_required INTEGER DEFAULT 0,
+      image_url TEXT,
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS behavior_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+      type TEXT NOT NULL,
+      description TEXT,
+      points INTEGER DEFAULT 0,
+      logged_by INTEGER REFERENCES users(id),
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS lesson_plans (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      class_id INTEGER REFERENCES classes(id),
+      subject TEXT,
+      title TEXT NOT NULL,
+      objectives TEXT,
+      content TEXT,
+      resources TEXT DEFAULT '[]',
+      status TEXT DEFAULT 'draft',
+      created_by INTEGER REFERENCES users(id),
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS academic_periods (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      type TEXT,
+      start_date TEXT,
+      end_date TEXT,
+      is_active INTEGER DEFAULT 0,
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS timetable_entries (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      class_id INTEGER REFERENCES classes(id),
+      subject_id INTEGER,
+      teacher_id INTEGER,
+      room_id INTEGER,
+      day_of_week INTEGER,
+      start_time TEXT,
+      end_time TEXT,
+      subject TEXT,
+      teacher_name TEXT,
+      room TEXT,
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS exam_series (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      term TEXT,
+      start_date TEXT,
+      end_date TEXT,
+      status TEXT DEFAULT 'draft',
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS exams (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      series_id INTEGER REFERENCES exam_series(id),
+      class_id INTEGER REFERENCES classes(id),
+      subject TEXT,
+      title TEXT NOT NULL,
+      date TEXT,
+      total_marks INTEGER,
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS exam_results (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      exam_id INTEGER NOT NULL REFERENCES exams(id) ON DELETE CASCADE,
+      student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      score INTEGER,
+      grade TEXT,
+      remarks TEXT,
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS report_cards (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+      academic_period_id INTEGER REFERENCES academic_periods(id),
+      title TEXT,
+      content TEXT,
+      published INTEGER DEFAULT 0,
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS payroll (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      staff_id INTEGER NOT NULL REFERENCES staff(id) ON DELETE CASCADE,
+      month TEXT NOT NULL,
+      year INTEGER NOT NULL,
+      basic_salary INTEGER NOT NULL,
+      allowances TEXT DEFAULT '[]',
+      deductions TEXT DEFAULT '[]',
+      gross_pay INTEGER NOT NULL,
+      net_pay INTEGER NOT NULL,
+      status TEXT DEFAULT 'draft',
+      paid_at INTEGER,
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS leave_requests (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      staff_id INTEGER NOT NULL REFERENCES staff(id) ON DELETE CASCADE,
+      type TEXT NOT NULL,
+      start_date TEXT NOT NULL,
+      end_date TEXT NOT NULL,
+      reason TEXT,
+      status TEXT DEFAULT 'pending',
+      approved_by INTEGER REFERENCES users(id),
+      days INTEGER,
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS audit_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER,
+      user_id INTEGER,
+      action TEXT NOT NULL,
+      entity TEXT,
+      entity_id INTEGER,
+      details TEXT,
+      ip_address TEXT,
+      created_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS module_settings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      module TEXT NOT NULL,
+      enabled INTEGER DEFAULT 1,
+      settings TEXT DEFAULT '{}',
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS saved_reports (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      type TEXT,
+      config TEXT,
+      created_by INTEGER REFERENCES users(id),
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS notification_templates (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      channel TEXT,
+      subject TEXT,
+      body TEXT,
+      variables TEXT,
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS cbt_exams (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      description TEXT,
+      instructions TEXT,
+      type TEXT NOT NULL DEFAULT 'academic',
+      duration INTEGER,
+      total_marks INTEGER,
+      negative_marking INTEGER DEFAULT 0,
+      negative_mark_value TEXT,
+      access_mode TEXT DEFAULT 'restricted',
+      scheduled_start TEXT,
+      scheduled_end TEXT,
+      max_attempts INTEGER DEFAULT 1,
+      lockdown INTEGER DEFAULT 0,
+      proctoring INTEGER DEFAULT 0,
+      status TEXT DEFAULT 'draft',
+      sections TEXT,
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS cbt_candidates (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      exam_id INTEGER NOT NULL REFERENCES cbt_exams(id) ON DELETE CASCADE,
+      user_id INTEGER REFERENCES users(id),
+      name TEXT NOT NULL,
+      email TEXT,
+      access_pin TEXT,
+      status TEXT DEFAULT 'registered',
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS cbt_attempts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      exam_id INTEGER NOT NULL REFERENCES cbt_exams(id) ON DELETE CASCADE,
+      candidate_id INTEGER NOT NULL REFERENCES cbt_candidates(id) ON DELETE CASCADE,
+      answers TEXT,
+      score INTEGER,
+      total_marks INTEGER,
+      time_taken INTEGER,
+      flags TEXT DEFAULT '[]',
+      proctor_notes TEXT,
+      ip_address TEXT,
+      device_fingerprint TEXT,
+      started_at INTEGER,
+      submitted_at INTEGER,
+      integrity_report TEXT,
+      status TEXT DEFAULT 'in_progress',
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    -- Additional tables from later sessions
+    CREATE TABLE IF NOT EXISTS student_documents (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      category TEXT NOT NULL, title TEXT NOT NULL, file_url TEXT NOT NULL,
+      file_name TEXT, file_type TEXT, uploaded_by INTEGER, created_at INTEGER, updated_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS student_medical_records (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      type TEXT NOT NULL, title TEXT NOT NULL, description TEXT, severity TEXT,
+      date TEXT, recorded_by INTEGER, created_at INTEGER, updated_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS student_emergency_contacts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+      name TEXT NOT NULL, relationship TEXT, phone TEXT NOT NULL, email TEXT,
+      address TEXT, is_primary INTEGER DEFAULT 0, created_at INTEGER, updated_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS family_groups (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      family_name TEXT NOT NULL, primary_contact_name TEXT,
+      primary_contact_phone TEXT, primary_contact_email TEXT, created_at INTEGER, updated_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS staff_attendance (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      staff_id INTEGER NOT NULL REFERENCES staff(id) ON DELETE CASCADE,
+      date TEXT NOT NULL, clock_in TEXT, clock_out TEXT, method TEXT DEFAULT 'manual',
+      notes TEXT, created_at INTEGER, updated_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS leave_balances (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      staff_id INTEGER NOT NULL REFERENCES staff(id) ON DELETE CASCADE,
+      year INTEGER NOT NULL, type TEXT NOT NULL, allocated INTEGER DEFAULT 0,
+      used INTEGER DEFAULT 0, carried_over INTEGER DEFAULT 0, created_at INTEGER, updated_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS role_overrides (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      role TEXT NOT NULL, permission TEXT NOT NULL, action TEXT NOT NULL, created_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS fee_access_rules (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      enabled INTEGER DEFAULT 0, grace_period_days INTEGER DEFAULT 0,
+      blocked_modules TEXT DEFAULT '[]', threshold_amount INTEGER DEFAULT 0,
+      block_message TEXT, created_at INTEGER, updated_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS discussion_boards (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      course_id INTEGER, title TEXT NOT NULL, description TEXT,
+      locked INTEGER DEFAULT 0, created_by INTEGER, created_at INTEGER, updated_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS discussion_posts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      board_id INTEGER NOT NULL REFERENCES discussion_boards(id) ON DELETE CASCADE,
+      parent_id INTEGER, author_id INTEGER NOT NULL, content TEXT NOT NULL,
+      pinned INTEGER DEFAULT 0, created_at INTEGER, updated_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS webhooks (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      url TEXT NOT NULL, events TEXT DEFAULT '[]', secret TEXT,
+      active INTEGER DEFAULT 1, created_at INTEGER, updated_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS webhook_deliveries (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      webhook_id INTEGER NOT NULL REFERENCES webhooks(id) ON DELETE CASCADE,
+      event TEXT NOT NULL, payload TEXT, response_status INTEGER,
+      response_body TEXT, delivered_at TEXT, status TEXT DEFAULT 'pending',
+      attempts INTEGER DEFAULT 0, created_at INTEGER, updated_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS forms (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      title TEXT NOT NULL, description TEXT, slug TEXT NOT NULL,
+      fields TEXT DEFAULT '[]', settings TEXT DEFAULT '{}', status TEXT DEFAULT 'draft',
+      is_public INTEGER DEFAULT 1, requires_auth INTEGER DEFAULT 0,
+      success_message TEXT, redirect_url TEXT, submit_button_text TEXT DEFAULT 'Submit',
+      created_by INTEGER, created_at INTEGER, updated_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS form_submissions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      form_id INTEGER NOT NULL REFERENCES forms(id) ON DELETE CASCADE,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      data TEXT NOT NULL, submitted_by INTEGER, submitted_by_name TEXT,
+      submitted_by_email TEXT, ip_address TEXT, status TEXT DEFAULT 'new',
+      created_at INTEGER, updated_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS gallery_albums (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      name TEXT NOT NULL, description TEXT, cover_image_url TEXT,
+      sort_order INTEGER DEFAULT 0, created_at INTEGER, updated_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS virtual_tours (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      title TEXT NOT NULL, description TEXT, tour_url TEXT,
+      created_at INTEGER, updated_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS media_uploads (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      url TEXT NOT NULL, file_name TEXT, file_type TEXT, file_size INTEGER,
+      folder TEXT, uploaded_by INTEGER, created_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS email_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER, to_email TEXT, subject TEXT, body TEXT,
+      status TEXT, error TEXT, sent_at INTEGER, created_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS reactions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER, entity_type TEXT, entity_id INTEGER,
+      user_id INTEGER, type TEXT, created_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS platform_blog_posts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL, slug TEXT NOT NULL UNIQUE, content TEXT,
+      excerpt TEXT, cover_image_url TEXT, category TEXT, tags TEXT DEFAULT '[]',
+      author_id INTEGER, is_published INTEGER DEFAULT 0, published_at TEXT,
+      created_at INTEGER, updated_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS platform_docs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL, slug TEXT NOT NULL UNIQUE, content TEXT,
+      category TEXT, sort_order INTEGER DEFAULT 0, is_published INTEGER DEFAULT 1,
+      created_at INTEGER, updated_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS subscription_plans (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL, slug TEXT NOT NULL UNIQUE, description TEXT,
+      price_monthly INTEGER DEFAULT 0, price_yearly INTEGER DEFAULT 0,
+      features TEXT DEFAULT '[]', is_active INTEGER DEFAULT 1,
+      sort_order INTEGER DEFAULT 0, created_at INTEGER, updated_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS school_subscriptions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      plan_id INTEGER REFERENCES subscription_plans(id),
+      status TEXT DEFAULT 'trial', current_period_start INTEGER,
+      current_period_end INTEGER, trial_ends_at INTEGER,
+      created_at INTEGER, updated_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS coupons (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      code TEXT NOT NULL UNIQUE, name TEXT, description TEXT, type TEXT NOT NULL,
+      value INTEGER NOT NULL, currency TEXT DEFAULT 'USD', min_amount INTEGER DEFAULT 0,
+      max_discount INTEGER, applicable_plans TEXT DEFAULT '[]', max_uses INTEGER,
+      current_uses INTEGER DEFAULT 0, start_date TEXT NOT NULL, end_date TEXT,
+      is_active INTEGER DEFAULT 1, created_by INTEGER, created_at INTEGER, updated_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS coupon_redemptions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      coupon_id INTEGER NOT NULL REFERENCES coupons(id) ON DELETE CASCADE,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      invoice_id INTEGER, discount_amount INTEGER NOT NULL, redeemed_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS support_tickets (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      subject TEXT NOT NULL, description TEXT, status TEXT DEFAULT 'open',
+      priority TEXT DEFAULT 'medium', school_id INTEGER, user_id INTEGER,
+      assigned_to INTEGER, created_at INTEGER, updated_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS support_ticket_replies (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      ticket_id INTEGER NOT NULL REFERENCES support_tickets(id) ON DELETE CASCADE,
+      user_id INTEGER, content TEXT NOT NULL, created_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS platform_faqs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      question TEXT NOT NULL, answer TEXT NOT NULL, category TEXT,
+      sort_order INTEGER DEFAULT 0, is_published INTEGER DEFAULT 1,
+      created_at INTEGER, updated_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS platform_settings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      key TEXT NOT NULL UNIQUE, value TEXT, created_at INTEGER, updated_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS ai_providers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL, type TEXT, api_base_url TEXT, is_active INTEGER DEFAULT 1,
+      created_at INTEGER, updated_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS ai_api_keys (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      provider_id INTEGER REFERENCES ai_providers(id),
+      key_name TEXT, encrypted_key TEXT, is_active INTEGER DEFAULT 1,
+      created_at INTEGER, updated_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS ai_models (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      provider_id INTEGER REFERENCES ai_providers(id),
+      name TEXT NOT NULL, display_name TEXT, context_window INTEGER,
+      is_active INTEGER DEFAULT 1, created_at INTEGER, updated_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS ai_conversations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER, user_id INTEGER, model_id INTEGER,
+      title TEXT, created_at INTEGER, updated_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS ai_messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      conversation_id INTEGER NOT NULL REFERENCES ai_conversations(id) ON DELETE CASCADE,
+      role TEXT NOT NULL, content TEXT, tokens_used INTEGER,
+      created_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS ai_settings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER, provider_id INTEGER, model_id INTEGER,
+      system_prompt TEXT, temperature REAL DEFAULT 0.7,
+      max_tokens INTEGER DEFAULT 1000, is_active INTEGER DEFAULT 1,
+      created_at INTEGER, updated_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS school_support_tickets (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      user_id INTEGER, subject TEXT NOT NULL, description TEXT,
+      status TEXT DEFAULT 'open', priority TEXT DEFAULT 'medium',
+      category TEXT, assigned_to INTEGER, created_at INTEGER, updated_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS school_ticket_replies (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      ticket_id INTEGER NOT NULL REFERENCES school_support_tickets(id) ON DELETE CASCADE,
+      user_id INTEGER, content TEXT NOT NULL, created_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS school_ticket_categories (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER, name TEXT NOT NULL, description TEXT,
+      created_at INTEGER, updated_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS subscriber_accounts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      email TEXT NOT NULL UNIQUE, password_hash TEXT, name TEXT,
+      school_id INTEGER, status TEXT DEFAULT 'active',
+      created_at INTEGER, updated_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS live_class_rooms (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      name TEXT NOT NULL, description TEXT, teacher_id INTEGER,
+      class_id INTEGER, scheduled_at TEXT, duration INTEGER,
+      status TEXT DEFAULT 'scheduled', created_at INTEGER, updated_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS live_class_messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      room_id INTEGER NOT NULL REFERENCES live_class_rooms(id) ON DELETE CASCADE,
+      user_id INTEGER, content TEXT NOT NULL, created_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS live_class_polls (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      room_id INTEGER NOT NULL REFERENCES live_class_rooms(id) ON DELETE CASCADE,
+      question TEXT NOT NULL, options TEXT, correct_answer TEXT,
+      is_active INTEGER DEFAULT 1, created_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS live_class_whiteboards (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      room_id INTEGER NOT NULL REFERENCES live_class_rooms(id) ON DELETE CASCADE,
+      title TEXT DEFAULT 'Whiteboard', data TEXT, created_by INTEGER,
+      created_at INTEGER, updated_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS platform_invoices (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER, plan_id INTEGER, amount INTEGER,
+      status TEXT DEFAULT 'pending', due_date TEXT, paid_at TEXT,
+      created_at INTEGER, updated_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS platform_payments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      invoice_id INTEGER, amount INTEGER, method TEXT, reference TEXT,
+      status TEXT DEFAULT 'completed', paid_at TEXT, created_at INTEGER
+    );
+  `);
+
+  // Add missing columns to existing tables (ALTER TABLE IF NOT EXISTS workaround)
+  const addColumnIfMissing = (table: string, column: string, def: string) => {
+    try {
+      const cols = sqlite.prepare(`PRAGMA table_info(${table})`).all() as any[];
+      if (!cols.some(c => c.name === column)) {
+        sqlite.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${def};`);
+      }
+    } catch (e) {
+      // Table might not exist yet, skip
+    }
+  };
+
+  addColumnIfMissing('students', 'family_group_id', 'INTEGER');
+  addColumnIfMissing('students', 'blood_group', 'TEXT');
+  addColumnIfMissing('students', 'nationality', 'TEXT');
+  addColumnIfMissing('students', 'religion', 'TEXT');
+  addColumnIfMissing('students', 'previous_school', 'TEXT');
+  addColumnIfMissing('cbt_attempts', 'device_fingerprint', 'TEXT');
+  addColumnIfMissing('cbt_attempts', 'status', "TEXT NOT NULL DEFAULT 'in_progress'");
+  addColumnIfMissing('leave_requests', 'days', 'INTEGER');
+  addColumnIfMissing('library_loans', 'fine_paid', 'INTEGER DEFAULT 0');
+  addColumnIfMissing('coupons', 'name', 'TEXT');
+  addColumnIfMissing('coupons', 'currency', "TEXT DEFAULT 'USD'");
+  addColumnIfMissing('coupons', 'min_amount', 'INTEGER DEFAULT 0');
+}
 
 export function getDb() {
   if (!_db) {
     const sqlite = new Database(DB_PATH);
-    sqlite.pragma('journal_mode = WAL');
-    sqlite.pragma('foreign_keys = ON');
+    autoMigrate(sqlite);
     _db = drizzle(sqlite, { schema });
   }
   return _db;
