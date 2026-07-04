@@ -1467,6 +1467,18 @@ function autoMigrate(sqlite: Database.Database) {
       school_id INTEGER, entity_type TEXT, entity_id INTEGER,
       user_id INTEGER, type TEXT, created_at INTEGER
     );
+    CREATE TABLE IF NOT EXISTS class_subjects (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      class_id INTEGER NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+      subject_name TEXT NOT NULL,
+      teacher_id INTEGER REFERENCES staff(id),
+      course_id INTEGER REFERENCES courses(id),
+      description TEXT,
+      sort_order INTEGER DEFAULT 0,
+      created_at INTEGER,
+      updated_at INTEGER
+    );
   `);
 
   // Add missing columns to existing tables (ALTER TABLE IF NOT EXISTS workaround)

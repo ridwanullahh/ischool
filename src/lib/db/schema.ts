@@ -1868,3 +1868,20 @@ export const formSubmissions = sqliteTable('form_submissions', {
   status: text('status', { enum: ['new', 'reviewed', 'archived'] }).notNull().default('new'),
   ...timestamps,
 });
+
+// ═══════════════════════════════════════════════════════
+// CLASSROOM: Subject-Teacher-Class Assignments
+// Links a teacher to a subject they teach in a specific class
+// ═══════════════════════════════════════════════════════
+
+export const classSubjects = sqliteTable('class_subjects', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
+  classId: integer('class_id').notNull().references(() => classes.id, { onDelete: 'cascade' }),
+  subjectName: text('subject_name').notNull(),
+  teacherId: integer('teacher_id').references(() => staff.id),
+  courseId: integer('course_id').references(() => courses.id),
+  description: text('description'),
+  sortOrder: integer('sort_order').default(0),
+  ...timestamps,
+});
