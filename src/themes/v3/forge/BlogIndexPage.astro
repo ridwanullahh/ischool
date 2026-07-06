@@ -1,32 +1,66 @@
 ---
 import { getSchoolNav, getSchoolContacts } from '../../../lib/school.ts';
-import { normalizeSocialUrl } from '../../../lib/social.ts';
-import { getSocialIconPath } from '../_shared/social-icons';
 
-interface Props { school: any; [key: string]: any; }
-const { school, ...data } = Astro.props;
+interface Props { school: any; items?: any[]; search?: string; sort?: string; total?: number; [key: string]: any; }
+const { school, items = [], search = '', sort = 'newest', total = 0, ...rest } = Astro.props;
 const nav = getSchoolNav(school.id);
-const contacts = getSchoolContacts(school.id);
 const prefix = '/' + school.slug;
-const social = (school.socialHandles as Record<string, string>) || {};
-const socialEntries = Object.entries(social).filter(([, v]) => v && v !== '#');
-const locale = school.locale || 'en';
 const formatDate = (d: string | Date | null) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+const posts = Array.isArray(items) ? items : [];
 ---
 <div class="px-4 py-16">
   <div class="max-w-6xl mx-auto">
-    <h1 class="text-4xl font-bold mb-8" style="color:var(--text)">Blog & News</h1>
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-      {(data.items || []).map(post => (
-        <a href={`/${school.slug}/blog/${post.slug}`} class="aurora-glass rounded-2xl overflow-hidden hover:scale-105 transition-transform block group">
-          {post.coverImageUrl && <img src={post.coverImageUrl} alt={post.title} class="w-full h-48 object-cover" loading="lazy" />}
-          <div class="p-6">
-            <h3 class="font-bold mb-2 group-hover:text-[var(--primary)] transition-colors" style="color:var(--text)">{post.title}</h3>
-            <p class="text-sm line-clamp-2" style="color:var(--muted)">{post.excerpt || post.content}</p>
-            <p class="text-xs mt-3" style="color:var(--muted)">{formatDate(post.publishedAt || post.createdAt)}</p>
-          </div>
-        </a>
-      ))}
+    <h1 class="text-4xl font-extrabold mb-4" style="color:var(--text)">Blog &amp; News</h1>
+    <p class="text-sm mb-8" style="color:var(--muted)">Insights, stories, and updates from our school community.</p>
+
+    <!-- Search & Sort Bar -->
+    <div class="forge-card rounded-2xl p-4 mb-8 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+      <form method="GET" action="" class="flex-1 flex gap-2">
+        <div class="relative flex-1">
+          <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color:var(--muted)"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          <input type="text" name="q" value={search} placeholder="Search articles..." class="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm outline-none border" style="background:var(--bg);border-color:var(--border);color:var(--text)" />
+        </div>
+        <button type="submit" class="forge-grad px-5 py-2.5 text-sm font-semibold text-white rounded-xl">Search</button>
+      </form>
+      <div class="flex items-center gap-2">
+        <label for="sort" class="text-xs font-medium" style="color:var(--muted)">Sort:</label>
+        <select id="sort" onchange="window.location.href=this.value" class="px-3 py-2 rounded-xl text-sm outline-none border" style="background:var(--bg);border-color:var(--border);color:var(--text)">
+          <option value={prefix + '/blog?sort=newest' + (search ? '&q=' + encodeURIComponent(search) : '')} selected={sort === 'newest'}>Newest</option>
+          <option value={prefix + '/blog?sort=oldest' + (search ? '&q=' + encodeURIComponent(search) : '')} selected={sort === 'oldest'}>Oldest</option>
+          <option value={prefix + '/blog?sort=title' + (search ? '&q=' + encodeURIComponent(search) : '')} selected={sort === 'title'}>Title A-Z</option>
+        </select>
+      </div>
     </div>
+
+    <!-- Results count -->
+    <div class="mb-6 text-sm" style="color:var(--muted)">
+      {search ? (
+        <span>Found <strong style="color:var(--text)">{total}</strong> article{total !== 1 ? 's' : ''} matching "<em style="color:var(--primary)">{search}</em>"</span>
+      ) : (
+        <span><strong style="color:var(--text)">{total}</strong> article{total !== 1 ? 's' : ''} total</span>
+      )}
+    </div>
+
+    {posts.length > 0 ? (
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {posts.map(post => (
+          <a href={`/${school.slug}/blog/${post.slug}`} class="forge-card rounded-2xl overflow-hidden hover:scale-105 transition-transform block group">
+            {post.coverImageUrl && <img src={post.coverImageUrl} alt={post.title} class="w-full h-48 object-cover" loading="lazy" />}
+            <div class="p-6">
+              <h3 class="font-bold mb-2 group-hover:text-[var(--primary)] transition-colors" style="color:var(--text)">{post.title}</h3>
+              <p class="text-sm line-clamp-2" style="color:var(--muted)">{post.excerpt || post.content}</p>
+              <p class="text-xs mt-3" style="color:var(--muted)">{formatDate(post.publishedAt || post.createdAt)}</p>
+            </div>
+          </a>
+        ))}
+      </div>
+    ) : (
+      <div class="forge-card rounded-2xl p-12 text-center">
+        <svg class="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color:var(--muted)"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <p class="text-lg font-semibold mb-2" style="color:var(--text)">No articles found</p>
+        <p class="text-sm mb-4" style="color:var(--muted)">{search ? 'Try a different search term.' : 'Articles will appear here once published.'}</p>
+        {search && <a href={`${prefix}/blog`} class="inline-block forge-grad px-5 py-2 text-sm font-semibold text-white rounded-xl">Clear search</a>}
+      </div>
+    )}
   </div>
 </div>

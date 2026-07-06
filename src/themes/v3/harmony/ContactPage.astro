@@ -17,21 +17,21 @@ const formatDate = (d: string | Date | null) => d ? new Date(d).toLocaleDateStri
   <div class="max-w-4xl mx-auto">
     <h1 class="text-4xl font-bold mb-8" style="color:var(--text)">Contact Us</h1>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div class="aurora-glass rounded-2xl p-6">
+      <div class="harmony-card rounded-2xl p-6">
         <h3 class="font-bold mb-4" style="color:var(--text)">Contact Information</h3>
         <ul class="space-y-3">
           {contacts.map(c => <li class="text-sm" style="color:var(--text)">{c.label && <span class="block text-xs font-medium" style="color:var(--muted)">{c.label}</span>}{c.value}</li>)}
           {contacts.length === 0 && <li class="text-sm" style="color:var(--muted)">No contact info available.</li>}
         </ul>
-        {socialEntries.length > 0 && <div class="flex items-center gap-2 mt-4">{socialEntries.map(([p,h]) => { const path = getSocialIconPath(p); if (!path) return null; return <a href={normalizeSocialUrl(h,p)} target="_blank" rel="noopener noreferrer" aria-label={`Visit our ${p} page`} class="aurora-glass p-2 rounded-lg"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" style="color:var(--text)" aria-hidden="true"><path d={path} /></svg></a>; })}</div>}
+        {socialEntries.length > 0 && <div class="flex items-center gap-2 mt-4">{socialEntries.map(([p,h]) => { const path = getSocialIconPath(p); if (!path) return null; return <a href={normalizeSocialUrl(h,p)} target="_blank" rel="noopener noreferrer" aria-label={`Visit our ${p} page`} class="harmony-card p-2 rounded-lg"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" style="color:var(--text)" aria-hidden="true"><path d={path} /></svg></a>; })}</div>}
       </div>
-      <div class="aurora-glass rounded-2xl p-6">
+      <div class="harmony-card rounded-2xl p-6">
         <h3 class="font-bold mb-4" style="color:var(--text)">Send a Message</h3>
         <form method="POST" action={`/api/${school.slug}/support`} class="space-y-3">
-          <input type="text" name="name" placeholder="Your Name" required class="w-full aurora-glass rounded-lg px-3 py-2 text-sm outline-none" style="color:var(--text)" />
-          <input type="email" name="email" placeholder="Your Email" required class="w-full aurora-glass rounded-lg px-3 py-2 text-sm outline-none" style="color:var(--text)" />
-          <textarea name="message" rows="4" placeholder="Your Message" required class="w-full aurora-glass rounded-lg px-3 py-2 text-sm outline-none" style="color:var(--text)"></textarea>
-          <button type="submit" class="aurora-grad w-full px-4 py-2.5 text-sm font-semibold text-white rounded-lg">Send Message</button>
+          <input type="text" name="name" placeholder="Your Name" required class="w-full harmony-card rounded-lg px-3 py-2 text-sm outline-none" style="color:var(--text)" />
+          <input type="email" name="email" placeholder="Your Email" required class="w-full harmony-card rounded-lg px-3 py-2 text-sm outline-none" style="color:var(--text)" />
+          <textarea name="message" rows="4" placeholder="Your Message" required class="w-full harmony-card rounded-lg px-3 py-2 text-sm outline-none" style="color:var(--text)"></textarea>
+          <button type="submit" class="harmony-grad w-full px-4 py-2.5 text-sm font-semibold text-white rounded-lg">Send Message</button>
         </form>
       </div>
     </div>

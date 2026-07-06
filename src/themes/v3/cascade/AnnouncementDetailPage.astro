@@ -1,26 +1,98 @@
 ---
 import { getSchoolNav, getSchoolContacts } from '../../../lib/school.ts';
+import { getSchoolAnnouncements } from '../../../lib/school-safe.ts';
 import { normalizeSocialUrl } from '../../../lib/social.ts';
 import { getSocialIconPath } from '../_shared/social-icons';
 
-interface Props { school: any; [key: string]: any; }
-const { school, ...data } = Astro.props;
+interface Props { school: any; item: any; [key: string]: any; }
+const { school, item, ...rest } = Astro.props;
 const nav = getSchoolNav(school.id);
-const contacts = getSchoolContacts(school.id);
 const prefix = '/' + school.slug;
-const social = (school.socialHandles as Record<string, string>) || {};
-const socialEntries = Object.entries(social).filter(([, v]) => v && v !== '#');
-const locale = school.locale || 'en';
 const formatDate = (d: string | Date | null) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+
+// Related announcements
+const allAnnouncements = getSchoolAnnouncements(school.id);
+const relatedAnnouncements = allAnnouncements.filter((a: any) => a.id !== item?.id).slice(0, 3);
+
+// Social share URLs
+const currentUrl = new URL(Astro.url.pathname, Astro.site || 'http://localhost:4321').toString();
+const encodedUrl = encodeURIComponent(currentUrl);
+const encodedTitle = encodeURIComponent(item?.title || '');
+const shareLinks = [
+  { label: 'Facebook', icon: getSocialIconPath('facebook'), url: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}` },
+  { label: 'Twitter', icon: getSocialIconPath('twitter'), url: `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}` },
+  { label: 'WhatsApp', icon: getSocialIconPath('whatsapp'), url: `https://wa.me/?text=${encodedTitle}%20${encodedUrl}` },
+  { label: 'LinkedIn', icon: getSocialIconPath('linkedin'), url: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}` },
+].filter(s => s.icon);
+
+// Reading time
+const contentText = item?.content || '';
+const wordCount = contentText.split(/\s+/).filter(Boolean).length;
+const readingTime = Math.max(1, Math.ceil(wordCount / 200));
 ---
 <div class="px-4 py-16">
   <article class="max-w-3xl mx-auto">
-    <a href={`/${school.slug}/announcements`} class="inline-flex items-center gap-1.5 text-sm mb-4 hover:opacity-70" style="color:var(--muted)">Back to Announcements</a>
-    <div class="aurora-glass-strong rounded-3xl p-8 sm:p-12">
-      {data.item?.isPinned && <span class="aurora-grad px-2 py-0.5 text-[10px] font-bold text-white rounded-full mb-4 inline-block">PINNED</span>}
-      <h1 class="text-3xl sm:text-4xl font-bold mb-4" style="color:var(--text)">{data.item?.title || 'Announcement'}</h1>
-      <p class="text-sm mb-6" style="color:var(--muted)">{formatDate(data.item?.publishedAt || data.item?.createdAt)}</p>
-      <div class="prose max-w-none whitespace-pre-wrap" style="color:var(--text)">{data.item?.content || ''}</div>
+    <a href={`/${school.slug}/announcements`} class="inline-flex items-center gap-1.5 text-sm mb-6 hover:opacity-70" style="color:var(--muted)">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+      Back to Announcements
+    </a>
+
+    <div class="cascade-card rounded-3xl p-8 sm:p-12">
+      <div class="flex items-center gap-3 mb-4">
+        {item?.isPinned && <span class="cascade-grad px-2 py-0.5 text-[10px] font-bold text-white rounded-full">PINNED</span>}
+        <span class="text-xs" style="color:var(--muted)">{formatDate(item?.publishedAt || item?.createdAt)}</span>
+        <span class="text-xs" style="color:var(--muted)">{readingTime} min read</span>
+      </div>
+      <h1 class="text-3xl sm:text-4xl font-extrabold mb-6" style="color:var(--text)">{item?.title || 'Announcement'}</h1>
+      {item?.imageUrl && <img src={item.imageUrl} alt={item.title} class="w-full rounded-2xl mb-6" />}
+      <div class="prose max-w-none whitespace-pre-wrap leading-relaxed" style="color:var(--text)">{item?.content || ''}</div>
+
+      <!-- Social Share -->
+      <div class="mt-8 pt-6 border-t" style="border-color:var(--border)">
+        <div class="flex items-center gap-4 flex-wrap">
+          <span class="text-sm font-semibold" style="color:var(--text)">Share this announcement:</span>
+          <div class="flex items-center gap-2">
+            {shareLinks.map(s => (
+              <a href={s.url} target="_blank" rel="noopener noreferrer" aria-label={`Share on ${s.label}`} class="cascade-card p-2.5 rounded-lg hover:scale-110 transition-transform">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" style="color:var(--text)"><path d={s.icon} /></svg>
+              </a>
+            ))}
+            <button type="button" data-copy-url={currentUrl} aria-label="Copy link" class="cascade-card p-2.5 rounded-lg hover:scale-110 transition-transform">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color:var(--text)"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
+
+    <!-- Related Announcements -->
+    {relatedAnnouncements.length > 0 && (
+      <section class="mt-16">
+        <h2 class="text-2xl font-bold mb-6" style="color:var(--text)">More Announcements</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {relatedAnnouncements.map((a: any) => (
+            <a href={`/${school.slug}/announcements/${a.slug || a.id}`} class="cascade-card rounded-2xl p-5 hover:scale-105 transition-transform block group">
+              {a.isPinned && <span class="cascade-grad px-2 py-0.5 text-[10px] font-bold text-white rounded-full mb-2 inline-block">PINNED</span>}
+              <h3 class="font-bold mb-2 group-hover:text-[var(--primary)] transition-colors" style="color:var(--text)">{a.title}</h3>
+              {a.excerpt && <p class="text-sm line-clamp-2" style="color:var(--muted)">{a.excerpt}</p>}
+              <p class="text-xs mt-2" style="color:var(--muted)">{formatDate(a.publishedAt || a.createdAt)}</p>
+            </a>
+          ))}
+        </div>
+      </section>
+    )}
   </article>
 </div>
+
+<script is:inline set:html={`(function(){
+  document.querySelectorAll('[data-copy-url]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var url = btn.getAttribute('data-copy-url');
+      navigator.clipboard.writeText(url).then(function() {
+        var original = btn.innerHTML;
+        btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color:var(--primary)"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>';
+        setTimeout(function() { btn.innerHTML = original; }, 2000);
+      });
+    });
+  });
+})();`} />

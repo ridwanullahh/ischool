@@ -1,28 +1,73 @@
 ---
 import { getSchoolNav, getSchoolContacts } from '../../../lib/school.ts';
-import { normalizeSocialUrl } from '../../../lib/social.ts';
-import { getSocialIconPath } from '../_shared/social-icons';
 
-interface Props { school: any; [key: string]: any; }
-const { school, ...data } = Astro.props;
+interface Props { school: any; items?: any[]; search?: string; sort?: string; total?: number; [key: string]: any; }
+const { school, items = [], search = '', sort = 'newest', total = 0, ...rest } = Astro.props;
 const nav = getSchoolNav(school.id);
-const contacts = getSchoolContacts(school.id);
 const prefix = '/' + school.slug;
-const social = (school.socialHandles as Record<string, string>) || {};
-const socialEntries = Object.entries(social).filter(([, v]) => v && v !== '#');
-const locale = school.locale || 'en';
 const formatDate = (d: string | Date | null) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+const classes = Array.isArray(items) ? items : [];
+const getVal = (obj: any, camel: string, snake: string) => obj?.[camel] ?? obj?.[snake] ?? null;
 ---
 <div class="px-4 py-16">
   <div class="max-w-6xl mx-auto">
-    <h1 class="text-4xl font-bold mb-8" style="color:var(--text)">Classes</h1>
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {(data.items || []).map(c => (
-        <a href={`/${school.slug}/classes/${c.slug || c.id}`} class="aurora-glass rounded-2xl p-6 hover:scale-105 transition-transform block">
-          <h3 class="text-lg font-bold mb-2" style="color:var(--text)">{c.name}{c.section ? ' - ' + c.section : ''}</h3>
-          {c.description && <p class="text-sm line-clamp-3" style="color:var(--muted)">{c.description}</p>}
-        </a>
-      ))}
+    <h1 class="text-4xl font-extrabold mb-4" style="color:var(--text)">Classes</h1>
+    <p class="text-sm mb-8" style="color:var(--muted)">Explore our classes and learning groups.</p>
+
+    <!-- Search & Sort Bar -->
+    <div class="ember-card rounded-2xl p-4 mb-8 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+      <form method="GET" action="" class="flex-1 flex gap-2">
+        <div class="relative flex-1">
+          <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color:var(--muted)"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          <input type="text" name="q" value={search} placeholder="Search classes..." class="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm outline-none border" style="background:var(--bg);border-color:var(--border);color:var(--text)" />
+        </div>
+        <button type="submit" class="ember-grad px-5 py-2.5 text-sm font-semibold text-white rounded-xl">Search</button>
+      </form>
+      <div class="flex items-center gap-2">
+        <label for="sort" class="text-xs font-medium" style="color:var(--muted)">Sort:</label>
+        <select id="sort" onchange="window.location.href=this.value" class="px-3 py-2 rounded-xl text-sm outline-none border" style="background:var(--bg);border-color:var(--border);color:var(--text)">
+          <option value={prefix + '/classes?sort=newest' + (search ? '&q=' + encodeURIComponent(search) : '')} selected={sort === 'newest'}>Newest</option>
+          <option value={prefix + '/classes?sort=title' + (search ? '&q=' + encodeURIComponent(search) : '')} selected={sort === 'title'}>Title A-Z</option>
+          <option value={prefix + '/classes?sort=grade' + (search ? '&q=' + encodeURIComponent(search) : '')} selected={sort === 'grade'}>Grade Level</option>
+        </select>
+      </div>
     </div>
+
+    <!-- Results count -->
+    <div class="mb-6 text-sm" style="color:var(--muted)">
+      {search ? (
+        <span>Found <strong style="color:var(--text)">{total}</strong> class{total !== 1 ? 'es' : ''} matching "<em style="color:var(--primary)">{search}</em>"</span>
+      ) : (
+        <span><strong style="color:var(--text)">{total}</strong> class{total !== 1 ? 'es' : ''} total</span>
+      )}
+    </div>
+
+    {classes.length > 0 ? (
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {classes.map(c => {
+          const gradeLevel = getVal(c, 'gradeLevel', 'grade_level');
+          const teacherName = getVal(c, 'teacherName', 'teacher_name');
+          const imageUrl = getVal(c, 'imageUrl', 'image_url');
+          return (
+            <a href={`/${school.slug}/classes/${c.slug || c.id}`} class="ember-card rounded-2xl overflow-hidden hover:scale-105 transition-transform block group">
+              {imageUrl && <img src={imageUrl} alt={c.name} class="w-full h-40 object-cover" loading="lazy" />}
+              <div class="p-6">
+                <h3 class="text-lg font-bold mb-2 group-hover:text-[var(--primary)] transition-colors" style="color:var(--text)">{c.name}{c.section ? ' - ' + c.section : ''}</h3>
+                {gradeLevel && <p class="text-sm font-medium mb-2" style="color:var(--primary)">{gradeLevel}</p>}
+                {c.description && <p class="text-sm line-clamp-3" style="color:var(--muted)">{c.description}</p>}
+                {teacherName && <p class="text-xs mt-3" style="color:var(--muted)">Teacher: {teacherName}</p>}
+              </div>
+            </a>
+          );
+        })}
+      </div>
+    ) : (
+      <div class="ember-card rounded-2xl p-12 text-center">
+        <svg class="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color:var(--muted)"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <p class="text-lg font-semibold mb-2" style="color:var(--text)">No classes found</p>
+        <p class="text-sm mb-4" style="color:var(--muted)">{search ? 'Try a different search term.' : 'Classes will appear here once added.'}</p>
+        {search && <a href={`${prefix}/classes`} class="inline-block ember-grad px-5 py-2 text-sm font-semibold text-white rounded-xl">Clear search</a>}
+      </div>
+    )}
   </div>
 </div>

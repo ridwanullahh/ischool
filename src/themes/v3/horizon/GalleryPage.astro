@@ -18,7 +18,7 @@ const formatDate = (d: string | Date | null) => d ? new Date(d).toLocaleDateStri
     <h1 class="text-4xl font-bold mb-8" style="color:var(--text)">Gallery</h1>
     <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
       {(data.items || []).map(item => (
-        <div class="aurora-glass rounded-2xl overflow-hidden hover:scale-105 transition-transform">
+        <div class="horizon-card rounded-2xl overflow-hidden hover:scale-105 transition-transform">
           {item.imageUrl && <img src={item.imageUrl} alt={item.title || 'Gallery'} class="w-full h-48 object-cover" loading="lazy" />}
           {item.title && <p class="p-3 text-sm font-medium" style="color:var(--text)">{item.title}</p>}
         </div>
