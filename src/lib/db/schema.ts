@@ -555,8 +555,10 @@ export const examSeries = sqliteTable('exam_series', {
 
 export const exams = sqliteTable('exams', {
   id: integer('id').primaryKey({ autoIncrement: true }),
+  schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
   seriesId: integer('series_id').notNull().references(() => examSeries.id, { onDelete: 'cascade' }),
   subject: text('subject').notNull(),
+  title: text('title').notNull(),
   classId: integer('class_id').references(() => classes.id),
   totalMarks: integer('total_marks').notNull(),
   passingMarks: integer('passing_marks'),
@@ -570,6 +572,7 @@ export const exams = sqliteTable('exams', {
 
 export const examResults = sqliteTable('exam_results', {
   id: integer('id').primaryKey({ autoIncrement: true }),
+  schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
   examId: integer('exam_id').notNull().references(() => exams.id, { onDelete: 'cascade' }),
   studentId: integer('student_id').notNull().references(() => students.id, { onDelete: 'cascade' }),
   marksObtained: integer('marks_obtained'),

@@ -405,8 +405,10 @@ async function seed() {
 
   // Exams
   const [exam1] = db.insert(exams).values({
+    schoolId: school1.id,
     seriesId: examSeries1.id,
     subject: 'Quran Memorization',
+    title: 'Quran Memorization Exam',
     classId: 1,
     totalMarks: 100,
     passingMarks: 50,
@@ -415,13 +417,13 @@ async function seed() {
     venue: 'Main Hall',
     invigilator: 'Sheikh Ibrahim Musa',
     instructions: 'Recite memorized surahs with proper Tajweed',
-  }).returning().all();
+  } as any).returning().all();
 
   // Exam Results
   db.insert(examResults).values([
-    { examId: exam1.id, studentId: student1.id, marksObtained: 92, grade: 'A', rank: 1, remark: 'Excellent memorization and Tajweed', status: 'present' },
-    { examId: exam1.id, studentId: student3.id, marksObtained: 78, grade: 'B+', rank: 2, remark: 'Good progress', status: 'present' },
-  ]).run();
+    { schoolId: school1.id, examId: exam1.id, studentId: student1.id, marksObtained: 92, grade: 'A', rank: 1, remark: 'Excellent memorization and Tajweed', status: 'present' },
+    { schoolId: school1.id, examId: exam1.id, studentId: student3.id, marksObtained: 78, grade: 'B+', rank: 2, remark: 'Good progress', status: 'present' },
+  ] as any).run();
 
   // Fee Structures
   const [feeStruct1] = db.insert(feeStructures).values({

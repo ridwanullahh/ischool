@@ -77,7 +77,7 @@ function autoMigrate(sqlite: Database.Database) {
 
     CREATE TABLE IF NOT EXISTS school_members (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       role TEXT NOT NULL DEFAULT 'editor',
       active INTEGER DEFAULT 1,
@@ -86,7 +86,7 @@ function autoMigrate(sqlite: Database.Database) {
 
     CREATE TABLE IF NOT EXISTS about_pages (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE UNIQUE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE UNIQUE,
       value_proposition TEXT,
       mission TEXT,
       vision TEXT,
@@ -99,7 +99,7 @@ function autoMigrate(sqlite: Database.Database) {
 
     CREATE TABLE IF NOT EXISTS announcements (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       title TEXT NOT NULL,
       slug TEXT NOT NULL,
       content TEXT,
@@ -117,7 +117,7 @@ function autoMigrate(sqlite: Database.Database) {
 
     CREATE TABLE IF NOT EXISTS classes (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       name TEXT NOT NULL,
       slug TEXT,
       section TEXT,
@@ -136,7 +136,7 @@ function autoMigrate(sqlite: Database.Database) {
 
     CREATE TABLE IF NOT EXISTS blog_posts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       title TEXT NOT NULL,
       slug TEXT NOT NULL,
       content TEXT,
@@ -153,7 +153,7 @@ function autoMigrate(sqlite: Database.Database) {
 
     CREATE TABLE IF NOT EXISTS programs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       name TEXT NOT NULL,
       slug TEXT NOT NULL,
       description TEXT,
@@ -170,7 +170,7 @@ function autoMigrate(sqlite: Database.Database) {
 
     CREATE TABLE IF NOT EXISTS faqs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       question TEXT NOT NULL,
       answer TEXT NOT NULL,
       category TEXT,
@@ -182,7 +182,7 @@ function autoMigrate(sqlite: Database.Database) {
 
     CREATE TABLE IF NOT EXISTS gallery_items (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       title TEXT,
       image_url TEXT NOT NULL,
       description TEXT,
@@ -194,7 +194,7 @@ function autoMigrate(sqlite: Database.Database) {
 
     CREATE TABLE IF NOT EXISTS contact_info (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       label TEXT,
       value TEXT NOT NULL,
       type TEXT,
@@ -205,7 +205,7 @@ function autoMigrate(sqlite: Database.Database) {
 
     CREATE TABLE IF NOT EXISTS contact_submissions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       name TEXT NOT NULL,
       email TEXT NOT NULL,
       phone TEXT,
@@ -217,7 +217,7 @@ function autoMigrate(sqlite: Database.Database) {
 
     CREATE TABLE IF NOT EXISTS navigation_items (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       label TEXT NOT NULL,
       url TEXT NOT NULL,
       parent_id INTEGER,
@@ -229,7 +229,7 @@ function autoMigrate(sqlite: Database.Database) {
 
     CREATE TABLE IF NOT EXISTS banners (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       title TEXT NOT NULL,
       subtitle TEXT,
       link_url TEXT,
@@ -242,12 +242,12 @@ function autoMigrate(sqlite: Database.Database) {
       display_pages TEXT DEFAULT '["all"]',
       style_overrides TEXT DEFAULT '{}',
       created_at INTEGER,
-      updated_at INTEGER
-    );
+      sort_order INTEGER,
+      updated_at INTEGER);
 
     CREATE TABLE IF NOT EXISTS popups (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       title TEXT NOT NULL,
       content TEXT,
       image_url TEXT,
@@ -261,12 +261,12 @@ function autoMigrate(sqlite: Database.Database) {
       end_date TEXT,
       display_pages TEXT DEFAULT '["all"]',
       created_at INTEGER,
-      updated_at INTEGER
-    );
+      style_overrides TEXT,
+      updated_at INTEGER);
 
     CREATE TABLE IF NOT EXISTS students (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       user_id INTEGER REFERENCES users(id),
       student_id TEXT NOT NULL,
       first_name TEXT NOT NULL,
@@ -297,7 +297,7 @@ function autoMigrate(sqlite: Database.Database) {
 
     CREATE TABLE IF NOT EXISTS enrollments (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
       class_id INTEGER REFERENCES classes(id),
       academic_period_id INTEGER,
@@ -311,7 +311,7 @@ function autoMigrate(sqlite: Database.Database) {
 
     CREATE TABLE IF NOT EXISTS attendance (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
       class_id INTEGER,
       date TEXT NOT NULL,
@@ -325,7 +325,7 @@ function autoMigrate(sqlite: Database.Database) {
 
     CREATE TABLE IF NOT EXISTS courses (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       title TEXT NOT NULL,
       description TEXT,
       subject TEXT,
@@ -342,7 +342,7 @@ function autoMigrate(sqlite: Database.Database) {
 
     CREATE TABLE IF NOT EXISTS assignments (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       course_id INTEGER REFERENCES courses(id) ON DELETE CASCADE,
       class_id INTEGER REFERENCES classes(id),
       title TEXT NOT NULL,
@@ -363,7 +363,7 @@ function autoMigrate(sqlite: Database.Database) {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       assignment_id INTEGER NOT NULL REFERENCES assignments(id) ON DELETE CASCADE,
       student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       content TEXT,
       file_url TEXT,
       status TEXT DEFAULT 'submitted',
@@ -378,7 +378,7 @@ function autoMigrate(sqlite: Database.Database) {
 
     CREATE TABLE IF NOT EXISTS quizzes (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       course_id INTEGER REFERENCES courses(id),
       title TEXT NOT NULL,
       description TEXT,
@@ -400,7 +400,7 @@ function autoMigrate(sqlite: Database.Database) {
     CREATE TABLE IF NOT EXISTS questions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       quiz_id INTEGER REFERENCES quizzes(id) ON DELETE CASCADE,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       type TEXT NOT NULL,
       question TEXT NOT NULL,
       options TEXT,
@@ -418,7 +418,7 @@ function autoMigrate(sqlite: Database.Database) {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       quiz_id INTEGER NOT NULL REFERENCES quizzes(id) ON DELETE CASCADE,
       student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       answers TEXT NOT NULL,
       score REAL,
       max_score REAL,
@@ -434,7 +434,7 @@ function autoMigrate(sqlite: Database.Database) {
       student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
       assignment_id INTEGER REFERENCES assignments(id),
       submission_id INTEGER REFERENCES submissions(id),
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       course_id INTEGER REFERENCES courses(id),
       assignment_title TEXT,
       exam_title TEXT,
@@ -452,7 +452,7 @@ function autoMigrate(sqlite: Database.Database) {
 
     CREATE TABLE IF NOT EXISTS staff (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       user_id INTEGER REFERENCES users(id),
       staff_id TEXT NOT NULL,
       first_name TEXT NOT NULL,
@@ -478,7 +478,7 @@ function autoMigrate(sqlite: Database.Database) {
 
     CREATE TABLE IF NOT EXISTS invoices (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       student_id INTEGER REFERENCES students(id) ON DELETE CASCADE,
       invoice_number TEXT,
       description TEXT,
@@ -489,13 +489,16 @@ function autoMigrate(sqlite: Database.Database) {
       due_date TEXT,
       issued_at INTEGER,
       created_at INTEGER,
-      updated_at INTEGER
-    );
+      fee_structure_id INTEGER,
+      discount INTEGER,
+      fine INTEGER,
+      paid_amount INTEGER,
+      updated_at INTEGER);
 
     CREATE TABLE IF NOT EXISTS payments (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       invoice_id INTEGER NOT NULL REFERENCES invoices(id) ON DELETE CASCADE,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       amount INTEGER NOT NULL,
       method TEXT NOT NULL,
       reference TEXT,
@@ -509,20 +512,25 @@ function autoMigrate(sqlite: Database.Database) {
 
     CREATE TABLE IF NOT EXISTS fee_structures (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       name TEXT NOT NULL,
-      amount INTEGER NOT NULL,
+      amount INTEGER,
       type TEXT DEFAULT 'one_time',
       class_id INTEGER REFERENCES classes(id),
       description TEXT,
       is_active INTEGER DEFAULT 1,
       created_at INTEGER,
-      updated_at INTEGER
-    );
+      grade_level TEXT,
+      category TEXT,
+      items TEXT,
+      total_amount INTEGER,
+      frequency TEXT,
+      academic_year TEXT,
+      updated_at INTEGER);
 
     CREATE TABLE IF NOT EXISTS messages (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       sender_id INTEGER NOT NULL REFERENCES users(id),
       recipient_id INTEGER REFERENCES users(id),
       group_id TEXT,
@@ -545,12 +553,15 @@ function autoMigrate(sqlite: Database.Database) {
       type TEXT,
       link TEXT,
       read_at INTEGER,
-      created_at INTEGER
-    );
+      body TEXT,
+      channel TEXT,
+      is_read INTEGER,
+      updated_at TEXT,
+      created_at INTEGER);
 
     CREATE TABLE IF NOT EXISTS library_books (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       title TEXT NOT NULL,
       author TEXT,
       isbn TEXT,
@@ -571,7 +582,7 @@ function autoMigrate(sqlite: Database.Database) {
 
     CREATE TABLE IF NOT EXISTS library_loans (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       book_id INTEGER NOT NULL REFERENCES library_books(id) ON DELETE CASCADE,
       borrower_id INTEGER NOT NULL REFERENCES users(id),
       issued_by INTEGER REFERENCES users(id),
@@ -588,14 +599,15 @@ function autoMigrate(sqlite: Database.Database) {
 
     CREATE TABLE IF NOT EXISTS hostels (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       name TEXT NOT NULL,
       type TEXT,
       capacity INTEGER,
       warden_id INTEGER REFERENCES users(id),
       created_at INTEGER,
-      updated_at INTEGER
-    );
+      total_rooms INTEGER,
+      total_beds INTEGER,
+      updated_at INTEGER);
 
     CREATE TABLE IF NOT EXISTS hostel_rooms (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -604,14 +616,16 @@ function autoMigrate(sqlite: Database.Database) {
       type TEXT,
       capacity INTEGER DEFAULT 1,
       created_at INTEGER,
-      updated_at INTEGER
-    );
+      floor INTEGER,
+      occupants INTEGER,
+      status TEXT,
+      updated_at INTEGER);
 
     CREATE TABLE IF NOT EXISTS hostel_allocations (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       room_id INTEGER NOT NULL REFERENCES hostel_rooms(id) ON DELETE CASCADE,
       student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       check_in_date TEXT,
       check_out_date TEXT,
       status TEXT DEFAULT 'active',
@@ -621,30 +635,32 @@ function autoMigrate(sqlite: Database.Database) {
 
     CREATE TABLE IF NOT EXISTS vehicles (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
-      registration_number TEXT NOT NULL,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+      registration_number TEXT,
       type TEXT,
       capacity INTEGER,
       driver_name TEXT,
       driver_phone TEXT,
       condition TEXT,
       created_at INTEGER,
-      updated_at INTEGER
-    );
+      plate_number TEXT,
+      driver_id INTEGER,
+      status TEXT,
+      updated_at INTEGER);
 
     CREATE TABLE IF NOT EXISTS transport_routes (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       name TEXT NOT NULL,
       stops TEXT,
       schedule TEXT,
       created_at INTEGER,
-      updated_at INTEGER
-    );
+      vehicle_id INTEGER,
+      updated_at INTEGER);
 
     CREATE TABLE IF NOT EXISTS transport_assignments (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
       route_id INTEGER NOT NULL REFERENCES transport_routes(id),
       stop_name TEXT,
@@ -655,7 +671,7 @@ function autoMigrate(sqlite: Database.Database) {
 
     CREATE TABLE IF NOT EXISTS assets (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       name TEXT NOT NULL,
       category TEXT,
       serial_number TEXT,
@@ -672,19 +688,19 @@ function autoMigrate(sqlite: Database.Database) {
 
     CREATE TABLE IF NOT EXISTS inventory_items (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       name TEXT NOT NULL,
       category TEXT,
       quantity INTEGER DEFAULT 0,
       unit TEXT,
       reorder_level INTEGER DEFAULT 0,
       created_at INTEGER,
-      updated_at INTEGER
-    );
+      supplier TEXT,
+      updated_at INTEGER);
 
     CREATE TABLE IF NOT EXISTS events (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       title TEXT NOT NULL,
       description TEXT,
       category TEXT,
@@ -704,19 +720,20 @@ function autoMigrate(sqlite: Database.Database) {
 
     CREATE TABLE IF NOT EXISTS behavior_logs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
       type TEXT NOT NULL,
       description TEXT,
       points INTEGER DEFAULT 0,
       logged_by INTEGER REFERENCES users(id),
       created_at INTEGER,
-      updated_at INTEGER
-    );
+      category TEXT,
+      recorded_by INTEGER,
+      updated_at INTEGER);
 
     CREATE TABLE IF NOT EXISTS lesson_plans (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       class_id INTEGER REFERENCES classes(id),
       subject TEXT,
       title TEXT NOT NULL,
@@ -726,12 +743,17 @@ function autoMigrate(sqlite: Database.Database) {
       status TEXT DEFAULT 'draft',
       created_by INTEGER REFERENCES users(id),
       created_at INTEGER,
-      updated_at INTEGER
-    );
+      teacher_id INTEGER,
+      course_id INTEGER,
+      week TEXT,
+      materials TEXT,
+      activities TEXT,
+      assessment TEXT,
+      updated_at INTEGER);
 
     CREATE TABLE IF NOT EXISTS academic_periods (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       name TEXT NOT NULL,
       type TEXT,
       start_date TEXT,
@@ -743,7 +765,7 @@ function autoMigrate(sqlite: Database.Database) {
 
     CREATE TABLE IF NOT EXISTS timetable_entries (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       class_id INTEGER REFERENCES classes(id),
       subject_id INTEGER,
       teacher_id INTEGER,
@@ -760,7 +782,7 @@ function autoMigrate(sqlite: Database.Database) {
 
     CREATE TABLE IF NOT EXISTS exam_series (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       name TEXT NOT NULL,
       term TEXT,
       start_date TEXT,
@@ -773,7 +795,7 @@ function autoMigrate(sqlite: Database.Database) {
 
     CREATE TABLE IF NOT EXISTS exams (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       series_id INTEGER REFERENCES exam_series(id),
       class_id INTEGER REFERENCES classes(id),
       subject TEXT,
@@ -788,17 +810,19 @@ function autoMigrate(sqlite: Database.Database) {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       exam_id INTEGER NOT NULL REFERENCES exams(id) ON DELETE CASCADE,
       student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       score INTEGER,
       grade TEXT,
       remarks TEXT,
       created_at INTEGER,
-      updated_at INTEGER
-    );
+      marks_obtained INTEGER,
+      rank INTEGER,
+      status TEXT,
+      updated_at INTEGER);
 
     CREATE TABLE IF NOT EXISTS report_cards (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
       academic_period_id INTEGER REFERENCES academic_periods(id),
       title TEXT,
@@ -810,7 +834,7 @@ function autoMigrate(sqlite: Database.Database) {
 
     CREATE TABLE IF NOT EXISTS payroll (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       staff_id INTEGER NOT NULL REFERENCES staff(id) ON DELETE CASCADE,
       month TEXT NOT NULL,
       year INTEGER NOT NULL,
@@ -827,7 +851,7 @@ function autoMigrate(sqlite: Database.Database) {
 
     CREATE TABLE IF NOT EXISTS leave_requests (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       staff_id INTEGER NOT NULL REFERENCES staff(id) ON DELETE CASCADE,
       type TEXT NOT NULL,
       start_date TEXT NOT NULL,
@@ -854,7 +878,7 @@ function autoMigrate(sqlite: Database.Database) {
 
     CREATE TABLE IF NOT EXISTS module_settings (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       module TEXT NOT NULL,
       enabled INTEGER DEFAULT 1,
       settings TEXT DEFAULT '{}',
@@ -864,7 +888,7 @@ function autoMigrate(sqlite: Database.Database) {
 
     CREATE TABLE IF NOT EXISTS saved_reports (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       name TEXT NOT NULL,
       type TEXT,
       config TEXT,
@@ -881,12 +905,12 @@ function autoMigrate(sqlite: Database.Database) {
       body TEXT,
       variables TEXT,
       created_at INTEGER,
-      updated_at INTEGER
-    );
+      school_id INTEGER,
+      updated_at INTEGER);
 
     CREATE TABLE IF NOT EXISTS cbt_exams (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       title TEXT NOT NULL,
       description TEXT,
       instructions TEXT,
@@ -943,14 +967,14 @@ function autoMigrate(sqlite: Database.Database) {
     CREATE TABLE IF NOT EXISTS student_documents (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       category TEXT NOT NULL, title TEXT NOT NULL, file_url TEXT NOT NULL,
       file_name TEXT, file_type TEXT, uploaded_by INTEGER, created_at INTEGER, updated_at INTEGER
     );
     CREATE TABLE IF NOT EXISTS student_medical_records (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       type TEXT NOT NULL, title TEXT NOT NULL, description TEXT, severity TEXT,
       date TEXT, recorded_by INTEGER, created_at INTEGER, updated_at INTEGER
     );
@@ -962,39 +986,39 @@ function autoMigrate(sqlite: Database.Database) {
     );
     CREATE TABLE IF NOT EXISTS family_groups (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       family_name TEXT NOT NULL, primary_contact_name TEXT,
       primary_contact_phone TEXT, primary_contact_email TEXT, created_at INTEGER, updated_at INTEGER
     );
     CREATE TABLE IF NOT EXISTS staff_attendance (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       staff_id INTEGER NOT NULL REFERENCES staff(id) ON DELETE CASCADE,
       date TEXT NOT NULL, clock_in TEXT, clock_out TEXT, method TEXT DEFAULT 'manual',
       notes TEXT, created_at INTEGER, updated_at INTEGER
     );
     CREATE TABLE IF NOT EXISTS leave_balances (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       staff_id INTEGER NOT NULL REFERENCES staff(id) ON DELETE CASCADE,
       year INTEGER NOT NULL, type TEXT NOT NULL, allocated INTEGER DEFAULT 0,
       used INTEGER DEFAULT 0, carried_over INTEGER DEFAULT 0, created_at INTEGER, updated_at INTEGER
     );
     CREATE TABLE IF NOT EXISTS role_overrides (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       role TEXT NOT NULL, permission TEXT NOT NULL, action TEXT NOT NULL, created_at INTEGER
     );
     CREATE TABLE IF NOT EXISTS fee_access_rules (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       enabled INTEGER DEFAULT 0, grace_period_days INTEGER DEFAULT 0,
       blocked_modules TEXT DEFAULT '[]', threshold_amount INTEGER DEFAULT 0,
       block_message TEXT, created_at INTEGER, updated_at INTEGER
     );
     CREATE TABLE IF NOT EXISTS discussion_boards (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       course_id INTEGER, title TEXT NOT NULL, description TEXT,
       locked INTEGER DEFAULT 0, created_by INTEGER, created_at INTEGER, updated_at INTEGER
     );
@@ -1006,7 +1030,7 @@ function autoMigrate(sqlite: Database.Database) {
     );
     CREATE TABLE IF NOT EXISTS webhooks (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       url TEXT NOT NULL, events TEXT DEFAULT '[]', secret TEXT,
       active INTEGER DEFAULT 1, created_at INTEGER, updated_at INTEGER
     );
@@ -1019,7 +1043,7 @@ function autoMigrate(sqlite: Database.Database) {
     );
     CREATE TABLE IF NOT EXISTS forms (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       title TEXT NOT NULL, description TEXT, slug TEXT NOT NULL,
       fields TEXT DEFAULT '[]', settings TEXT DEFAULT '{}', status TEXT DEFAULT 'draft',
       is_public INTEGER DEFAULT 1, requires_auth INTEGER DEFAULT 0,
@@ -1029,26 +1053,32 @@ function autoMigrate(sqlite: Database.Database) {
     CREATE TABLE IF NOT EXISTS form_submissions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       form_id INTEGER NOT NULL REFERENCES forms(id) ON DELETE CASCADE,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       data TEXT NOT NULL, submitted_by INTEGER, submitted_by_name TEXT,
       submitted_by_email TEXT, ip_address TEXT, status TEXT DEFAULT 'new',
       created_at INTEGER, updated_at INTEGER
     );
     CREATE TABLE IF NOT EXISTS gallery_albums (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       name TEXT NOT NULL, description TEXT, cover_image_url TEXT,
-      sort_order INTEGER DEFAULT 0, created_at INTEGER, updated_at INTEGER
-    );
+      slug TEXT,
+      type TEXT,
+      is_published INTEGER,
+      sort_order INTEGER DEFAULT 0, created_at INTEGER, updated_at INTEGER);
     CREATE TABLE IF NOT EXISTS virtual_tours (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       title TEXT NOT NULL, description TEXT, tour_url TEXT,
-      created_at INTEGER, updated_at INTEGER
-    );
+      embed_url TEXT,
+      thumbnail_url TEXT,
+      location TEXT,
+      is_published INTEGER,
+      sort_order INTEGER,
+      created_at INTEGER, updated_at INTEGER);
     CREATE TABLE IF NOT EXISTS media_uploads (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       url TEXT NOT NULL, file_name TEXT, file_type TEXT, file_size INTEGER,
       folder TEXT, uploaded_by INTEGER, created_at INTEGER
     );
@@ -1084,7 +1114,7 @@ function autoMigrate(sqlite: Database.Database) {
     );
     CREATE TABLE IF NOT EXISTS school_subscriptions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       plan_id INTEGER REFERENCES subscription_plans(id),
       status TEXT DEFAULT 'trial', current_period_start INTEGER,
       current_period_end INTEGER, trial_ends_at INTEGER,
@@ -1101,7 +1131,7 @@ function autoMigrate(sqlite: Database.Database) {
     CREATE TABLE IF NOT EXISTS coupon_redemptions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       coupon_id INTEGER NOT NULL REFERENCES coupons(id) ON DELETE CASCADE,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       invoice_id INTEGER, discount_amount INTEGER NOT NULL, redeemed_at INTEGER
     );
     CREATE TABLE IF NOT EXISTS support_tickets (
@@ -1162,7 +1192,7 @@ function autoMigrate(sqlite: Database.Database) {
     );
     CREATE TABLE IF NOT EXISTS school_support_tickets (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       user_id INTEGER, subject TEXT NOT NULL, description TEXT,
       status TEXT DEFAULT 'open', priority TEXT DEFAULT 'medium',
       category TEXT, assigned_to INTEGER, created_at INTEGER, updated_at INTEGER
@@ -1185,7 +1215,7 @@ function autoMigrate(sqlite: Database.Database) {
     );
     CREATE TABLE IF NOT EXISTS live_class_rooms (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       name TEXT NOT NULL, description TEXT, teacher_id INTEGER,
       class_id INTEGER, scheduled_at TEXT, duration INTEGER,
       status TEXT DEFAULT 'scheduled', created_at INTEGER, updated_at INTEGER
@@ -1238,14 +1268,14 @@ function autoMigrate(sqlite: Database.Database) {
       created_at INTEGER, updated_at INTEGER);
     CREATE TABLE IF NOT EXISTS bell_schedules (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       name TEXT NOT NULL, period_name TEXT, start_time TEXT, end_time TEXT,
       day_of_week INTEGER, sort_order INTEGER DEFAULT 0,
       periods TEXT,
       created_at INTEGER, updated_at INTEGER);
     CREATE TABLE IF NOT EXISTS asset_checkouts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       asset_id INTEGER NOT NULL REFERENCES assets(id) ON DELETE CASCADE,
       checked_out_to INTEGER NOT NULL REFERENCES users(id),
       checked_out_by INTEGER REFERENCES users(id),
@@ -1257,13 +1287,13 @@ function autoMigrate(sqlite: Database.Database) {
     );
     CREATE TABLE IF NOT EXISTS suppliers (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       name TEXT NOT NULL, contact_person TEXT, email TEXT, phone TEXT,
       address TEXT, created_at INTEGER, updated_at INTEGER
     );
     CREATE TABLE IF NOT EXISTS purchase_requests (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       requested_by INTEGER NOT NULL REFERENCES users(id),
       supplier_id INTEGER REFERENCES suppliers(id),
       items TEXT NOT NULL, total_amount INTEGER, reason TEXT,
@@ -1272,7 +1302,7 @@ function autoMigrate(sqlite: Database.Database) {
     );
     CREATE TABLE IF NOT EXISTS job_postings (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       title TEXT NOT NULL, department TEXT, description TEXT,
       requirements TEXT DEFAULT '[]', employment_type TEXT DEFAULT 'full_time',
       salary_range TEXT, start_date TEXT, application_deadline TEXT,
@@ -1289,7 +1319,7 @@ function autoMigrate(sqlite: Database.Database) {
     CREATE TABLE IF NOT EXISTS interviews (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       application_id INTEGER NOT NULL REFERENCES job_applications(id) ON DELETE CASCADE,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       scheduled_at TEXT NOT NULL, duration INTEGER DEFAULT 60,
       location TEXT, interviewer_id INTEGER REFERENCES users(id),
       notes TEXT, status TEXT DEFAULT 'scheduled',
@@ -1297,7 +1327,7 @@ function autoMigrate(sqlite: Database.Database) {
     );
     CREATE TABLE IF NOT EXISTS performance_appraisals (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       staff_id INTEGER NOT NULL REFERENCES staff(id) ON DELETE CASCADE,
       cycle TEXT NOT NULL, type TEXT NOT NULL, kpis TEXT DEFAULT '[]',
       strengths TEXT, improvements TEXT, goals TEXT, overall_rating INTEGER,
@@ -1306,7 +1336,7 @@ function autoMigrate(sqlite: Database.Database) {
     );
     CREATE TABLE IF NOT EXISTS library_reservations (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       book_id INTEGER NOT NULL REFERENCES library_books(id) ON DELETE CASCADE,
       user_id INTEGER NOT NULL REFERENCES users(id),
       status TEXT DEFAULT 'pending', reserved_at TEXT, fulfilled_at TEXT,
@@ -1314,7 +1344,7 @@ function autoMigrate(sqlite: Database.Database) {
     );
     CREATE TABLE IF NOT EXISTS transport_dispatch (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       route_id INTEGER NOT NULL REFERENCES transport_routes(id),
       vehicle_id INTEGER NOT NULL REFERENCES vehicles(id),
       date TEXT NOT NULL, type TEXT NOT NULL,
@@ -1361,13 +1391,13 @@ function autoMigrate(sqlite: Database.Database) {
     );
     CREATE TABLE IF NOT EXISTS cbt_question_tags (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       name TEXT NOT NULL, type TEXT DEFAULT 'topic',
       created_at INTEGER, updated_at INTEGER
     );
     CREATE TABLE IF NOT EXISTS staff_attendance (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       staff_id INTEGER NOT NULL REFERENCES staff(id) ON DELETE CASCADE,
       date TEXT NOT NULL, clock_in TEXT, clock_out TEXT,
       method TEXT DEFAULT 'manual', notes TEXT,
@@ -1375,7 +1405,7 @@ function autoMigrate(sqlite: Database.Database) {
     );
     CREATE TABLE IF NOT EXISTS leave_balances (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       staff_id INTEGER NOT NULL REFERENCES staff(id) ON DELETE CASCADE,
       year INTEGER NOT NULL, type TEXT NOT NULL,
       allocated INTEGER DEFAULT 0, used INTEGER DEFAULT 0, carried_over INTEGER DEFAULT 0,
@@ -1383,20 +1413,20 @@ function autoMigrate(sqlite: Database.Database) {
     );
     CREATE TABLE IF NOT EXISTS role_overrides (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       role TEXT NOT NULL, permission TEXT NOT NULL, action TEXT NOT NULL,
       created_at INTEGER
     );
     CREATE TABLE IF NOT EXISTS fee_access_rules (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       enabled INTEGER DEFAULT 0, grace_period_days INTEGER DEFAULT 0,
       blocked_modules TEXT DEFAULT '[]', threshold_amount INTEGER DEFAULT 0,
       block_message TEXT, created_at INTEGER, updated_at INTEGER
     );
     CREATE TABLE IF NOT EXISTS discussion_boards (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       course_id INTEGER REFERENCES courses(id) ON DELETE CASCADE,
       title TEXT NOT NULL, description TEXT,
       locked INTEGER DEFAULT 0, created_by INTEGER REFERENCES users(id),
@@ -1411,7 +1441,7 @@ function autoMigrate(sqlite: Database.Database) {
     );
     CREATE TABLE IF NOT EXISTS webhooks (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       url TEXT NOT NULL, events TEXT DEFAULT '[]', secret TEXT,
       active INTEGER DEFAULT 1, created_at INTEGER, updated_at INTEGER
     );
@@ -1424,7 +1454,7 @@ function autoMigrate(sqlite: Database.Database) {
     );
     CREATE TABLE IF NOT EXISTS forms (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       title TEXT NOT NULL, description TEXT, slug TEXT NOT NULL,
       fields TEXT DEFAULT '[]', settings TEXT DEFAULT '{}', status TEXT DEFAULT 'draft',
       is_public INTEGER DEFAULT 1, requires_auth INTEGER DEFAULT 0,
@@ -1434,7 +1464,7 @@ function autoMigrate(sqlite: Database.Database) {
     CREATE TABLE IF NOT EXISTS form_submissions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       form_id INTEGER NOT NULL REFERENCES forms(id) ON DELETE CASCADE,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       data TEXT NOT NULL, submitted_by INTEGER,
       submitted_by_name TEXT, submitted_by_email TEXT,
       ip_address TEXT, status TEXT DEFAULT 'new',
@@ -1443,7 +1473,7 @@ function autoMigrate(sqlite: Database.Database) {
     CREATE TABLE IF NOT EXISTS student_documents (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       category TEXT NOT NULL, title TEXT NOT NULL, file_url TEXT NOT NULL,
       file_name TEXT, file_type TEXT, uploaded_by INTEGER,
       created_at INTEGER, updated_at INTEGER
@@ -1451,7 +1481,7 @@ function autoMigrate(sqlite: Database.Database) {
     CREATE TABLE IF NOT EXISTS student_medical_records (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       type TEXT NOT NULL, title TEXT NOT NULL, description TEXT,
       severity TEXT, date TEXT, recorded_by INTEGER,
       created_at INTEGER, updated_at INTEGER
@@ -1465,26 +1495,26 @@ function autoMigrate(sqlite: Database.Database) {
     );
     CREATE TABLE IF NOT EXISTS family_groups (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       family_name TEXT NOT NULL, primary_contact_name TEXT,
       primary_contact_phone TEXT, primary_contact_email TEXT,
       created_at INTEGER, updated_at INTEGER
     );
     CREATE TABLE IF NOT EXISTS gallery_albums (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       name TEXT NOT NULL, description TEXT, cover_image_url TEXT,
       sort_order INTEGER DEFAULT 0, created_at INTEGER, updated_at INTEGER
     );
     CREATE TABLE IF NOT EXISTS virtual_tours (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       title TEXT NOT NULL, description TEXT, tour_url TEXT,
       created_at INTEGER, updated_at INTEGER
     );
     CREATE TABLE IF NOT EXISTS media_uploads (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       url TEXT NOT NULL, file_name TEXT, file_type TEXT, file_size INTEGER,
       folder TEXT, uploaded_by INTEGER, created_at INTEGER
     );
@@ -1500,7 +1530,7 @@ function autoMigrate(sqlite: Database.Database) {
     );
     CREATE TABLE IF NOT EXISTS class_subjects (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       class_id INTEGER NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
       subject_name TEXT NOT NULL,
       teacher_id INTEGER REFERENCES staff(id),
@@ -1768,6 +1798,55 @@ function autoMigrate(sqlite: Database.Database) {
   addColumnIfMissing('bell_schedules', 'periods', 'TEXT');
   addColumnIfMissing('exam_series', 'type', 'TEXT');
   addColumnIfMissing('exam_series', 'academic_year', 'TEXT');
+  addColumnIfMissing('exam_results', 'marks_obtained', 'INTEGER');
+  addColumnIfMissing('exam_results', 'rank', 'INTEGER');
+  addColumnIfMissing('exam_results', 'remark', 'TEXT');
+  addColumnIfMissing('exam_results', 'status', 'TEXT');
+  addColumnIfMissing('exam_results', 'school_id', 'TEXT');
+  addColumnIfMissing('fee_structures', 'grade_level', 'TEXT');
+  addColumnIfMissing('fee_structures', 'category', 'TEXT');
+  addColumnIfMissing('fee_structures', 'items', 'TEXT');
+  addColumnIfMissing('fee_structures', 'total_amount', 'INTEGER');
+  addColumnIfMissing('fee_structures', 'frequency', 'TEXT');
+  addColumnIfMissing('fee_structures', 'academic_year', 'TEXT');
+  addColumnIfMissing('invoices', 'fee_structure_id', 'INTEGER');
+  addColumnIfMissing('invoices', 'discount', 'INTEGER');
+  addColumnIfMissing('invoices', 'fine', 'INTEGER');
+  addColumnIfMissing('invoices', 'paid_amount', 'INTEGER');
+  addColumnIfMissing('notifications', 'body', 'TEXT');
+  addColumnIfMissing('notifications', 'channel', 'TEXT');
+  addColumnIfMissing('notifications', 'is_read', 'INTEGER');
+  addColumnIfMissing('notifications', 'updated_at', 'TEXT');
+  addColumnIfMissing('hostels', 'total_rooms', 'INTEGER');
+  addColumnIfMissing('hostels', 'total_beds', 'INTEGER');
+  addColumnIfMissing('hostel_rooms', 'floor', 'INTEGER');
+  addColumnIfMissing('hostel_rooms', 'occupants', 'INTEGER');
+  addColumnIfMissing('hostel_rooms', 'status', 'TEXT');
+  addColumnIfMissing('vehicles', 'name', 'TEXT');
+  addColumnIfMissing('vehicles', 'plate_number', 'TEXT');
+  addColumnIfMissing('vehicles', 'driver_id', 'INTEGER');
+  addColumnIfMissing('vehicles', 'status', 'TEXT');
+  addColumnIfMissing('transport_routes', 'vehicle_id', 'INTEGER');
+  addColumnIfMissing('inventory_items', 'supplier', 'TEXT');
+  addColumnIfMissing('behavior_logs', 'category', 'TEXT');
+  addColumnIfMissing('behavior_logs', 'recorded_by', 'INTEGER');
+  addColumnIfMissing('lesson_plans', 'teacher_id', 'INTEGER');
+  addColumnIfMissing('lesson_plans', 'course_id', 'INTEGER');
+  addColumnIfMissing('lesson_plans', 'week', 'TEXT');
+  addColumnIfMissing('lesson_plans', 'materials', 'TEXT');
+  addColumnIfMissing('lesson_plans', 'activities', 'TEXT');
+  addColumnIfMissing('lesson_plans', 'assessment', 'TEXT');
+  addColumnIfMissing('notification_templates', 'school_id', 'INTEGER');
+  addColumnIfMissing('banners', 'sort_order', 'INTEGER');
+  addColumnIfMissing('popups', 'style_overrides', 'TEXT');
+  addColumnIfMissing('gallery_albums', 'slug', 'TEXT');
+  addColumnIfMissing('gallery_albums', 'type', 'TEXT');
+  addColumnIfMissing('gallery_albums', 'is_published', 'INTEGER');
+  addColumnIfMissing('virtual_tours', 'embed_url', 'TEXT');
+  addColumnIfMissing('virtual_tours', 'thumbnail_url', 'TEXT');
+  addColumnIfMissing('virtual_tours', 'location', 'TEXT');
+  addColumnIfMissing('virtual_tours', 'is_published', 'INTEGER');
+  addColumnIfMissing('virtual_tours', 'sort_order', 'INTEGER');
 }
 
 export function getDb() {
