@@ -29,62 +29,71 @@ const rtl = ['ar','he','fa','ur'].includes(locale);
   {school.faviconUrl && <link rel="icon" href={school.faviconUrl} />}
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <title>{pageTitle}</title>
   <FoucScript defaultMode="light" />
   <PaletteStyles school={school} />
   <style is:inline set:html={`
     html, body { background: var(--bg); }
-    body { font-family: 'Sora', system-ui, sans-serif; color: var(--text); min-height: 100vh; position: relative; overflow-x: hidden; }
-    .aurora-orb { position: fixed; border-radius: 9999px; filter: blur(80px); opacity: 0.3; pointer-events: none; z-index: 0; }
-    .aurora-orb-1 { width: 500px; height: 500px; top: -150px; left: -100px; background: var(--primary); }
-    .aurora-orb-2 { width: 400px; height: 400px; bottom: -100px; right: -100px; background: var(--accent); opacity: 0.2; }
-    html.dark .aurora-orb { opacity: 0.15; }
-    .aurora-glass { background: color-mix(in srgb, var(--surface) 65%, transparent); backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%); border: 1px solid color-mix(in srgb, var(--border) 50%, transparent); }
-    .aurora-glass-strong { background: color-mix(in srgb, var(--surface) 80%, transparent); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border: 1px solid color-mix(in srgb, var(--border) 40%, transparent); }
-    .aurora-grad { background: linear-gradient(135deg, var(--primary), var(--accent)); }
-    @media (prefers-reduced-motion: reduce) { .aurora-orb { transition: none; } }
+    body { font-family: 'Inter', system-ui, sans-serif; color: var(--text); min-height: 100vh; overflow-x: hidden; }
+    .harmony-mesh { position: fixed; inset: 0; pointer-events: none; z-index: 0; background:
+      radial-gradient(at 20% 20%, color-mix(in srgb, var(--primary) 18%, transparent) 0px, transparent 50%),
+      radial-gradient(at 80% 30%, color-mix(in srgb, var(--accent) 14%, transparent) 0px, transparent 50%),
+      radial-gradient(at 60% 80%, color-mix(in srgb, var(--primary) 12%, transparent) 0px, transparent 50%);
+    }
+    html.dark .harmony-mesh { opacity: 0.6; }
+    .harmony-glass { background: color-mix(in srgb, var(--surface) 70%, transparent); backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%); border: 1px solid color-mix(in srgb, var(--border) 50%, transparent); border-radius: 20px; transition: transform 0.4s cubic-bezier(0.16,1,0.3,1), box-shadow 0.4s ease; }
+    .harmony-glass:hover { transform: translateY(-6px); box-shadow: 0 20px 50px -16px color-mix(in srgb, var(--primary) 25%, transparent); }
+    .harmony-glass-flat { background: color-mix(in srgb, var(--surface) 70%, transparent); backdrop-filter: blur(16px) saturate(160%); -webkit-backdrop-filter: blur(16px) saturate(160%); border: 1px solid color-mix(in srgb, var(--border) 40%, transparent); border-radius: 16px; }
+    .harmony-float { background: color-mix(in srgb, var(--surface) 60%, transparent); backdrop-filter: blur(24px) saturate(180%); -webkit-backdrop-filter: blur(24px) saturate(180%); border: 1px solid color-mix(in srgb, var(--border) 30%, transparent); border-radius: 24px; box-shadow: 0 12px 36px -12px color-mix(in srgb, var(--primary) 20%, transparent); }
+    .harmony-grad { background: linear-gradient(135deg, var(--primary), color-mix(in srgb, var(--primary) 60%, var(--accent))); }
+    .harmony-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 999px; font-size: 12px; font-weight: 600; background: color-mix(in srgb, var(--primary) 12%, transparent); color: var(--primary); border: 1px solid color-mix(in srgb, var(--primary) 20%, transparent); }
+    .harmony-nav-link { position: relative; font-size: 14px; font-weight: 500; padding: 8px 14px; border-radius: 12px; transition: all 0.25s ease; }
+    .harmony-nav-link:hover { background: color-mix(in srgb, var(--primary) 10%, transparent); color: var(--primary); }
+    .harmony-nav-link[data-active="true"] { background: color-mix(in srgb, var(--primary) 14%, transparent); color: var(--primary); }
   `} />
 </head>
 <body>
-  <div class="aurora-orb aurora-orb-1" aria-hidden="true"></div>
-  <div class="aurora-orb aurora-orb-2" aria-hidden="true"></div>
+  <div class="harmony-mesh" aria-hidden="true"></div>
 
-  <header class="relative z-50 px-4 sm:px-6 pt-4">
-    <nav class="aurora-glass-strong max-w-6xl mx-auto rounded-2xl shadow-xl">
-      <div class="flex items-center justify-between h-16 px-5">
-        <a href={`${prefix}/`} class="flex items-center gap-3" aria-label={`${school.name} home`}>
-          {school.logoUrl ? <img src={school.logoUrl} alt={school.name} class="h-9 w-auto rounded-lg" /> : <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl text-white font-bold aurora-grad">{school.name.charAt(0)}</span>}
-          <span class="text-base font-bold" style="color:var(--text)">{school.name}</span>
-        </a>
-        <div class="hidden lg:flex items-center gap-1">
-          {nav.map(item => { const active = pathname === `${prefix}${item.url}`; return <a href={`${prefix}${item.url}`} class:list={["px-3.5 py-2 text-sm font-medium rounded-lg transition-all", active ? "text-white" : "hover:bg-[color-mix(in_srgb,var(--primary)_8%,transparent)]"]} style={active ? "background:var(--primary);color:#fff" : "color:var(--muted)"}>{item.label}</a>; })}
+  <!-- Floating glass header -->
+  <header class="relative z-50 px-4 sm:px-6 pt-5">
+    <nav class="max-w-7xl mx-auto harmony-float px-5 py-3 flex items-center justify-between">
+      <a href={`${prefix}/`} class="flex items-center gap-3" aria-label={`${school.name} home`}>
+        {school.logoUrl ? <img src={school.logoUrl} alt={school.name} class="h-10 w-auto rounded-xl" /> : <span class="inline-flex h-10 w-10 items-center justify-center rounded-xl text-white font-bold harmony-grad shadow-lg">{school.name.charAt(0)}</span>}
+        <div>
+          <span class="block text-base font-bold leading-tight" style="color:var(--text)">{school.name}</span>
+          {school.tagline && <span class="block text-xs leading-tight" style="color:var(--muted)">{school.tagline.slice(0, 40)}</span>}
         </div>
-        <div class="flex items-center gap-2">
-          <LanguageSelector />
-          <button id="theme-toggle" type="button" class="aurora-glass p-2 rounded-lg" style="color:var(--muted)" aria-label="Toggle theme"><svg class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg><svg class="w-5 h-5 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg></button>
-          <a href={`${prefix}/admissions`} class="hidden sm:inline-flex aurora-grad px-4 py-2 text-sm font-semibold text-white rounded-lg shadow-md">Apply</a>
-          <button id="aurora-menu-toggle" type="button" class="lg:hidden aurora-glass p-2 rounded-lg" style="color:var(--text)" aria-label="Menu"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg></button>
-        </div>
+      </a>
+      <div class="hidden lg:flex items-center gap-1">
+        {nav.map(item => { const active = pathname === `${prefix}${item.url}`; return <a href={`${prefix}${item.url}`} data-active={active} class="harmony-nav-link" style={active ? "" : "color:var(--muted)"}>{item.label}</a>; })}
       </div>
-      <div id="aurora-mobile-nav" class="lg:hidden hidden border-t px-5 pb-4 space-y-1" style="border-color:color-mix(in srgb, var(--border) 40%, transparent)">
-        {nav.map(item => { const active = pathname === `${prefix}${item.url}`; return <a href={`${prefix}${item.url}`} class:list={["block px-3 py-2.5 text-sm font-medium rounded-lg", active ? "text-white" : ""]} style={active ? "background:var(--primary);color:#fff" : "color:var(--text)"}>{item.label}</a>; })}
+      <div class="flex items-center gap-2">
+        <LanguageSelector />
+        <button id="theme-toggle" type="button" class="p-2 rounded-xl hover:bg-black/5" style="color:var(--muted)" aria-label="Toggle theme"><svg class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg><svg class="w-5 h-5 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg></button>
+        <a href={`${prefix}/admissions`} class="hidden sm:inline-flex harmony-grad px-5 py-2 text-sm font-semibold text-white rounded-xl shadow-md">Apply</a>
+        <button id="harmony-menu-toggle" type="button" class="lg:hidden p-2 rounded-xl hover:bg-black/5" style="color:var(--text)" aria-label="Menu"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg></button>
       </div>
     </nav>
+    <div id="harmony-mobile-nav" class="lg:hidden hidden mt-2 harmony-float p-3 space-y-1">
+      {nav.map(item => { const active = pathname === `${prefix}${item.url}`; return <a href={`${prefix}${item.url}`} data-active={active} class="block px-4 py-2.5 rounded-xl text-sm font-medium" style={active ? "background:var(--primary);color:#fff" : "color:var(--text)"}>{item.label}</a>; })}
+    </div>
   </header>
 
   <main class="relative z-10"><slot /></main>
 
+  <!-- Footer: floating glass -->
   <footer class="relative z-10 mt-20 px-4 pb-8">
-    <div class="aurora-glass max-w-6xl mx-auto rounded-2xl p-8 sm:p-10">
+    <div class="max-w-7xl mx-auto harmony-float rounded-3xl p-8 sm:p-12">
       <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
         <div class="md:col-span-2">
           <div class="flex items-center gap-3 mb-4">
-            {school.logoUrl ? <img src={school.logoUrl} alt={school.name} class="h-10 w-auto rounded-lg" /> : <span class="inline-flex h-10 w-10 items-center justify-center rounded-xl text-white font-bold aurora-grad">{school.name.charAt(0)}</span>}
+            {school.logoUrl ? <img src={school.logoUrl} alt={school.name} class="h-10 w-auto rounded-xl" /> : <span class="inline-flex h-10 w-10 items-center justify-center rounded-xl text-white font-bold harmony-grad shadow-lg">{school.name.charAt(0)}</span>}
             <span class="text-base font-bold" style="color:var(--text)">{school.name}</span>
           </div>
-          {school.tagline && <p class="text-sm max-w-md" style="color:var(--muted)">{school.tagline}</p>}
-          {socialEntries.length > 0 && <div class="flex items-center gap-2 mt-5">{socialEntries.map(([p,h]) => { const path = getSocialIconPath(p); if (!path) return null; return <a href={normalizeSocialUrl(h,p)} target="_blank" rel="noopener noreferrer" aria-label={`Visit our ${p} page`} class="aurora-glass p-2.5 rounded-lg hover:scale-110 transition-transform"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" style="color:var(--text)" aria-hidden="true"><path d={path} /></svg></a>; })}</div>}
+          {school.tagline && <p class="text-sm max-w-md leading-relaxed" style="color:var(--muted)">{school.tagline}</p>}
+          {socialEntries.length > 0 && <div class="flex items-center gap-2 mt-5">{socialEntries.map(([p,h]) => { const path = getSocialIconPath(p); if (!path) return null; return <a href={normalizeSocialUrl(h,p)} target="_blank" rel="noopener noreferrer" aria-label={`Visit our ${p} page`} class="p-2.5 harmony-glass-flat hover:scale-110 transition-transform"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" style="color:var(--text)" aria-hidden="true"><path d={path} /></svg></a>; })}</div>}
         </div>
         <div><h3 class="text-xs font-bold uppercase tracking-wider mb-4" style="color:var(--muted)">Explore</h3><ul class="space-y-2.5">{nav.slice(0,6).map(item => <li><a href={`${prefix}${item.url}`} class="text-sm hover:opacity-70" style="color:var(--text)">{item.label}</a></li>)}</ul></div>
         <div><h3 class="text-xs font-bold uppercase tracking-wider mb-4" style="color:var(--muted)">Contact</h3><ul class="space-y-2.5">{contacts.slice(0,5).map(c => <li class="text-sm" style="color:var(--text)">{c.label && <span class="block text-xs" style="color:var(--muted)">{c.label}</span>}{c.value}</li>)}{contacts.length === 0 && <li class="text-sm" style="color:var(--muted)">No contact info yet.</li>}</ul></div>
@@ -98,27 +107,27 @@ const rtl = ['ar','he','fa','ur'].includes(locale);
 
   <SchoolBannerPopup school={school} currentPage={Astro.url.pathname} />
 
-  <button id="aurora-chat-toggle" type="button" class="fixed bottom-6 right-6 z-50 aurora-grad p-4 rounded-2xl shadow-2xl hover:scale-105 transition-transform" aria-label="Open chat"><svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg></button>
-  <div id="aurora-chat-panel" class="fixed bottom-24 right-6 z-50 w-[min(380px,calc(100vw-3rem))] aurora-glass-strong rounded-2xl shadow-2xl hidden flex-col overflow-hidden" style="max-height:70vh">
-    <div class="aurora-grad px-5 py-4"><p class="text-sm font-bold text-white">{school.name} Assistant</p><p class="text-[11px] text-white/80">Ask us anything</p></div>
-    <div id="aurora-chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3"><div class="aurora-glass rounded-xl rounded-tl-sm px-4 py-2.5 text-sm max-w-[85%]" style="color:var(--text)">How can we help?</div></div>
-    <form id="aurora-chat-form" class="p-3 border-t flex items-center gap-2" style="border-color:color-mix(in srgb, var(--border) 40%, transparent)">
-      <input id="aurora-chat-input" type="text" placeholder="Type..." class="flex-1 aurora-glass rounded-full px-4 py-2 text-sm outline-none" style="color:var(--text)" aria-label="Message" />
-      <button type="submit" class="aurora-grad p-2.5 rounded-full" aria-label="Send"><svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg></button>
+  <button id="harmony-chat-toggle" type="button" class="fixed bottom-6 right-6 z-50 harmony-grad p-4 rounded-2xl shadow-2xl hover:scale-105 transition-transform" aria-label="Open chat"><svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg></button>
+  <div id="harmony-chat-panel" class="fixed bottom-24 right-6 z-50 w-[min(380px,calc(100vw-3rem))] harmony-float hidden flex-col overflow-hidden" style="max-height:70vh">
+    <div class="harmony-grad px-5 py-4"><p class="text-sm font-bold text-white">{school.name} Assistant</p><p class="text-[11px] text-white/80">In harmony with your needs</p></div>
+    <div id="harmony-chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3"><div class="harmony-glass-flat px-4 py-2.5 text-sm max-w-[85%]" style="color:var(--text)">How can we help today?</div></div>
+    <form id="harmony-chat-form" class="p-3 border-t flex items-center gap-2" style="border-color:color-mix(in srgb, var(--border) 40%, transparent)">
+      <input id="harmony-chat-input" type="text" placeholder="Type your message..." class="flex-1 harmony-glass-flat px-4 py-2 text-sm outline-none" style="color:var(--text)" aria-label="Message" />
+      <button type="submit" class="harmony-grad p-2.5 rounded-xl" aria-label="Send"><svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg></button>
     </form>
   </div>
 
   <ThemeToggleScript defaultMode="light" selector="#theme-toggle" />
   <script is:inline set:html={`(function(){
-    var t=document.getElementById('aurora-menu-toggle'),d=document.getElementById('aurora-mobile-nav');
+    var t=document.getElementById('harmony-menu-toggle'),d=document.getElementById('harmony-mobile-nav');
     if(t&&d){t.addEventListener('click',function(){d.classList.toggle('hidden');});}
-    var ct=document.getElementById('aurora-chat-toggle'),cp=document.getElementById('aurora-chat-panel');
+    var ct=document.getElementById('harmony-chat-toggle'),cp=document.getElementById('harmony-chat-panel');
     function o(){cp.classList.remove('hidden');cp.classList.add('flex');}function c(){cp.classList.add('hidden');cp.classList.remove('flex');}
     if(ct&&cp){ct.addEventListener('click',function(){cp.classList.contains('hidden')?o():c();});}
-    var f=document.getElementById('aurora-chat-form'),i=document.getElementById('aurora-chat-input'),m=document.getElementById('aurora-chat-messages');
+    var f=document.getElementById('harmony-chat-form'),i=document.getElementById('harmony-chat-input'),m=document.getElementById('harmony-chat-messages');
     if(f&&i&&m){f.addEventListener('submit',function(e){e.preventDefault();var t=i.value.trim();if(!t)return;
-      var b=document.createElement('div');b.className='aurora-glass rounded-xl rounded-tr-sm px-4 py-2.5 text-sm max-w-[85%] ml-auto';b.style.background='var(--primary)';b.style.color='#fff';b.textContent=t;m.appendChild(b);i.value='';m.scrollTop=m.scrollHeight;
-      fetch('/api/'+${JSON.stringify(school.slug)}+'/ai-chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:t})}).then(function(r){return r.ok?r.json():{reply:'Unavailable.'};}).then(function(data){var r=document.createElement('div');r.className='aurora-glass rounded-xl rounded-tl-sm px-4 py-2.5 text-sm max-w-[85%]';r.style.color='var(--text)';r.textContent=data.reply||data.message||'...';m.appendChild(r);m.scrollTop=m.scrollHeight;}).catch(function(){var r=document.createElement('div');r.className='aurora-glass rounded-xl rounded-tl-sm px-4 py-2.5 text-sm max-w-[85%]';r.style.color='var(--text)';r.textContent='Connection error.';m.appendChild(r);m.scrollTop=m.scrollHeight;});});}
+      var b=document.createElement('div');b.className='harmony-glass-flat px-4 py-2.5 text-sm max-w-[85%] ml-auto';b.style.background='var(--primary)';b.style.color='#fff';b.textContent=t;m.appendChild(b);i.value='';m.scrollTop=m.scrollHeight;
+      fetch('/api/'+${JSON.stringify(school.slug)}+'/ai-chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:t})}).then(function(r){return r.ok?r.json():{reply:'Unavailable.'};}).then(function(data){var r=document.createElement('div');r.className='harmony-glass-flat px-4 py-2.5 text-sm max-w-[85%]';r.style.color='var(--text)';r.textContent=data.reply||data.message||'...';m.appendChild(r);m.scrollTop=m.scrollHeight;}).catch(function(){var r=document.createElement('div');r.className='harmony-glass-flat px-4 py-2.5 text-sm max-w-[85%]';r.style.color='var(--text)';r.textContent='Connection error.';m.appendChild(r);m.scrollTop=m.scrollHeight;});});}
   })();`} />
 </body>
 </html>

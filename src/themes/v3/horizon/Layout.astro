@@ -19,6 +19,7 @@ const social = (school.socialHandles as Record<string, string>) || {};
 const socialEntries = Object.entries(social).filter(([, v]) => v && v !== '#');
 const locale = school.locale || 'en';
 const rtl = ['ar','he','fa','ur'].includes(locale);
+const primaryContact = contacts[0];
 ---
 <!doctype html>
 <html lang={locale} dir={rtl ? 'rtl' : 'ltr'} class="light scroll-smooth">
@@ -29,96 +30,105 @@ const rtl = ['ar','he','fa','ur'].includes(locale);
   {school.faviconUrl && <link rel="icon" href={school.faviconUrl} />}
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <title>{pageTitle}</title>
   <FoucScript defaultMode="light" />
   <PaletteStyles school={school} />
   <style is:inline set:html={`
     html, body { background: var(--bg); }
-    body { font-family: 'Sora', system-ui, sans-serif; color: var(--text); min-height: 100vh; position: relative; overflow-x: hidden; }
-    .aurora-orb { position: fixed; border-radius: 9999px; filter: blur(80px); opacity: 0.3; pointer-events: none; z-index: 0; }
-    .aurora-orb-1 { width: 500px; height: 500px; top: -150px; left: -100px; background: var(--primary); }
-    .aurora-orb-2 { width: 400px; height: 400px; bottom: -100px; right: -100px; background: var(--accent); opacity: 0.2; }
-    html.dark .aurora-orb { opacity: 0.15; }
-    .aurora-glass { background: color-mix(in srgb, var(--surface) 65%, transparent); backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%); border: 1px solid color-mix(in srgb, var(--border) 50%, transparent); }
-    .aurora-glass-strong { background: color-mix(in srgb, var(--surface) 80%, transparent); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border: 1px solid color-mix(in srgb, var(--border) 40%, transparent); }
-    .aurora-grad { background: linear-gradient(135deg, var(--primary), var(--accent)); }
-    @media (prefers-reduced-motion: reduce) { .aurora-orb { transition: none; } }
+    body { font-family: 'Space Grotesk', monospace, system-ui, sans-serif; color: var(--text); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+    .horizon-mono { font-family: 'Space Grotesk', monospace, sans-serif; letter-spacing: -0.01em; }
+    .horizon-label { font-family: 'Space Grotesk', monospace, sans-serif; font-size: 11px; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; }
+    .horizon-card { background: var(--surface); border: 1px solid var(--border); border-radius: 0; transition: border-color 0.3s ease; }
+    .horizon-card:hover { border-color: var(--text); }
+    .horizon-line { border-color: var(--border); }
+    .horizon-pill { display: inline-flex; align-items: center; gap: 8px; font-family: 'Space Grotesk', monospace, sans-serif; font-size: 11px; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); }
+    .horizon-pill::before { content: ''; display: inline-block; width: 24px; height: 1px; background: var(--text); }
+    .horizon-nav-link { position: relative; font-family: 'Space Grotesk', monospace, sans-serif; font-size: 13px; font-weight: 500; letter-spacing: 0.05em; transition: color 0.2s; }
+    .horizon-nav-link:hover, .horizon-nav-link[data-active="true"] { color: var(--primary); }
+    .horizon-btn { display: inline-flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', monospace, sans-serif; font-size: 13px; font-weight: 500; letter-spacing: 0.15em; text-transform: uppercase; padding: 14px 28px; transition: all 0.2s; }
+    .horizon-btn-primary { background: var(--text); color: var(--bg); }
+    .horizon-btn-primary:hover { opacity: 0.85; }
+    .horizon-btn-ghost { background: transparent; color: var(--text); border: 1px solid var(--text); }
+    .horizon-btn-ghost:hover { background: var(--text); color: var(--bg); }
   `} />
 </head>
 <body>
-  <div class="aurora-orb aurora-orb-1" aria-hidden="true"></div>
-  <div class="aurora-orb aurora-orb-2" aria-hidden="true"></div>
-
-  <header class="relative z-50 px-4 sm:px-6 pt-4">
-    <nav class="aurora-glass-strong max-w-6xl mx-auto rounded-2xl shadow-xl">
-      <div class="flex items-center justify-between h-16 px-5">
+  <!-- Header: ultra-minimal split layout -->
+  <header class="border-b horizon-line" style="background:var(--bg)">
+    <div class="max-w-7xl mx-auto px-6 lg:px-10">
+      <div class="flex items-center justify-between h-20">
         <a href={`${prefix}/`} class="flex items-center gap-3" aria-label={`${school.name} home`}>
-          {school.logoUrl ? <img src={school.logoUrl} alt={school.name} class="h-9 w-auto rounded-lg" /> : <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl text-white font-bold aurora-grad">{school.name.charAt(0)}</span>}
-          <span class="text-base font-bold" style="color:var(--text)">{school.name}</span>
+          {school.logoUrl ? <img src={school.logoUrl} alt={school.name} class="h-8 w-auto" /> : <span class="horizon-mono text-xl font-semibold" style="color:var(--text)">{school.name.charAt(0)}</span>}
+          <span class="horizon-mono text-base font-medium" style="color:var(--text)">{school.name}</span>
         </a>
-        <div class="hidden lg:flex items-center gap-1">
-          {nav.map(item => { const active = pathname === `${prefix}${item.url}`; return <a href={`${prefix}${item.url}`} class:list={["px-3.5 py-2 text-sm font-medium rounded-lg transition-all", active ? "text-white" : "hover:bg-[color-mix(in_srgb,var(--primary)_8%,transparent)]"]} style={active ? "background:var(--primary);color:#fff" : "color:var(--muted)"}>{item.label}</a>; })}
+        <div class="hidden lg:flex items-center gap-10">
+          {nav.map(item => { const active = pathname === `${prefix}${item.url}`; return <a href={`${prefix}${item.url}`} data-active={active} class="horizon-nav-link" style={active ? "" : "color:var(--muted)"}>{item.label}</a>; })}
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-4">
           <LanguageSelector />
-          <button id="theme-toggle" type="button" class="aurora-glass p-2 rounded-lg" style="color:var(--muted)" aria-label="Toggle theme"><svg class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg><svg class="w-5 h-5 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg></button>
-          <a href={`${prefix}/admissions`} class="hidden sm:inline-flex aurora-grad px-4 py-2 text-sm font-semibold text-white rounded-lg shadow-md">Apply</a>
-          <button id="aurora-menu-toggle" type="button" class="lg:hidden aurora-glass p-2 rounded-lg" style="color:var(--text)" aria-label="Menu"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+          <button id="theme-toggle" type="button" style="color:var(--muted)" aria-label="Toggle theme"><svg class="w-4 h-4 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg><svg class="w-4 h-4 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg></button>
+          <a href={`${prefix}/admissions`} class="hidden sm:inline-flex horizon-btn horizon-btn-primary">Apply</a>
+          <button id="horizon-menu-toggle" type="button" class="lg:hidden" style="color:var(--text)" aria-label="Menu"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6h16M4 12h16M4 18h16"/></svg></button>
         </div>
       </div>
-      <div id="aurora-mobile-nav" class="lg:hidden hidden border-t px-5 pb-4 space-y-1" style="border-color:color-mix(in srgb, var(--border) 40%, transparent)">
-        {nav.map(item => { const active = pathname === `${prefix}${item.url}`; return <a href={`${prefix}${item.url}`} class:list={["block px-3 py-2.5 text-sm font-medium rounded-lg", active ? "text-white" : ""]} style={active ? "background:var(--primary);color:#fff" : "color:var(--text)"}>{item.label}</a>; })}
-      </div>
-    </nav>
+    </div>
+    <div id="horizon-mobile-nav" class="lg:hidden hidden border-t horizon-line px-6 py-4 flex flex-col gap-3" style="background:var(--bg)">
+      {nav.map(item => { const active = pathname === `${prefix}${item.url}`; return <a href={`${prefix}${item.url}`} data-active={active} class="horizon-nav-link" style={active ? "" : "color:var(--muted)"}>{item.label}</a>; })}
+      <a href={`${prefix}/admissions`} class="horizon-nav-link" style="color:var(--primary)">Apply</a>
+    </div>
   </header>
 
-  <main class="relative z-10"><slot /></main>
+  <main><slot /></main>
 
-  <footer class="relative z-10 mt-20 px-4 pb-8">
-    <div class="aurora-glass max-w-6xl mx-auto rounded-2xl p-8 sm:p-10">
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
-        <div class="md:col-span-2">
-          <div class="flex items-center gap-3 mb-4">
-            {school.logoUrl ? <img src={school.logoUrl} alt={school.name} class="h-10 w-auto rounded-lg" /> : <span class="inline-flex h-10 w-10 items-center justify-center rounded-xl text-white font-bold aurora-grad">{school.name.charAt(0)}</span>}
-            <span class="text-base font-bold" style="color:var(--text)">{school.name}</span>
-          </div>
-          {school.tagline && <p class="text-sm max-w-md" style="color:var(--muted)">{school.tagline}</p>}
-          {socialEntries.length > 0 && <div class="flex items-center gap-2 mt-5">{socialEntries.map(([p,h]) => { const path = getSocialIconPath(p); if (!path) return null; return <a href={normalizeSocialUrl(h,p)} target="_blank" rel="noopener noreferrer" aria-label={`Visit our ${p} page`} class="aurora-glass p-2.5 rounded-lg hover:scale-110 transition-transform"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" style="color:var(--text)" aria-hidden="true"><path d={path} /></svg></a>; })}</div>}
+  <!-- Footer: minimal -->
+  <footer class="border-t horizon-line mt-32" style="background:var(--bg)">
+    <div class="max-w-7xl mx-auto px-6 lg:px-10 py-16">
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-12">
+        <div class="md:col-span-6">
+          <a href={`${prefix}/`} class="horizon-mono text-2xl font-semibold" style="color:var(--text)">{school.name}</a>
+          {school.tagline && <p class="horizon-mono text-sm mt-4 max-w-md leading-relaxed" style="color:var(--muted)">{school.tagline}</p>}
+          {socialEntries.length > 0 && <div class="flex items-center gap-4 mt-6">{socialEntries.map(([p,h]) => { const path = getSocialIconPath(p); if (!path) return null; return <a href={normalizeSocialUrl(h,p)} target="_blank" rel="noopener noreferrer" aria-label={`Visit our ${p} page`} style="color:var(--muted)" class="hover:opacity-60 transition-opacity"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d={path} /></svg></a>; })}</div>}
         </div>
-        <div><h3 class="text-xs font-bold uppercase tracking-wider mb-4" style="color:var(--muted)">Explore</h3><ul class="space-y-2.5">{nav.slice(0,6).map(item => <li><a href={`${prefix}${item.url}`} class="text-sm hover:opacity-70" style="color:var(--text)">{item.label}</a></li>)}</ul></div>
-        <div><h3 class="text-xs font-bold uppercase tracking-wider mb-4" style="color:var(--muted)">Contact</h3><ul class="space-y-2.5">{contacts.slice(0,5).map(c => <li class="text-sm" style="color:var(--text)">{c.label && <span class="block text-xs" style="color:var(--muted)">{c.label}</span>}{c.value}</li>)}{contacts.length === 0 && <li class="text-sm" style="color:var(--muted)">No contact info yet.</li>}</ul></div>
+        <div class="md:col-span-3">
+          <h3 class="horizon-label mb-5" style="color:var(--muted)">Navigate</h3>
+          <ul class="space-y-3">{nav.slice(0,6).map(item => <li><a href={`${prefix}${item.url}`} class="horizon-mono text-sm hover:opacity-60 transition-opacity" style="color:var(--text)">{item.label}</a></li>)}</ul>
+        </div>
+        <div class="md:col-span-3">
+          <h3 class="horizon-label mb-5" style="color:var(--muted)">Contact</h3>
+          <ul class="space-y-3">{contacts.slice(0,4).map(c => <li class="horizon-mono text-sm" style="color:var(--text)">{c.label && <span class="horizon-label block mb-1" style="color:var(--muted)">{c.label}</span>}{c.value}</li>)}{contacts.length === 0 && <li class="text-sm" style="color:var(--muted)">No contact info yet.</li>}</ul>
+        </div>
       </div>
-      <div class="mt-8 pt-6 border-t flex flex-col sm:flex-row items-center justify-between gap-3" style="border-color:color-mix(in srgb, var(--border) 40%, transparent)">
-        <p class="text-xs" style="color:var(--muted)">© {new Date().getFullYear()} {school.name}. All rights reserved.</p>
-        <a href="/" class="text-xs font-medium hover:underline" style="color:var(--primary)">Powered by iSchool</a>
+      <div class="mt-16 pt-8 border-t horizon-line flex flex-col sm:flex-row items-center justify-between gap-3">
+        <p class="horizon-label" style="color:var(--muted)">© {new Date().getFullYear()} {school.name}</p>
+        <a href="/" class="horizon-label hover:opacity-60 transition-opacity" style="color:var(--text)">Powered by iSchool</a>
       </div>
     </div>
   </footer>
 
   <SchoolBannerPopup school={school} currentPage={Astro.url.pathname} />
 
-  <button id="aurora-chat-toggle" type="button" class="fixed bottom-6 right-6 z-50 aurora-grad p-4 rounded-2xl shadow-2xl hover:scale-105 transition-transform" aria-label="Open chat"><svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg></button>
-  <div id="aurora-chat-panel" class="fixed bottom-24 right-6 z-50 w-[min(380px,calc(100vw-3rem))] aurora-glass-strong rounded-2xl shadow-2xl hidden flex-col overflow-hidden" style="max-height:70vh">
-    <div class="aurora-grad px-5 py-4"><p class="text-sm font-bold text-white">{school.name} Assistant</p><p class="text-[11px] text-white/80">Ask us anything</p></div>
-    <div id="aurora-chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3"><div class="aurora-glass rounded-xl rounded-tl-sm px-4 py-2.5 text-sm max-w-[85%]" style="color:var(--text)">How can we help?</div></div>
-    <form id="aurora-chat-form" class="p-3 border-t flex items-center gap-2" style="border-color:color-mix(in srgb, var(--border) 40%, transparent)">
-      <input id="aurora-chat-input" type="text" placeholder="Type..." class="flex-1 aurora-glass rounded-full px-4 py-2 text-sm outline-none" style="color:var(--text)" aria-label="Message" />
-      <button type="submit" class="aurora-grad p-2.5 rounded-full" aria-label="Send"><svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg></button>
+  <button id="horizon-chat-toggle" type="button" class="fixed bottom-6 right-6 z-50 horizon-btn horizon-btn-primary shadow-lg" style="padding:14px 20px" aria-label="Open chat"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg></button>
+  <div id="horizon-chat-panel" class="fixed bottom-24 right-6 z-50 w-[min(380px,calc(100vw-3rem))] horizon-card hidden flex-col overflow-hidden shadow-2xl" style="max-height:70vh">
+    <div class="px-5 py-4 border-b horizon-line" style="background:var(--bg)"><p class="horizon-mono text-sm font-semibold" style="color:var(--text)">{school.name}</p><p class="horizon-label mt-1" style="color:var(--muted)">Chat with us</p></div>
+    <div id="horizon-chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3" style="background:var(--bg)"><div class="horizon-mono text-sm max-w-[85%]" style="color:var(--muted)">How can we help?</div></div>
+    <form id="horizon-chat-form" class="p-3 border-t horizon-line flex items-center gap-2" style="background:var(--bg)">
+      <input id="horizon-chat-input" type="text" placeholder="Message..." class="horizon-mono flex-1 bg-transparent px-2 py-2 text-sm outline-none" style="color:var(--text)" aria-label="Message" />
+      <button type="submit" class="horizon-btn horizon-btn-primary" style="padding:8px 14px;font-size:11px" aria-label="Send">Send</button>
     </form>
   </div>
 
   <ThemeToggleScript defaultMode="light" selector="#theme-toggle" />
   <script is:inline set:html={`(function(){
-    var t=document.getElementById('aurora-menu-toggle'),d=document.getElementById('aurora-mobile-nav');
+    var t=document.getElementById('horizon-menu-toggle'),d=document.getElementById('horizon-mobile-nav');
     if(t&&d){t.addEventListener('click',function(){d.classList.toggle('hidden');});}
-    var ct=document.getElementById('aurora-chat-toggle'),cp=document.getElementById('aurora-chat-panel');
+    var ct=document.getElementById('horizon-chat-toggle'),cp=document.getElementById('horizon-chat-panel');
     function o(){cp.classList.remove('hidden');cp.classList.add('flex');}function c(){cp.classList.add('hidden');cp.classList.remove('flex');}
     if(ct&&cp){ct.addEventListener('click',function(){cp.classList.contains('hidden')?o():c();});}
-    var f=document.getElementById('aurora-chat-form'),i=document.getElementById('aurora-chat-input'),m=document.getElementById('aurora-chat-messages');
+    var f=document.getElementById('horizon-chat-form'),i=document.getElementById('horizon-chat-input'),m=document.getElementById('horizon-chat-messages');
     if(f&&i&&m){f.addEventListener('submit',function(e){e.preventDefault();var t=i.value.trim();if(!t)return;
-      var b=document.createElement('div');b.className='aurora-glass rounded-xl rounded-tr-sm px-4 py-2.5 text-sm max-w-[85%] ml-auto';b.style.background='var(--primary)';b.style.color='#fff';b.textContent=t;m.appendChild(b);i.value='';m.scrollTop=m.scrollHeight;
-      fetch('/api/'+${JSON.stringify(school.slug)}+'/ai-chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:t})}).then(function(r){return r.ok?r.json():{reply:'Unavailable.'};}).then(function(data){var r=document.createElement('div');r.className='aurora-glass rounded-xl rounded-tl-sm px-4 py-2.5 text-sm max-w-[85%]';r.style.color='var(--text)';r.textContent=data.reply||data.message||'...';m.appendChild(r);m.scrollTop=m.scrollHeight;}).catch(function(){var r=document.createElement('div');r.className='aurora-glass rounded-xl rounded-tl-sm px-4 py-2.5 text-sm max-w-[85%]';r.style.color='var(--text)';r.textContent='Connection error.';m.appendChild(r);m.scrollTop=m.scrollHeight;});});}
+      var b=document.createElement('div');b.className='horizon-mono text-sm max-w-[85%] ml-auto text-right';b.style.color='var(--text)';b.textContent=t;m.appendChild(b);i.value='';m.scrollTop=m.scrollHeight;
+      fetch('/api/'+${JSON.stringify(school.slug)}+'/ai-chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:t})}).then(function(r){return r.ok?r.json():{reply:'Unavailable.'};}).then(function(data){var r=document.createElement('div');r.className='horizon-mono text-sm max-w-[85%]';r.style.color='var(--muted)';r.textContent=data.reply||data.message||'...';m.appendChild(r);m.scrollTop=m.scrollHeight;}).catch(function(){var r=document.createElement('div');r.className='horizon-mono text-sm max-w-[85%]';r.style.color='var(--muted)';r.textContent='Connection error.';m.appendChild(r);m.scrollTop=m.scrollHeight;});});}
   })();`} />
 </body>
 </html>

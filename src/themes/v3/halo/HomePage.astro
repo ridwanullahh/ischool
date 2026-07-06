@@ -1,63 +1,71 @@
 ---
-import { getSchoolNav, getSchoolContacts } from '../../../lib/school.ts';
-import { normalizeSocialUrl } from '../../../lib/social.ts';
-import { getSocialIconPath } from '../_shared/social-icons';
+import { getSchoolNav } from '../../../lib/school.ts';
 
 interface Props { school: any; [key: string]: any; }
 const { school, ...data } = Astro.props;
 const nav = getSchoolNav(school.id);
-const contacts = getSchoolContacts(school.id);
 const prefix = '/' + school.slug;
-const social = (school.socialHandles as Record<string, string>) || {};
-const socialEntries = Object.entries(social).filter(([, v]) => v && v !== '#');
-const locale = school.locale || 'en';
 const formatDate = (d: string | Date | null) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+const features = Array.isArray(data.features) ? data.features : [];
+const stats = Array.isArray(data.stats) ? data.stats : [];
+const about = data.about || {};
+const announcements = Array.isArray(data.recentAnnouncements) ? data.recentAnnouncements : [];
+const posts = Array.isArray(data.recentPosts) ? data.recentPosts : [];
+const programs = Array.isArray(data.schoolPrograms) ? data.schoolPrograms : [];
 ---
 <div class="space-y-0">
-  <!-- Hero: full-screen gradient mesh with centered glass text -->
-  <section class="relative overflow-hidden min-h-[70vh] flex items-center justify-center px-4 py-20">
+  <!-- Hero: ethereal centered glow -->
+  <section class="relative overflow-hidden px-4 py-24 sm:py-32">
     <div class="relative z-10 max-w-4xl mx-auto text-center">
-      <div class="aurora-glass-strong rounded-3xl p-8 sm:p-12 shadow-2xl">
-        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-tight tracking-tight" style="color:var(--text)">{school.name}</h1>
-        {school.tagline && <p class="mt-4 text-lg sm:text-xl leading-relaxed" style="color:var(--muted)">{school.tagline}</p>}
-        <div class="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
-          <a href={`${prefix}/admissions`} class="aurora-grad px-6 py-3 text-base font-semibold text-white rounded-xl shadow-lg hover:scale-105 transition-transform">Apply for Admission</a>
-          <a href={`${prefix}/about`} class="aurora-glass px-6 py-3 text-base font-semibold rounded-xl border hover:scale-105 transition-transform" style="color:var(--text);border-color:var(--border)">Learn More</a>
-        </div>
+      <span class="halo-pill">An illuminating education</span>
+      <h1 class="mt-6 text-5xl sm:text-6xl lg:text-7xl font-extrabold leading-[1.05] tracking-tight" style="color:var(--text)">{school.name}</h1>
+      {school.tagline && <p class="mt-6 text-lg sm:text-xl leading-relaxed max-w-2xl mx-auto" style="color:var(--muted)">{school.tagline}</p>}
+      <div class="mt-9 flex flex-col sm:flex-row gap-4 justify-center">
+        <a href={`${prefix}/admissions`} class="halo-grad px-8 py-3.5 text-base font-semibold text-white rounded-full shadow-2xl hover:scale-105 transition-transform" style="box-shadow: 0 0 40px color-mix(in srgb, var(--primary) 35%, transparent)">Apply for Admission</a>
+        <a href={`${prefix}/about`} class="halo-card px-8 py-3.5 text-base font-semibold rounded-full hover:scale-105 transition-transform" style="color:var(--text)">Learn More</a>
       </div>
     </div>
   </section>
 
-  <!-- Latest announcement bar -->
-  {data.recentAnnouncements?.length > 0 && (
-    <a href={`/${school.slug}/announcements/${data.recentAnnouncements[0].slug}`} class="block aurora-glass mx-4 max-w-6xl mb-8 rounded-2xl p-4 hover:scale-[1.01] transition-transform">
-      <div class="max-w-6xl mx-auto flex items-center gap-3">
-        <span class="aurora-grad px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white rounded-full">Latest</span>
-        <span class="text-sm font-medium" style="color:var(--text)">{data.recentAnnouncements[0].title}</span>
+  <!-- Stats: floating glow cards -->
+  {stats.length > 0 && (
+    <section class="px-4 py-12">
+      <div class="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-5">
+        {stats.slice(0, 4).map(s => (
+          <div class="halo-card p-6 text-center">
+            <div class="text-3xl sm:text-4xl font-extrabold" style="color:var(--primary)">{s.value}</div>
+            <div class="text-xs font-medium mt-2 uppercase tracking-wider" style="color:var(--muted)">{s.label}</div>
+          </div>
+        ))}
       </div>
-    </a>
+    </section>
   )}
 
   <!-- Value proposition -->
-  {data.about?.valueProposition && (
+  {about.valueProposition && (
     <section class="px-4 py-16">
       <div class="max-w-4xl mx-auto text-center">
-        <p class="text-2xl sm:text-3xl font-bold leading-relaxed" style="color:var(--text)">{data.about.valueProposition}</p>
+        <p class="text-xl sm:text-2xl font-medium leading-relaxed" style="color:var(--text)">{about.valueProposition}</p>
       </div>
     </section>
   )}
 
-  <!-- Features: floating glass cards -->
-  {data.features?.length > 0 && (
+  <!-- Features: glowing glass cards -->
+  {features.length > 0 && (
     <section class="px-4 py-16">
-      <div class="max-w-6xl mx-auto">
-        <h2 class="text-3xl font-bold text-center mb-12" style="color:var(--text)">Our Highlights</h2>
+      <div class="max-w-7xl mx-auto">
+        <div class="text-center mb-12">
+          <span class="halo-pill">Our Highlights</span>
+          <h2 class="mt-4 text-3xl sm:text-4xl font-bold" style="color:var(--text)">Radiance in every detail</h2>
+        </div>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {data.features.map(f => (
-            <div class="aurora-glass rounded-2xl p-6 hover:scale-105 transition-transform">
-              <div class="w-12 h-12 aurora-grad rounded-xl mb-4"></div>
+          {features.map((f, i) => (
+            <div class="halo-card p-7">
+              <div class="w-12 h-12 halo-grad flex items-center justify-center rounded-2xl mb-5 shadow-lg" style="box-shadow: 0 0 24px color-mix(in srgb, var(--primary) 40%, transparent)">
+                <span class="text-white font-bold text-lg">{i + 1}</span>
+              </div>
               <h3 class="text-lg font-bold mb-2" style="color:var(--text)">{f.title}</h3>
-              <p class="leading-relaxed" style="color:var(--muted)">{f.description}</p>
+              <p class="text-sm leading-relaxed" style="color:var(--muted)">{f.description}</p>
             </div>
           ))}
         </div>
@@ -65,56 +73,25 @@ const formatDate = (d: string | Date | null) => d ? new Date(d).toLocaleDateStri
     </section>
   )}
 
-  <!-- Programs: glass cards with gradient accent -->
-  {data.schoolPrograms?.length > 0 && (
+  <!-- Programs: glowing cards -->
+  {programs.length > 0 && (
     <section class="px-4 py-16">
-      <div class="max-w-6xl mx-auto">
-        <h2 class="text-3xl font-bold text-center mb-12" style="color:var(--text)">Our Programs</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {data.schoolPrograms.map(p => (
-            <a href={`/${school.slug}/programs/${p.slug}`} class="aurora-glass rounded-2xl p-6 hover:scale-105 transition-transform block">
-              <h3 class="text-lg font-bold mb-2" style="color:var(--text)">{p.name}</h3>
-              {p.level && <p class="text-sm font-medium mb-2" style="color:var(--primary)">{p.level}</p>}
-              {p.description && <p class="text-sm line-clamp-3" style="color:var(--muted)">{p.description}</p>}
-              {p.duration && <p class="text-xs mt-3" style="color:var(--muted)">{p.duration}</p>}
-            </a>
-          ))}
+      <div class="max-w-7xl mx-auto">
+        <div class="flex flex-col sm:flex-row sm:items-end justify-between mb-10 gap-4">
+          <div>
+            <span class="halo-pill">Academics</span>
+            <h2 class="mt-4 text-3xl font-bold" style="color:var(--text)">Our Programs</h2>
+          </div>
+          <a href={`${prefix}/programs`} class="text-sm font-semibold hover:underline" style="color:var(--primary)">View all programs</a>
         </div>
-      </div>
-    </section>
-  )}
-
-  <!-- Stats: gradient bar -->
-  {data.stats?.length > 0 && (
-    <section class="aurora-grad py-16 mx-4 rounded-3xl mb-16">
-      <div class="max-w-6xl mx-auto px-4">
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
-          {data.stats.map(s => (
-            <div class="text-center text-white">
-              <p class="text-3xl sm:text-4xl font-bold">{s.value}</p>
-              <p class="text-sm opacity-80 mt-1">{s.label}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  )}
-
-  <!-- Latest news: glass cards -->
-  {data.recentPosts?.length > 0 && (
-    <section class="px-4 py-16">
-      <div class="max-w-6xl mx-auto">
-        <div class="flex items-center justify-between mb-12">
-          <h2 class="text-3xl font-bold" style="color:var(--text)">Latest News</h2>
-          <a href={`/${school.slug}/blog`} class="text-sm font-medium hover:underline" style="color:var(--primary)">View all</a>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {data.recentPosts.map(post => (
-            <a href={`/${school.slug}/blog/${post.slug}`} class="aurora-glass rounded-2xl overflow-hidden hover:scale-105 transition-transform block group">
-              {post.coverImageUrl && <img src={post.coverImageUrl} alt={post.title} class="w-full h-48 object-cover" loading="lazy" />}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {programs.slice(0, 3).map(p => (
+            <a href={`${prefix}/programs/${p.slug || p.id}`} class="halo-card overflow-hidden block">
+              {p.imageUrl && <img src={p.imageUrl} alt={p.name} class="w-full h-44 object-cover" loading="lazy" />}
               <div class="p-6">
-                <h3 class="font-bold mb-2 group-hover:text-[var(--primary)] transition-colors" style="color:var(--text)">{post.title}</h3>
-                <p class="text-sm line-clamp-2" style="color:var(--muted)">{post.excerpt || post.content}</p>
+                <h3 class="text-lg font-bold mb-2" style="color:var(--text)">{p.name}</h3>
+                {p.description && <p class="text-sm leading-relaxed line-clamp-2" style="color:var(--muted)">{p.description}</p>}
+                {p.duration && <span class="inline-block mt-3 text-xs font-semibold px-3 py-1 rounded-full" style="background:color-mix(in srgb, var(--primary) 12%, transparent);color:var(--primary)">{p.duration}</span>}
               </div>
             </a>
           ))}
@@ -123,12 +100,54 @@ const formatDate = (d: string | Date | null) => d ? new Date(d).toLocaleDateStri
     </section>
   )}
 
+  <!-- Latest announcements + blog -->
+  {(announcements.length > 0 || posts.length > 0) && (
+    <section class="px-4 py-16">
+      <div class="max-w-7xl mx-auto grid lg:grid-cols-2 gap-8">
+        {announcements.length > 0 && (
+          <div class="halo-card p-7">
+            <div class="flex items-end justify-between mb-6">
+              <h2 class="text-2xl font-bold" style="color:var(--text)">Latest News</h2>
+              <a href={`${prefix}/announcements`} class="text-sm font-semibold hover:underline" style="color:var(--primary)">All news</a>
+            </div>
+            <div class="space-y-4">
+              {announcements.slice(0, 3).map(a => (
+                <a href={`${prefix}/announcements/${a.slug || a.id}`} class="block p-4 rounded-2xl hover:bg-black/5 transition-colors">
+                  <span class="text-xs font-medium" style="color:var(--primary)">{formatDate(a.publishedAt || a.createdAt)}</span>
+                  <h3 class="font-bold mt-1" style="color:var(--text)">{a.title}</h3>
+                  {a.excerpt && <p class="text-sm mt-1 line-clamp-2" style="color:var(--muted)">{a.excerpt}</p>}
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+        {posts.length > 0 && (
+          <div class="halo-card p-7">
+            <div class="flex items-end justify-between mb-6">
+              <h2 class="text-2xl font-bold" style="color:var(--text)">From the Blog</h2>
+              <a href={`${prefix}/blog`} class="text-sm font-semibold hover:underline" style="color:var(--primary)">All posts</a>
+            </div>
+            <div class="space-y-4">
+              {posts.slice(0, 3).map(p => (
+                <a href={`${prefix}/blog/${p.slug || p.id}`} class="block p-4 rounded-2xl hover:bg-black/5 transition-colors">
+                  <span class="text-xs font-medium" style="color:var(--accent)">{formatDate(p.publishedAt || p.createdAt)}</span>
+                  <h3 class="font-bold mt-1" style="color:var(--text)">{p.title}</h3>
+                  {p.excerpt && <p class="text-sm mt-1 line-clamp-2" style="color:var(--muted)">{p.excerpt}</p>}
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  )}
+
   <!-- CTA -->
   <section class="px-4 py-20">
-    <div class="aurora-glass-strong max-w-4xl mx-auto rounded-3xl p-8 sm:p-12 text-center shadow-2xl">
-      <h2 class="text-3xl font-bold mb-4" style="color:var(--text)">Ready to Join {school.name}?</h2>
-      <p class="mb-8 max-w-2xl mx-auto" style="color:var(--muted)">We would love to welcome your family to our community. Start the admissions process today.</p>
-      <a href={`/${school.slug}/admissions`} class="aurora-grad inline-flex px-8 py-3.5 text-base font-semibold text-white rounded-xl shadow-lg hover:scale-105 transition-transform">Start Application</a>
+    <div class="max-w-5xl mx-auto halo-grad rounded-3xl p-10 sm:p-16 text-center text-white shadow-2xl" style="box-shadow: 0 20px 60px -16px color-mix(in srgb, var(--primary) 50%, transparent)">
+      <h2 class="text-3xl sm:text-4xl font-bold mb-4">Step into the light with us</h2>
+      <p class="text-lg opacity-95 mb-8 max-w-2xl mx-auto">Admissions are open for the upcoming academic year. Let your curiosity shine in our community.</p>
+      <a href={`${prefix}/admissions`} class="inline-block bg-white px-8 py-3.5 rounded-full font-semibold hover:scale-105 transition-transform" style="color:var(--primary)">Apply Now</a>
     </div>
   </section>
 </div>

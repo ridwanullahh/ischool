@@ -1,63 +1,74 @@
 ---
-import { getSchoolNav, getSchoolContacts } from '../../../lib/school.ts';
-import { normalizeSocialUrl } from '../../../lib/social.ts';
-import { getSocialIconPath } from '../_shared/social-icons';
+import { getSchoolNav } from '../../../lib/school.ts';
 
 interface Props { school: any; [key: string]: any; }
 const { school, ...data } = Astro.props;
 const nav = getSchoolNav(school.id);
-const contacts = getSchoolContacts(school.id);
 const prefix = '/' + school.slug;
-const social = (school.socialHandles as Record<string, string>) || {};
-const socialEntries = Object.entries(social).filter(([, v]) => v && v !== '#');
-const locale = school.locale || 'en';
 const formatDate = (d: string | Date | null) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+const features = Array.isArray(data.features) ? data.features : [];
+const stats = Array.isArray(data.stats) ? data.stats : [];
+const about = data.about || {};
+const announcements = Array.isArray(data.recentAnnouncements) ? data.recentAnnouncements : [];
+const posts = Array.isArray(data.recentPosts) ? data.recentPosts : [];
+const programs = Array.isArray(data.schoolPrograms) ? data.schoolPrograms : [];
 ---
 <div class="space-y-0">
-  <!-- Hero: full-screen gradient mesh with centered glass text -->
-  <section class="relative overflow-hidden min-h-[70vh] flex items-center justify-center px-4 py-20">
-    <div class="relative z-10 max-w-4xl mx-auto text-center">
-      <div class="aurora-glass-strong rounded-3xl p-8 sm:p-12 shadow-2xl">
-        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-tight tracking-tight" style="color:var(--text)">{school.name}</h1>
-        {school.tagline && <p class="mt-4 text-lg sm:text-xl leading-relaxed" style="color:var(--muted)">{school.tagline}</p>}
-        <div class="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
-          <a href={`${prefix}/admissions`} class="aurora-grad px-6 py-3 text-base font-semibold text-white rounded-xl shadow-lg hover:scale-105 transition-transform">Apply for Admission</a>
-          <a href={`${prefix}/about`} class="aurora-glass px-6 py-3 text-base font-semibold rounded-xl border hover:scale-105 transition-transform" style="color:var(--text);border-color:var(--border)">Learn More</a>
-        </div>
+  <!-- Hero: ultra-minimal centered with whitespace -->
+  <section class="px-6 lg:px-10 py-32 sm:py-48">
+    <div class="max-w-4xl mx-auto">
+      <span class="horizon-label" style="color:var(--muted)">— {new Date().getFullYear() - 50} — Established</span>
+      <h1 class="horizon-mono mt-8 text-5xl sm:text-6xl lg:text-7xl font-medium leading-[1.05] tracking-tight" style="color:var(--text)">{school.name}</h1>
+      {school.tagline && <p class="horizon-mono mt-8 text-lg sm:text-xl leading-relaxed max-w-2xl" style="color:var(--muted)">{school.tagline}</p>}
+      <div class="mt-12 flex flex-col sm:flex-row gap-4">
+        <a href={`${prefix}/admissions`} class="horizon-btn horizon-btn-primary">Apply for Admission</a>
+        <a href={`${prefix}/about`} class="horizon-btn horizon-btn-ghost">Learn More</a>
       </div>
     </div>
   </section>
 
-  <!-- Latest announcement bar -->
-  {data.recentAnnouncements?.length > 0 && (
-    <a href={`/${school.slug}/announcements/${data.recentAnnouncements[0].slug}`} class="block aurora-glass mx-4 max-w-6xl mb-8 rounded-2xl p-4 hover:scale-[1.01] transition-transform">
-      <div class="max-w-6xl mx-auto flex items-center gap-3">
-        <span class="aurora-grad px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white rounded-full">Latest</span>
-        <span class="text-sm font-medium" style="color:var(--text)">{data.recentAnnouncements[0].title}</span>
+  <!-- Stats: minimal grid -->
+  {stats.length > 0 && (
+    <section class="border-y horizon-line" style="background:var(--surface)">
+      <div class="max-w-7xl mx-auto px-6 lg:px-10 py-16">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
+          {stats.slice(0, 4).map(s => (
+            <div>
+              <div class="horizon-mono text-4xl sm:text-5xl font-medium" style="color:var(--text)">{s.value}</div>
+              <div class="horizon-label mt-3" style="color:var(--muted)">{s.label}</div>
+            </div>
+          ))}
+        </div>
       </div>
-    </a>
+    </section>
   )}
 
   <!-- Value proposition -->
-  {data.about?.valueProposition && (
-    <section class="px-4 py-16">
-      <div class="max-w-4xl mx-auto text-center">
-        <p class="text-2xl sm:text-3xl font-bold leading-relaxed" style="color:var(--text)">{data.about.valueProposition}</p>
+  {about.valueProposition && (
+    <section class="px-6 lg:px-10 py-32">
+      <div class="max-w-4xl mx-auto">
+        <span class="horizon-label" style="color:var(--muted)">Our Philosophy</span>
+        <p class="horizon-mono mt-8 text-2xl sm:text-3xl leading-relaxed font-light" style="color:var(--text)">{about.valueProposition}</p>
       </div>
     </section>
   )}
 
-  <!-- Features: floating glass cards -->
-  {data.features?.length > 0 && (
-    <section class="px-4 py-16">
-      <div class="max-w-6xl mx-auto">
-        <h2 class="text-3xl font-bold text-center mb-12" style="color:var(--text)">Our Highlights</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {data.features.map(f => (
-            <div class="aurora-glass rounded-2xl p-6 hover:scale-105 transition-transform">
-              <div class="w-12 h-12 aurora-grad rounded-xl mb-4"></div>
-              <h3 class="text-lg font-bold mb-2" style="color:var(--text)">{f.title}</h3>
-              <p class="leading-relaxed" style="color:var(--muted)">{f.description}</p>
+  <!-- Features: minimal cards with thin borders -->
+  {features.length > 0 && (
+    <section class="px-6 lg:px-10 py-24 border-t horizon-line">
+      <div class="max-w-7xl mx-auto">
+        <div class="flex items-end justify-between mb-16">
+          <div>
+            <span class="horizon-label" style="color:var(--muted)">— 01</span>
+            <h2 class="horizon-mono mt-4 text-3xl sm:text-4xl font-medium" style="color:var(--text)">Why Choose Us</h2>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px" style="background:var(--border)">
+          {features.map((f, i) => (
+            <div class="p-10" style="background:var(--bg)">
+              <span class="horizon-label" style="color:var(--muted)">{String(i + 1).padStart(2, '0')}</span>
+              <h3 class="horizon-mono mt-6 text-xl font-medium" style="color:var(--text)">{f.title}</h3>
+              <p class="horizon-mono mt-4 text-sm leading-relaxed" style="color:var(--muted)">{f.description}</p>
             </div>
           ))}
         </div>
@@ -65,56 +76,24 @@ const formatDate = (d: string | Date | null) => d ? new Date(d).toLocaleDateStri
     </section>
   )}
 
-  <!-- Programs: glass cards with gradient accent -->
-  {data.schoolPrograms?.length > 0 && (
-    <section class="px-4 py-16">
-      <div class="max-w-6xl mx-auto">
-        <h2 class="text-3xl font-bold text-center mb-12" style="color:var(--text)">Our Programs</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {data.schoolPrograms.map(p => (
-            <a href={`/${school.slug}/programs/${p.slug}`} class="aurora-glass rounded-2xl p-6 hover:scale-105 transition-transform block">
-              <h3 class="text-lg font-bold mb-2" style="color:var(--text)">{p.name}</h3>
-              {p.level && <p class="text-sm font-medium mb-2" style="color:var(--primary)">{p.level}</p>}
-              {p.description && <p class="text-sm line-clamp-3" style="color:var(--muted)">{p.description}</p>}
-              {p.duration && <p class="text-xs mt-3" style="color:var(--muted)">{p.duration}</p>}
-            </a>
-          ))}
+  <!-- Programs: minimal text-led -->
+  {programs.length > 0 && (
+    <section class="px-6 lg:px-10 py-24 border-t horizon-line">
+      <div class="max-w-7xl mx-auto">
+        <div class="flex items-end justify-between mb-16">
+          <div>
+            <span class="horizon-label" style="color:var(--muted)">— 02</span>
+            <h2 class="horizon-mono mt-4 text-3xl sm:text-4xl font-medium" style="color:var(--text)">Our Programs</h2>
+          </div>
+          <a href={`${prefix}/programs`} class="horizon-nav-link" style="color:var(--text)">View all</a>
         </div>
-      </div>
-    </section>
-  )}
-
-  <!-- Stats: gradient bar -->
-  {data.stats?.length > 0 && (
-    <section class="aurora-grad py-16 mx-4 rounded-3xl mb-16">
-      <div class="max-w-6xl mx-auto px-4">
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
-          {data.stats.map(s => (
-            <div class="text-center text-white">
-              <p class="text-3xl sm:text-4xl font-bold">{s.value}</p>
-              <p class="text-sm opacity-80 mt-1">{s.label}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  )}
-
-  <!-- Latest news: glass cards -->
-  {data.recentPosts?.length > 0 && (
-    <section class="px-4 py-16">
-      <div class="max-w-6xl mx-auto">
-        <div class="flex items-center justify-between mb-12">
-          <h2 class="text-3xl font-bold" style="color:var(--text)">Latest News</h2>
-          <a href={`/${school.slug}/blog`} class="text-sm font-medium hover:underline" style="color:var(--primary)">View all</a>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {data.recentPosts.map(post => (
-            <a href={`/${school.slug}/blog/${post.slug}`} class="aurora-glass rounded-2xl overflow-hidden hover:scale-105 transition-transform block group">
-              {post.coverImageUrl && <img src={post.coverImageUrl} alt={post.title} class="w-full h-48 object-cover" loading="lazy" />}
-              <div class="p-6">
-                <h3 class="font-bold mb-2 group-hover:text-[var(--primary)] transition-colors" style="color:var(--text)">{post.title}</h3>
-                <p class="text-sm line-clamp-2" style="color:var(--muted)">{post.excerpt || post.content}</p>
+        <div class="border-t horizon-line">
+          {programs.slice(0, 5).map((p, i) => (
+            <a href={`${prefix}/programs/${p.slug || p.id}`} class="block border-b horizon-line py-8 group transition-colors hover:opacity-60">
+              <div class="grid grid-cols-12 gap-4 items-baseline">
+                <span class="horizon-label col-span-2 md:col-span-1" style="color:var(--muted)">{String(i + 1).padStart(2, '0')}</span>
+                <h3 class="horizon-mono col-span-10 md:col-span-5 text-xl sm:text-2xl font-medium" style="color:var(--text)">{p.name}</h3>
+                <p class="horizon-mono col-span-12 md:col-span-5 text-sm leading-relaxed" style="color:var(--muted)">{p.description ? p.description.slice(0, 80) : ''}{p.duration ? ` · ${p.duration}` : ''}</p>
               </div>
             </a>
           ))}
@@ -123,12 +102,55 @@ const formatDate = (d: string | Date | null) => d ? new Date(d).toLocaleDateStri
     </section>
   )}
 
+  <!-- Latest announcements + blog -->
+  {(announcements.length > 0 || posts.length > 0) && (
+    <section class="px-6 lg:px-10 py-24 border-t horizon-line">
+      <div class="max-w-7xl mx-auto grid lg:grid-cols-2 gap-16">
+        {announcements.length > 0 && (
+          <div>
+            <div class="flex items-end justify-between mb-12 pb-6 border-b horizon-line">
+              <h2 class="horizon-mono text-2xl font-medium" style="color:var(--text)">Latest News</h2>
+              <a href={`${prefix}/announcements`} class="horizon-nav-link" style="color:var(--text)">All</a>
+            </div>
+            <div class="space-y-8">
+              {announcements.slice(0, 3).map(a => (
+                <a href={`${prefix}/announcements/${a.slug || a.id}`} class="block group">
+                  <span class="horizon-label" style="color:var(--muted)">{formatDate(a.publishedAt || a.createdAt)}</span>
+                  <h3 class="horizon-mono mt-3 text-lg font-medium group-hover:opacity-60 transition-opacity" style="color:var(--text)">{a.title}</h3>
+                  {a.excerpt && <p class="horizon-mono mt-2 text-sm leading-relaxed" style="color:var(--muted)">{a.excerpt}</p>}
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+        {posts.length > 0 && (
+          <div>
+            <div class="flex items-end justify-between mb-12 pb-6 border-b horizon-line">
+              <h2 class="horizon-mono text-2xl font-medium" style="color:var(--text)">From the Blog</h2>
+              <a href={`${prefix}/blog`} class="horizon-nav-link" style="color:var(--text)">All</a>
+            </div>
+            <div class="space-y-8">
+              {posts.slice(0, 3).map(p => (
+                <a href={`${prefix}/blog/${p.slug || p.id}`} class="block group">
+                  <span class="horizon-label" style="color:var(--muted)">{formatDate(p.publishedAt || p.createdAt)}</span>
+                  <h3 class="horizon-mono mt-3 text-lg font-medium group-hover:opacity-60 transition-opacity" style="color:var(--text)">{p.title}</h3>
+                  {p.excerpt && <p class="horizon-mono mt-2 text-sm leading-relaxed" style="color:var(--muted)">{p.excerpt}</p>}
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  )}
+
   <!-- CTA -->
-  <section class="px-4 py-20">
-    <div class="aurora-glass-strong max-w-4xl mx-auto rounded-3xl p-8 sm:p-12 text-center shadow-2xl">
-      <h2 class="text-3xl font-bold mb-4" style="color:var(--text)">Ready to Join {school.name}?</h2>
-      <p class="mb-8 max-w-2xl mx-auto" style="color:var(--muted)">We would love to welcome your family to our community. Start the admissions process today.</p>
-      <a href={`/${school.slug}/admissions`} class="aurora-grad inline-flex px-8 py-3.5 text-base font-semibold text-white rounded-xl shadow-lg hover:scale-105 transition-transform">Start Application</a>
+  <section class="px-6 lg:px-10 py-32 border-t horizon-line">
+    <div class="max-w-4xl mx-auto text-center">
+      <span class="horizon-label" style="color:var(--muted)">— Admissions Open</span>
+      <h2 class="horizon-mono mt-8 text-4xl sm:text-5xl font-medium leading-tight" style="color:var(--text)">Begin your application</h2>
+      <p class="horizon-mono mt-6 text-lg leading-relaxed max-w-2xl mx-auto" style="color:var(--muted)">Admissions are open for the upcoming academic year. A simple, considered process awaits.</p>
+      <a href={`${prefix}/admissions`} class="horizon-btn horizon-btn-primary mt-10">Apply Now</a>
     </div>
   </section>
 </div>

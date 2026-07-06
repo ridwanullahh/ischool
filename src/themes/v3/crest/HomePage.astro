@@ -12,123 +12,159 @@ const social = (school.socialHandles as Record<string, string>) || {};
 const socialEntries = Object.entries(social).filter(([, v]) => v && v !== '#');
 const locale = school.locale || 'en';
 const formatDate = (d: string | Date | null) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+const features = Array.isArray(data.features) ? data.features : [];
+const stats = Array.isArray(data.stats) ? data.stats : [];
+const about = data.about || {};
+const announcements = Array.isArray(data.recentAnnouncements) ? data.recentAnnouncements : [];
+const posts = Array.isArray(data.recentPosts) ? data.recentPosts : [];
+const programs = Array.isArray(data.schoolPrograms) ? data.schoolPrograms : [];
 ---
 <div class="space-y-0">
-  <!-- Hero: full-screen gradient mesh with centered glass text -->
-  <section class="relative overflow-hidden min-h-[70vh] flex items-center justify-center px-4 py-20">
-    <div class="relative z-10 max-w-4xl mx-auto text-center">
-      <div class="aurora-glass-strong rounded-3xl p-8 sm:p-12 shadow-2xl">
-        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-tight tracking-tight" style="color:var(--text)">{school.name}</h1>
-        {school.tagline && <p class="mt-4 text-lg sm:text-xl leading-relaxed" style="color:var(--muted)">{school.tagline}</p>}
-        <div class="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
-          <a href={`${prefix}/admissions`} class="aurora-grad px-6 py-3 text-base font-semibold text-white rounded-xl shadow-lg hover:scale-105 transition-transform">Apply for Admission</a>
-          <a href={`${prefix}/about`} class="aurora-glass px-6 py-3 text-base font-semibold rounded-xl border hover:scale-105 transition-transform" style="color:var(--text);border-color:var(--border)">Learn More</a>
-        </div>
+  <!-- Hero: heraldic banner -->
+  <section class="border-b" style="background:var(--bg);border-color:var(--border)">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 text-center">
+      <div class="crest-divider max-w-xs mx-auto mb-6"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2L4 6v6c0 5 3.5 9 8 10 4.5-1 8-5 8-10V6l-8-4z"/></svg></div>
+      <span class="crest-pill">Anno Domini · Est. {new Date().getFullYear() - 50}</span>
+      <h1 class="crest-display text-4xl sm:text-5xl lg:text-6xl font-bold mt-6 leading-tight" style="color:var(--text)">{school.name}</h1>
+      {school.tagline && <p class="crest-body italic text-lg sm:text-xl mt-5 max-w-2xl mx-auto leading-relaxed" style="color:var(--muted)">{school.tagline}</p>}
+      <div class="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
+        <a href={`${prefix}/admissions`} class="crest-display inline-flex items-center justify-center px-7 py-3 text-xs font-bold uppercase tracking-[0.2em] text-white crest-grad">Apply for Admission</a>
+        <a href={`${prefix}/about`} class="crest-display inline-flex items-center justify-center px-7 py-3 text-xs font-bold uppercase tracking-[0.2em] border-2" style="border-color:var(--primary);color:var(--primary)">Learn More</a>
       </div>
     </div>
   </section>
 
   <!-- Latest announcement bar -->
-  {data.recentAnnouncements?.length > 0 && (
-    <a href={`/${school.slug}/announcements/${data.recentAnnouncements[0].slug}`} class="block aurora-glass mx-4 max-w-6xl mb-8 rounded-2xl p-4 hover:scale-[1.01] transition-transform">
-      <div class="max-w-6xl mx-auto flex items-center gap-3">
-        <span class="aurora-grad px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white rounded-full">Latest</span>
-        <span class="text-sm font-medium" style="color:var(--text)">{data.recentAnnouncements[0].title}</span>
+  {announcements.length > 0 && (
+    <a href={`${prefix}/announcements/${announcements[0].slug || announcements[0].id}`} class="block border-b hover:opacity-90" style="background:var(--primary);border-color:var(--border)">
+      <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-center gap-3">
+        <span class="crest-display text-[10px] font-bold uppercase tracking-[0.2em] text-white border border-white/40 px-2 py-0.5">Herald</span>
+        <span class="text-sm font-medium text-white">{announcements[0].title}</span>
       </div>
     </a>
   )}
 
   <!-- Value proposition -->
-  {data.about?.valueProposition && (
-    <section class="px-4 py-16">
-      <div class="max-w-4xl mx-auto text-center">
-        <p class="text-2xl sm:text-3xl font-bold leading-relaxed" style="color:var(--text)">{data.about.valueProposition}</p>
+  {about.valueProposition && (
+    <section class="py-16" style="background:var(--surface)">
+      <div class="max-w-3xl mx-auto px-4 text-center">
+        <span class="crest-pill mb-4">Our Charter</span>
+        <p class="crest-body text-xl sm:text-2xl italic leading-relaxed mt-4" style="color:var(--text)">{about.valueProposition}</p>
       </div>
     </section>
   )}
 
-  <!-- Features: floating glass cards -->
-  {data.features?.length > 0 && (
-    <section class="px-4 py-16">
-      <div class="max-w-6xl mx-auto">
-        <h2 class="text-3xl font-bold text-center mb-12" style="color:var(--text)">Our Highlights</h2>
+  <!-- Features: heraldic shield cards -->
+  {features.length > 0 && (
+    <section class="py-20">
+      <div class="max-w-7xl mx-auto px-4">
+        <div class="text-center mb-12">
+          <div class="crest-divider max-w-xs mx-auto mb-4"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2L4 6v6c0 5 3.5 9 8 10 4.5-1 8-5 8-10V6l-8-4z"/></svg></div>
+          <h2 class="crest-display text-2xl sm:text-3xl font-bold" style="color:var(--text)">Hallmarks of Distinction</h2>
+        </div>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {data.features.map(f => (
-            <div class="aurora-glass rounded-2xl p-6 hover:scale-105 transition-transform">
-              <div class="w-12 h-12 aurora-grad rounded-xl mb-4"></div>
-              <h3 class="text-lg font-bold mb-2" style="color:var(--text)">{f.title}</h3>
-              <p class="leading-relaxed" style="color:var(--muted)">{f.description}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  )}
-
-  <!-- Programs: glass cards with gradient accent -->
-  {data.schoolPrograms?.length > 0 && (
-    <section class="px-4 py-16">
-      <div class="max-w-6xl mx-auto">
-        <h2 class="text-3xl font-bold text-center mb-12" style="color:var(--text)">Our Programs</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {data.schoolPrograms.map(p => (
-            <a href={`/${school.slug}/programs/${p.slug}`} class="aurora-glass rounded-2xl p-6 hover:scale-105 transition-transform block">
-              <h3 class="text-lg font-bold mb-2" style="color:var(--text)">{p.name}</h3>
-              {p.level && <p class="text-sm font-medium mb-2" style="color:var(--primary)">{p.level}</p>}
-              {p.description && <p class="text-sm line-clamp-3" style="color:var(--muted)">{p.description}</p>}
-              {p.duration && <p class="text-xs mt-3" style="color:var(--muted)">{p.duration}</p>}
-            </a>
-          ))}
-        </div>
-      </div>
-    </section>
-  )}
-
-  <!-- Stats: gradient bar -->
-  {data.stats?.length > 0 && (
-    <section class="aurora-grad py-16 mx-4 rounded-3xl mb-16">
-      <div class="max-w-6xl mx-auto px-4">
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
-          {data.stats.map(s => (
-            <div class="text-center text-white">
-              <p class="text-3xl sm:text-4xl font-bold">{s.value}</p>
-              <p class="text-sm opacity-80 mt-1">{s.label}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  )}
-
-  <!-- Latest news: glass cards -->
-  {data.recentPosts?.length > 0 && (
-    <section class="px-4 py-16">
-      <div class="max-w-6xl mx-auto">
-        <div class="flex items-center justify-between mb-12">
-          <h2 class="text-3xl font-bold" style="color:var(--text)">Latest News</h2>
-          <a href={`/${school.slug}/blog`} class="text-sm font-medium hover:underline" style="color:var(--primary)">View all</a>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {data.recentPosts.map(post => (
-            <a href={`/${school.slug}/blog/${post.slug}`} class="aurora-glass rounded-2xl overflow-hidden hover:scale-105 transition-transform block group">
-              {post.coverImageUrl && <img src={post.coverImageUrl} alt={post.title} class="w-full h-48 object-cover" loading="lazy" />}
-              <div class="p-6">
-                <h3 class="font-bold mb-2 group-hover:text-[var(--primary)] transition-colors" style="color:var(--text)">{post.title}</h3>
-                <p class="text-sm line-clamp-2" style="color:var(--muted)">{post.excerpt || post.content}</p>
+          {features.map((f, i) => (
+            <div class="crest-card p-7">
+              <div class="flex items-center gap-3 mb-4">
+                <span class="crest-seal crest-display text-sm font-bold">{String(i + 1).padStart(2, '0')}</span>
+                <span class="crest-display text-[10px] uppercase tracking-[0.2em]" style="color:var(--primary)">Hallmark {String(i + 1).padStart(2, '0')}</span>
               </div>
+              <h3 class="crest-display text-lg font-bold mb-2" style="color:var(--text)">{f.title}</h3>
+              <p class="crest-body text-sm leading-relaxed" style="color:var(--muted)">{f.description}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- Programs: shield-numbered cards -->
+  {programs.length > 0 && (
+    <section class="py-20" style="background:var(--surface)">
+      <div class="max-w-7xl mx-auto px-4">
+        <div class="text-center mb-12">
+          <div class="crest-divider max-w-xs mx-auto mb-4"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2L4 6v6c0 5 3.5 9 8 10 4.5-1 8-5 8-10V6l-8-4z"/></svg></div>
+          <h2 class="crest-display text-2xl sm:text-3xl font-bold" style="color:var(--text)">Faculties of Learning</h2>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {programs.slice(0, 4).map((p, i) => (
+            <a href={`${prefix}/programs/${p.slug || p.id}`} class="crest-card p-6 block">
+              <span class="crest-display text-3xl font-bold" style="color:var(--primary)">{String(i + 1).padStart(2, '0')}</span>
+              <h3 class="crest-display text-base font-bold mt-3 mb-2" style="color:var(--text)">{p.name}</h3>
+              {p.description && <p class="crest-body text-sm line-clamp-3" style="color:var(--muted)">{p.description}</p>}
+              {p.duration && <p class="crest-display text-[10px] uppercase tracking-[0.2em] mt-3 pt-3 border-t" style="color:var(--primary);border-color:var(--border)">{p.duration}</p>}
             </a>
           ))}
         </div>
+      </div>
+    </section>
+  )}
+
+  <!-- Stats: full-width bar -->
+  {stats.length > 0 && (
+    <section class="py-14 crest-grad">
+      <div class="max-w-7xl mx-auto px-4">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
+          {stats.slice(0, 4).map(s => (
+            <div class="text-center text-white">
+              <p class="crest-display text-3xl sm:text-4xl font-bold">{s.value}</p>
+              <p class="crest-display text-[10px] uppercase tracking-[0.2em] opacity-80 mt-2">{s.label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- Latest news + announcements -->
+  {(announcements.length > 0 || posts.length > 0) && (
+    <section class="py-20">
+      <div class="max-w-7xl mx-auto px-4 grid lg:grid-cols-2 gap-10">
+        {announcements.length > 0 && (
+          <div>
+            <div class="flex items-end justify-between mb-6 pb-3 border-b" style="border-color:var(--border)">
+              <h2 class="crest-display text-xl font-bold" style="color:var(--text)">Heralds & Notices</h2>
+              <a href={`${prefix}/announcements`} class="crest-display text-[10px] uppercase tracking-[0.2em] hover:opacity-70" style="color:var(--primary)">All Notices</a>
+            </div>
+            <div class="space-y-4">
+              {announcements.slice(0, 3).map(a => (
+                <a href={`${prefix}/announcements/${a.slug || a.id}`} class="crest-card p-5 block">
+                  <span class="crest-display text-[10px] uppercase tracking-[0.2em]" style="color:var(--primary)">{formatDate(a.publishedAt || a.createdAt)}</span>
+                  <h3 class="crest-display font-bold mt-2" style="color:var(--text)">{a.title}</h3>
+                  {a.excerpt && <p class="crest-body text-sm mt-1 line-clamp-2" style="color:var(--muted)">{a.excerpt}</p>}
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+        {posts.length > 0 && (
+          <div>
+            <div class="flex items-end justify-between mb-6 pb-3 border-b" style="border-color:var(--border)">
+              <h2 class="crest-display text-xl font-bold" style="color:var(--text)">Chronicles</h2>
+              <a href={`${prefix}/blog`} class="crest-display text-[10px] uppercase tracking-[0.2em] hover:opacity-70" style="color:var(--primary)">All Chronicles</a>
+            </div>
+            <div class="space-y-4">
+              {posts.slice(0, 3).map(p => (
+                <a href={`${prefix}/blog/${p.slug || p.id}`} class="crest-card p-5 block">
+                  <span class="crest-display text-[10px] uppercase tracking-[0.2em]" style="color:var(--primary)">{formatDate(p.publishedAt || p.createdAt)}</span>
+                  <h3 class="crest-display font-bold mt-2" style="color:var(--text)">{p.title}</h3>
+                  {p.excerpt && <p class="crest-body text-sm mt-1 line-clamp-2" style="color:var(--muted)">{p.excerpt}</p>}
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </section>
   )}
 
   <!-- CTA -->
-  <section class="px-4 py-20">
-    <div class="aurora-glass-strong max-w-4xl mx-auto rounded-3xl p-8 sm:p-12 text-center shadow-2xl">
-      <h2 class="text-3xl font-bold mb-4" style="color:var(--text)">Ready to Join {school.name}?</h2>
-      <p class="mb-8 max-w-2xl mx-auto" style="color:var(--muted)">We would love to welcome your family to our community. Start the admissions process today.</p>
-      <a href={`/${school.slug}/admissions`} class="aurora-grad inline-flex px-8 py-3.5 text-base font-semibold text-white rounded-xl shadow-lg hover:scale-105 transition-transform">Start Application</a>
+  <section class="py-20" style="background:var(--surface)">
+    <div class="max-w-3xl mx-auto px-4 text-center">
+      <div class="crest-divider max-w-xs mx-auto mb-4"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2L4 6v6c0 5 3.5 9 8 10 4.5-1 8-5 8-10V6l-8-4z"/></svg></div>
+      <h2 class="crest-display text-2xl sm:text-3xl font-bold mb-4" style="color:var(--text)">Petition for Admission</h2>
+      <p class="crest-body italic mb-8 max-w-2xl mx-auto" style="color:var(--muted)">We invite families of character to join our distinguished community. The application portal awaits your inquiry.</p>
+      <a href={`${prefix}/admissions`} class="crest-display inline-flex px-8 py-3.5 text-xs font-bold uppercase tracking-[0.2em] text-white crest-grad">Submit Application</a>
     </div>
   </section>
 </div>
