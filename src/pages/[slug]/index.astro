@@ -12,10 +12,14 @@ const isPreviewing = previewTheme && themeList.includes(previewTheme) && user;
 const activeTheme = isPreviewing ? previewTheme : (school.theme || 'aurora');
 
 const about = getSchoolAbout(school.id);
+// getSchoolAbout() already parses JSON columns via parseJsonCol.
+// Use the arrays directly; only parse if they're still strings (legacy data).
 let features: Array<{ title: string; description: string }> = [];
 let stats: Array<{ label: string; value: string }> = [];
-try { features = JSON.parse(about?.features || '[]'); } catch { features = []; }
-try { stats = JSON.parse(about?.stats || '[]'); } catch { stats = []; }
+if (Array.isArray(about?.features)) features = about.features;
+else if (typeof about?.features === 'string') { try { features = JSON.parse(about.features); } catch { features = []; } }
+if (Array.isArray(about?.stats)) stats = about.stats;
+else if (typeof about?.stats === 'string') { try { stats = JSON.parse(about.stats); } catch { stats = []; } }
 
 const recentAnnouncements = getSchoolAnnouncements(school.id, 3);
 const recentPosts = getSchoolPosts(school.id, 3);

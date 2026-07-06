@@ -28,7 +28,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const db = getDb();
   const result = db.insert(forms).values({
     schoolId, title, description: description || null, slug,
-    fields: '[]', settings: '{}', status: 'draft',
+    fields: [] as any, settings: {} as any, status: 'draft',
     isPublic: isPublic ?? true, requiresAuth: requiresAuth ?? false,
     submitButtonText: 'Submit',
     createdBy: user.id,
@@ -61,7 +61,7 @@ export const PUT: APIRoute = async ({ request, locals }) => {
   }
 
   const updates: any = { updatedAt: new Date() };
-  if (fields !== undefined) updates.fields = JSON.stringify(fields);
+  if (fields !== undefined) updates.fields = fields; // Drizzle json-mode auto-serializes
   if (status !== undefined) updates.status = status;
   if (submitButtonText !== undefined) updates.submitButtonText = submitButtonText;
   if (successMessage !== undefined) updates.successMessage = successMessage;

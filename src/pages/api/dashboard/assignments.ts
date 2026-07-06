@@ -74,8 +74,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
     allowLate: data.allowLate || false,
     allowResubmit: data.allowResubmit || false,
     isGroup: data.isGroup || false,
-    attachments: data.attachments ? JSON.stringify(data.attachments) : '[]',
-    rubric: data.rubric ? JSON.stringify(data.rubric) : null,
+    attachments: (data.attachments || []) as any,
+    rubric: (data.rubric || null) as any,
   }).returning().get();
 
   if (result) {
@@ -107,8 +107,8 @@ export const PUT: APIRoute = async ({ request, locals }) => {
   if (!existing) return new Response(JSON.stringify({ error: 'Assignment not found' }), { status: 404 });
 
   const { id, schoolId: _, ...updateData } = data;
-  if (updateData.attachments && typeof updateData.attachments === 'object') updateData.attachments = JSON.stringify(updateData.attachments);
-  if (updateData.rubric && typeof updateData.rubric === 'object') updateData.rubric = JSON.stringify(updateData.rubric);
+  if (updateData.attachments && typeof updateData.attachments === 'object') updateData.attachments = updateData.attachments;
+  if (updateData.rubric && typeof updateData.rubric === 'object') updateData.rubric = updateData.rubric;
 
   db.update(assignments).set({ ...updateData, updatedAt: new Date() }).where(eq(assignments.id, id)).run();
   const updated = db.select().from(assignments).where(eq(assignments.id, id)).get();

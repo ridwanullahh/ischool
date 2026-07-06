@@ -30,7 +30,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const data = await request.json();
   if (!data.name || !data.totalAmount) return new Response(JSON.stringify({ error: 'Name and total amount are required' }), { status: 400 });
 
-  const items = typeof data.items === 'string' ? data.items : JSON.stringify(data.items || []);
+  const items = (typeof data.items === 'object' ? data.items : (typeof data.items === 'string' ? (() => { try { return JSON.parse(data.items); } catch { return []; } })() : [])) as any;
 
   const result = db.insert(feeStructures).values({
     ...data,

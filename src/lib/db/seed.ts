@@ -44,14 +44,14 @@ async function seed() {
     schoolId: school1.id,
     mission: 'To provide a comprehensive Islamic education that nurtures the spiritual, intellectual, and moral development of every student, preparing them to be confident Muslims and contributing members of society.',
     vision: 'To be a beacon of Islamic education where the Quran and Sunnah guide our approach to modern learning, producing graduates who excel in both deen and dunya.',
-    features: JSON.stringify([
+    features: ([
       { title: 'Quran & Islamic Studies', description: 'Daily Quran memorization (Hifz), Tajweed, Tafseer, and comprehensive Islamic studies integrated into the curriculum.' },
       { title: 'Qualified Islamic Scholars', description: 'Our teachers are certified in both Islamic sciences and modern education methodologies.' },
       { title: 'Prayer & Spiritual Environment', description: 'Congregational prayers, Ramadan programs, and a nurturing Islamic atmosphere throughout the school day.' },
       { title: 'Academic Excellence', description: 'Rigorous STEM, humanities, and language arts programs that meet and exceed national standards.' },
     ]),
     valueProposition: 'At Al-Noor Islamic Academy, we believe that true education begins with the remembrance of Allah. Our integrated curriculum combines the best of Islamic scholarship with modern academic standards, ensuring our students are grounded in their faith while prepared for the challenges of the modern world. We follow the Quranic principle: "Read! In the name of your Lord who created." (96:1)',
-    stats: JSON.stringify([
+    stats: ([
       { label: 'Students Enrolled', value: '850+' },
       { label: 'Huffaz Graduates', value: '120+' },
       { label: 'University Acceptance', value: '97%' },
@@ -137,14 +137,14 @@ async function seed() {
     schoolId: school2.id,
     mission: 'To cultivate a generation of Muslim leaders who embody the spirit of the House of Wisdom — excelling in both religious scholarship and modern sciences, committed to serving the Ummah and humanity.',
     vision: 'Inspired by the great Bayt al-Hikmah of Baghdad, we aspire to be a center of learning where critical thinking, creativity, and Islamic values converge to produce outstanding scholars, scientists, and community leaders.',
-    features: JSON.stringify([
+    features: ([
       { title: 'Dual Curriculum', description: 'A unique blend of classical Islamic sciences and Cambridge International curriculum, giving students the best of both worlds.' },
       { title: 'Arabic Immersion', description: 'Full Arabic language immersion program with native-speaking teachers, ensuring fluency in the language of the Quran.' },
       { title: 'Character Building (Tarbiyah)', description: 'A structured tarbiyah program that develops Islamic character, leadership, and community service in every student.' },
       { title: 'Modern Campus', description: 'Purpose-built campus with separate boys and girls sections, masjid, library, science labs, sports facilities, and creative arts studio.' },
     ]),
     valueProposition: 'Darul Hikmah revives the tradition of the great Islamic academies. Named after the House of Wisdom in Baghdad — where scholars translated, discovered, and innovated — we believe that Islam and academic excellence are not just compatible, but inseparable. Our graduates leave as hafiz of Quran, fluent in Arabic, and accepted into top universities worldwide.',
-    stats: JSON.stringify([
+    stats: ([
       { label: 'Students Enrolled', value: '650+' },
       { label: 'Huffaz Graduates', value: '85+' },
       { label: 'Cambridge Distinctions', value: '92%' },
@@ -361,8 +361,8 @@ async function seed() {
 
   // Quiz Questions
   db.insert(questions).values([
-    { quizId: quiz1.id, schoolId: school1.id, type: 'multiple_choice', question: 'What is the meaning of "Alhamdulillah"?', options: JSON.stringify(['All praise is due to Allah', 'Allah is Great', 'In the name of Allah']), correctAnswer: '0', points: 10, difficulty: 'easy' },
-    { quizId: quiz1.id, schoolId: school1.id, type: 'true_false', question: 'Tajweed rules are optional in Quran recitation', options: JSON.stringify(['True', 'False']), correctAnswer: '1', points: 10, difficulty: 'easy' },
+    { quizId: quiz1.id, schoolId: school1.id, type: 'multiple_choice', question: 'What is the meaning of "Alhamdulillah"?', options: (['All praise is due to Allah', 'Allah is Great', 'In the name of Allah']), correctAnswer: '0', points: 10, difficulty: 'easy' },
+    { quizId: quiz1.id, schoolId: school1.id, type: 'true_false', question: 'Tajweed rules are optional in Quran recitation', options: (['True', 'False']), correctAnswer: '1', points: 10, difficulty: 'easy' },
   ]).run();
 
   // Grades
@@ -382,7 +382,7 @@ async function seed() {
   db.insert(bellSchedules).values({
     schoolId: school1.id,
     name: 'Regular Schedule',
-    periods: JSON.stringify([
+    periods: ([
       { name: 'Fajr Prayer', start: '06:30', end: '07:00' },
       { name: 'Period 1', start: '08:00', end: '08:50' },
       { name: 'Period 2', start: '09:00', end: '09:50' },
@@ -429,7 +429,7 @@ async function seed() {
     name: 'Primary School Tuition',
     gradeLevel: 'Grade 1-5',
     category: 'Tuition',
-    items: JSON.stringify([
+    items: ([
       { name: 'Tuition Fee', amount: 3500 },
       { name: 'Registration Fee', amount: 200 },
       { name: 'Books & Materials', amount: 300 },
@@ -477,7 +477,7 @@ async function seed() {
     employmentType: 'full_time',
     email: 'ibrahim.musa@alnoor.edu',
     phone: '+1 (555) 777-8888',
-    qualifications: JSON.stringify(['BA Islamic Studies', 'Ijazah in Quran']),
+    qualifications: (['BA Islamic Studies', 'Ijazah in Quran']),
     joinDate: '2020-08-15',
     salary: 55000,
     status: 'active',
@@ -494,7 +494,7 @@ async function seed() {
     employmentType: 'full_time',
     email: 'fatima.zahra@alnoor.edu',
     phone: '+1 (555) 999-0000',
-    qualifications: JSON.stringify(['BA Arabic Literature', 'Teaching Certificate']),
+    qualifications: (['BA Arabic Literature', 'Teaching Certificate']),
     joinDate: '2021-09-01',
     salary: 48000,
     status: 'active',
@@ -519,8 +519,8 @@ async function seed() {
     month: '06',
     year: 2026,
     basicSalary: 4583,
-    allowances: JSON.stringify([{ name: 'Housing', amount: 500 }, { name: 'Transport', amount: 200 }]),
-    deductions: JSON.stringify([{ name: 'Tax', amount: 650 }, { name: 'Pension', amount: 200 }]),
+    allowances: ([{ name: 'Housing', amount: 500 }, { name: 'Transport', amount: 200 }]),
+    deductions: ([{ name: 'Tax', amount: 650 }, { name: 'Pension', amount: 200 }]),
     grossPay: 5283,
     netPay: 4433,
     status: 'paid',
@@ -622,7 +622,7 @@ async function seed() {
     schoolId: school1.id,
     name: 'Route A - Downtown',
     vehicleId: vehicle1.id,
-    stops: JSON.stringify([
+    stops: ([
       { name: 'Main Street', time: '07:30' },
       { name: 'Oak Avenue', time: '07:45' },
       { name: 'School', time: '08:00' },
@@ -643,8 +643,8 @@ async function seed() {
 
   // Events
   db.insert(events).values([
-    { schoolId: school1.id, title: 'Annual Quran Competition', description: 'Inter-school Quran memorization competition', category: 'academic', startDate: '2026-07-20', startTime: '09:00', endTime: '15:00', venue: 'Main Auditorium', audience: JSON.stringify(['students', 'parents', 'staff']), rsvpRequired: true },
-    { schoolId: school1.id, title: 'Parent-Teacher Meeting', description: 'Quarterly progress discussion', category: 'meeting', startDate: '2026-06-25', startTime: '14:00', endTime: '17:00', venue: 'Classrooms', audience: JSON.stringify(['parents', 'teachers']), rsvpRequired: false },
+    { schoolId: school1.id, title: 'Annual Quran Competition', description: 'Inter-school Quran memorization competition', category: 'academic', startDate: '2026-07-20', startTime: '09:00', endTime: '15:00', venue: 'Main Auditorium', audience: (['students', 'parents', 'staff']), rsvpRequired: true },
+    { schoolId: school1.id, title: 'Parent-Teacher Meeting', description: 'Quarterly progress discussion', category: 'meeting', startDate: '2026-06-25', startTime: '14:00', endTime: '17:00', venue: 'Classrooms', audience: (['parents', 'teachers']), rsvpRequired: false },
   ]).run();
 
   // Behavior Logs
@@ -669,10 +669,10 @@ async function seed() {
 
   // Module Settings
   db.insert(moduleSettings).values([
-    { schoolId: school1.id, module: 'sis', enabled: true, settings: JSON.stringify({}) },
-    { schoolId: school1.id, module: 'lms', enabled: true, settings: JSON.stringify({}) },
-    { schoolId: school1.id, module: 'finance', enabled: true, settings: JSON.stringify({ paymentGateways: ['stripe'] }) },
-    { schoolId: school1.id, module: 'library', enabled: true, settings: JSON.stringify({ loanPeriod: 14 }) },
+    { schoolId: school1.id, module: 'sis', enabled: true, settings: ({}) },
+    { schoolId: school1.id, module: 'lms', enabled: true, settings: ({}) },
+    { schoolId: school1.id, module: 'finance', enabled: true, settings: ({ paymentGateways: ['stripe'] }) },
+    { schoolId: school1.id, module: 'library', enabled: true, settings: ({ loanPeriod: 14 }) },
   ]).run();
 
   // CBT Exams
@@ -701,28 +701,28 @@ async function seed() {
 
   // Audit Logs
   db.insert(auditLogs).values([
-    { schoolId: school1.id, userId: owner1.id, action: 'LOGIN', entity: 'user', details: JSON.stringify({ ip: '192.168.1.1' }), ipAddress: '192.168.1.1' },
-    { schoolId: school1.id, userId: teacher1.id, action: 'CREATE_COURSE', entity: 'course', entityId: course1.id, details: JSON.stringify({ course: 'Quran Memorization' }), ipAddress: '192.168.1.10' },
+    { schoolId: school1.id, userId: owner1.id, action: 'LOGIN', entity: 'user', details: ({ ip: '192.168.1.1' }), ipAddress: '192.168.1.1' },
+    { schoolId: school1.id, userId: teacher1.id, action: 'CREATE_COURSE', entity: 'course', entityId: course1.id, details: ({ course: 'Quran Memorization' }), ipAddress: '192.168.1.10' },
   ]).run();
 
   // Notification Templates
   db.insert(notificationTemplates).values([
-    { schoolId: school1.id, name: 'Attendance Alert', channel: 'sms', body: 'Your child {{studentName}} was marked {{status}} today.', variables: JSON.stringify(['studentName', 'status']) },
-    { schoolId: school1.id, name: 'Fee Reminder', channel: 'email', subject: 'Fee Payment Reminder', body: 'Dear parent, this is a reminder that invoice {{invoiceNumber}} is due on {{dueDate}}.', variables: JSON.stringify(['invoiceNumber', 'dueDate']) },
+    { schoolId: school1.id, name: 'Attendance Alert', channel: 'sms', body: 'Your child {{studentName}} was marked {{status}} today.', variables: (['studentName', 'status']) },
+    { schoolId: school1.id, name: 'Fee Reminder', channel: 'email', subject: 'Fee Payment Reminder', body: 'Dear parent, this is a reminder that invoice {{invoiceNumber}} is due on {{dueDate}}.', variables: (['invoiceNumber', 'dueDate']) },
   ]).run();
 
   // Banners
   db.insert(banners).values([
-    { schoolId: school1.id, title: 'Admissions Open 2026-27', subtitle: 'Apply now for the upcoming academic year', imageUrl: 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=1200', linkUrl: '/admissions', linkText: 'Apply Now', position: 'hero', displayPages: JSON.stringify(['all']), isActive: true, sortOrder: 0 },
-    { schoolId: school1.id, title: 'Annual Quran Competition', subtitle: 'Register by June 30th', imageUrl: 'https://images.unsplash.com/photo-1609599006353-e629aaabfeae?w=1200', linkUrl: '/announcements', linkText: 'Learn More', position: 'top', displayPages: JSON.stringify(['all']), isActive: true, sortOrder: 1 },
-    { schoolId: school1.id, title: 'New STEM Lab Now Open', imageUrl: 'https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?w=1200', linkUrl: '/about', linkText: 'See Details', position: 'sidebar', displayPages: JSON.stringify(['/about', '/programs']), isActive: true, sortOrder: 2 },
+    { schoolId: school1.id, title: 'Admissions Open 2026-27', subtitle: 'Apply now for the upcoming academic year', imageUrl: 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=1200', linkUrl: '/admissions', linkText: 'Apply Now', position: 'hero', displayPages: (['all']), isActive: true, sortOrder: 0 },
+    { schoolId: school1.id, title: 'Annual Quran Competition', subtitle: 'Register by June 30th', imageUrl: 'https://images.unsplash.com/photo-1609599006353-e629aaabfeae?w=1200', linkUrl: '/announcements', linkText: 'Learn More', position: 'top', displayPages: (['all']), isActive: true, sortOrder: 1 },
+    { schoolId: school1.id, title: 'New STEM Lab Now Open', imageUrl: 'https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?w=1200', linkUrl: '/about', linkText: 'See Details', position: 'sidebar', displayPages: (['/about', '/programs']), isActive: true, sortOrder: 2 },
   ]).run();
 
   // Popups
   db.insert(popups).values([
-    { schoolId: school1.id, title: 'Welcome to Al-Noor!', content: 'We are accepting applications for the 2026-27 academic year. Schedule a campus visit today.', imageUrl: null, linkUrl: '/admissions', linkText: 'Schedule Visit', triggerType: 'on_load', triggerDelay: 3, displayFrequency: 'once_per_session', displayPages: JSON.stringify(['all']), isActive: true },
-    { schoolId: school1.id, title: 'Open House This Saturday', content: 'Join us for an open house event this Saturday at 10 AM. Meet our teachers and tour the campus.', linkUrl: '/events', linkText: 'RSVP Now', triggerType: 'timed', triggerDelay: 30, displayFrequency: 'once_per_day', displayPages: JSON.stringify(['all']), isActive: true },
-    { schoolId: school1.id, title: 'Newsletter Signup', content: 'Stay updated with our monthly newsletter. Get news about events, achievements, and more.', triggerType: 'scroll', triggerDelay: 50, displayFrequency: 'every_visit', displayPages: JSON.stringify(['all']), isActive: false },
+    { schoolId: school1.id, title: 'Welcome to Al-Noor!', content: 'We are accepting applications for the 2026-27 academic year. Schedule a campus visit today.', imageUrl: null, linkUrl: '/admissions', linkText: 'Schedule Visit', triggerType: 'on_load', triggerDelay: 3, displayFrequency: 'once_per_session', displayPages: (['all']), isActive: true },
+    { schoolId: school1.id, title: 'Open House This Saturday', content: 'Join us for an open house event this Saturday at 10 AM. Meet our teachers and tour the campus.', linkUrl: '/events', linkText: 'RSVP Now', triggerType: 'timed', triggerDelay: 30, displayFrequency: 'once_per_day', displayPages: (['all']), isActive: true },
+    { schoolId: school1.id, title: 'Newsletter Signup', content: 'Stay updated with our monthly newsletter. Get news about events, achievements, and more.', triggerType: 'scroll', triggerDelay: 50, displayFrequency: 'every_visit', displayPages: (['all']), isActive: false },
   ]).run();
 
   // Gallery Albums
@@ -773,8 +773,8 @@ async function seed() {
     maxSchools: 1, maxStudents: 50, maxStaff: 5, maxStorage: 200,
     isFree: true, isPopular: false, trialDays: 0, sortOrder: 0, isActive: true,
     customDomain: false, apiAccess: false, prioritySupport: false, whiteLabel: false,
-    features: JSON.stringify(['1 school website', 'Basic CMS modules', '3 themes', 'Contact forms', 'Mobile responsive', 'Community support', 'Basic AI assistant (10 queries/day)', '5 support tickets/month', 'CSV export (limited)']),
-    moduleAccess: JSON.stringify(['cms', 'sis', 'lms', 'communication']),
+    features: (['1 school website', 'Basic CMS modules', '3 themes', 'Contact forms', 'Mobile responsive', 'Community support', 'Basic AI assistant (10 queries/day)', '5 support tickets/month', 'CSV export (limited)']),
+    moduleAccess: (['cms', 'sis', 'lms', 'communication']),
   }).returning().all();
 
   const [starterPlan] = db.insert(subscriptionPlans).values({
@@ -783,8 +783,8 @@ async function seed() {
     maxSchools: 1, maxStudents: 200, maxStaff: 20, maxStorage: 1000,
     isFree: false, isPopular: false, trialDays: 14, sortOrder: 1, isActive: true,
     customDomain: false, apiAccess: false, prioritySupport: false, whiteLabel: false,
-    features: JSON.stringify(['Everything in Free', 'Up to 200 students', '16 modules', 'All 60 themes', 'Blog with unlimited posts', 'Fee management', 'Email support', 'AI assistant (100 queries/day)', 'Unlimited support tickets', 'CSV export & import', 'Attendance & grading', 'Timetable management', 'Basic analytics']),
-    moduleAccess: JSON.stringify(['cms', 'sis', 'lms', 'timetable', 'exams', 'finance', 'hr', 'communication', 'library', 'events', 'classroom', 'analytics']),
+    features: (['Everything in Free', 'Up to 200 students', '16 modules', 'All 60 themes', 'Blog with unlimited posts', 'Fee management', 'Email support', 'AI assistant (100 queries/day)', 'Unlimited support tickets', 'CSV export & import', 'Attendance & grading', 'Timetable management', 'Basic analytics']),
+    moduleAccess: (['cms', 'sis', 'lms', 'timetable', 'exams', 'finance', 'hr', 'communication', 'library', 'events', 'classroom', 'analytics']),
   }).returning().all();
 
   const [growthPlan] = db.insert(subscriptionPlans).values({
@@ -793,8 +793,8 @@ async function seed() {
     maxSchools: 2, maxStudents: 500, maxStaff: 50, maxStorage: 3000,
     isFree: false, isPopular: false, trialDays: 14, sortOrder: 2, isActive: true,
     customDomain: false, apiAccess: true, prioritySupport: false, whiteLabel: false,
-    features: JSON.stringify(['Everything in Starter', 'Up to 500 students', '2 schools', 'e-Exam & CBT module', 'Transport module', 'Hostel module', 'AI assistant (unlimited)', 'Priority email support', 'API access (basic)', 'Advanced reports & charts', 'Automated notifications', 'Parent portal', 'Live classes', 'File uploads (3GB)']),
-    moduleAccess: JSON.stringify(['cms', 'sis', 'lms', 'timetable', 'exams', 'finance', 'hr', 'communication', 'library', 'hostel', 'transport', 'events', 'classroom', 'analytics', 'cbt']),
+    features: (['Everything in Starter', 'Up to 500 students', '2 schools', 'e-Exam & CBT module', 'Transport module', 'Hostel module', 'AI assistant (unlimited)', 'Priority email support', 'API access (basic)', 'Advanced reports & charts', 'Automated notifications', 'Parent portal', 'Live classes', 'File uploads (3GB)']),
+    moduleAccess: (['cms', 'sis', 'lms', 'timetable', 'exams', 'finance', 'hr', 'communication', 'library', 'hostel', 'transport', 'events', 'classroom', 'analytics', 'cbt']),
   }).returning().all();
 
   const [proPlan] = db.insert(subscriptionPlans).values({
@@ -803,8 +803,8 @@ async function seed() {
     maxSchools: 3, maxStudents: 1000, maxStaff: 100, maxStorage: 5000,
     isFree: false, isPopular: true, trialDays: 14, sortOrder: 3, isActive: true,
     customDomain: true, apiAccess: true, prioritySupport: true, whiteLabel: false,
-    features: JSON.stringify(['Everything in Growth', 'Up to 1000 students', '3 schools', 'Custom domain', 'Full API access', 'Priority support (chat + email)', 'Inventory management', 'IT admin module', 'Custom branding', 'Advanced analytics dashboard', 'Automated backups (daily)', 'Dark mode', 'Multi-language (21 languages)', 'Dedicated AI tools (46 tools)', 'Support ticket SLA']),
-    moduleAccess: JSON.stringify(['cms', 'sis', 'lms', 'timetable', 'exams', 'finance', 'hr', 'communication', 'library', 'hostel', 'transport', 'inventory', 'events', 'classroom', 'analytics', 'it-admin', 'cbt']),
+    features: (['Everything in Growth', 'Up to 1000 students', '3 schools', 'Custom domain', 'Full API access', 'Priority support (chat + email)', 'Inventory management', 'IT admin module', 'Custom branding', 'Advanced analytics dashboard', 'Automated backups (daily)', 'Dark mode', 'Multi-language (21 languages)', 'Dedicated AI tools (46 tools)', 'Support ticket SLA']),
+    moduleAccess: (['cms', 'sis', 'lms', 'timetable', 'exams', 'finance', 'hr', 'communication', 'library', 'hostel', 'transport', 'inventory', 'events', 'classroom', 'analytics', 'it-admin', 'cbt']),
   }).returning().all();
 
   const [enterprisePlan] = db.insert(subscriptionPlans).values({
@@ -813,8 +813,8 @@ async function seed() {
     maxSchools: 50, maxStudents: 10000, maxStaff: 500, maxStorage: 50000,
     isFree: false, isPopular: false, trialDays: 30, sortOrder: 4, isActive: true,
     customDomain: true, apiAccess: true, prioritySupport: true, whiteLabel: true,
-    features: JSON.stringify(['Everything in Professional', 'Up to 10,000 students', 'Up to 50 schools', 'White label branding', 'Dedicated account manager', 'SLA guarantee (99.9% uptime)', 'Custom integrations', 'Onboarding assistance', 'Advanced security (SSO, audit logs)', 'Bulk data import', 'Custom AI training', 'Automated backups (twice daily, cloud)', 'Priority phone support', 'Custom module development', 'Dedicated infrastructure']),
-    moduleAccess: JSON.stringify(['cms', 'sis', 'lms', 'timetable', 'exams', 'finance', 'hr', 'communication', 'library', 'hostel', 'transport', 'inventory', 'events', 'classroom', 'analytics', 'it-admin', 'cbt']),
+    features: (['Everything in Professional', 'Up to 10,000 students', 'Up to 50 schools', 'White label branding', 'Dedicated account manager', 'SLA guarantee (99.9% uptime)', 'Custom integrations', 'Onboarding assistance', 'Advanced security (SSO, audit logs)', 'Bulk data import', 'Custom AI training', 'Automated backups (twice daily, cloud)', 'Priority phone support', 'Custom module development', 'Dedicated infrastructure']),
+    moduleAccess: (['cms', 'sis', 'lms', 'timetable', 'exams', 'finance', 'hr', 'communication', 'library', 'hostel', 'transport', 'inventory', 'events', 'classroom', 'analytics', 'it-admin', 'cbt']),
   }).returning().all();
 
   const now = new Date();
@@ -856,8 +856,8 @@ async function seed() {
   ]).run();
 
   db.insert(coupons).values([
-    { code: 'WELCOME20', name: 'Welcome 20% Off', description: '20% discount for new subscribers on any paid plan.', type: 'percentage', value: 20, minAmount: 0, maxDiscount: 5000, applicablePlans: JSON.stringify([]), maxUses: 100, currentUses: 5, startDate: '2026-01-01', endDate: '2026-12-31', isActive: true, createdBy: admin.id },
-    { code: 'EDU50', name: 'Education Discount', description: '$50 off annual subscriptions for verified educational institutions.', type: 'fixed', value: 5000, minAmount: 5000, applicablePlans: JSON.stringify([]), maxUses: 50, currentUses: 2, startDate: '2026-01-01', endDate: '2026-12-31', isActive: true, createdBy: admin.id },
+    { code: 'WELCOME20', name: 'Welcome 20% Off', description: '20% discount for new subscribers on any paid plan.', type: 'percentage', value: 20, minAmount: 0, maxDiscount: 5000, applicablePlans: ([]), maxUses: 100, currentUses: 5, startDate: '2026-01-01', endDate: '2026-12-31', isActive: true, createdBy: admin.id },
+    { code: 'EDU50', name: 'Education Discount', description: '$50 off annual subscriptions for verified educational institutions.', type: 'fixed', value: 5000, minAmount: 5000, applicablePlans: ([]), maxUses: 50, currentUses: 2, startDate: '2026-01-01', endDate: '2026-12-31', isActive: true, createdBy: admin.id },
     { code: 'FREEYEAR', name: 'Free Year - Partner', description: 'Full year free for strategic partner schools.', type: 'free_trial', value: 100, startDate: '2026-01-01', endDate: '2026-12-31', isActive: true, maxUses: 10, currentUses: 0, createdBy: admin.id },
   ]).run();
 
@@ -881,13 +881,13 @@ async function seed() {
     { key: 'support_email', value: 'support@ischool.com', type: 'string', category: 'general', description: 'Support contact email' },
     { key: 'default_trial_days', value: '14', type: 'number', category: 'billing', description: 'Default trial period in days' },
     { key: 'maintenance_mode', value: 'false', type: 'boolean', category: 'system', description: 'Enable maintenance mode' },
-    { key: 'supported_gateways', value: JSON.stringify(['stripe', 'paypal', 'paystack', 'flutterwave', 'coupon', 'bank_transfer']), type: 'json', category: 'billing', description: 'Active payment gateways' },
+    { key: 'supported_gateways', value: (['stripe', 'paypal', 'paystack', 'flutterwave', 'coupon', 'bank_transfer']), type: 'json', category: 'billing', description: 'Active payment gateways' },
   ]).run();
 
   db.insert(platformBlogPosts).values([
-    { title: 'Introducing iSchool 2.0: 16 Modules, One Platform', slug: 'introducing-ischool-2', content: 'We are thrilled to announce iSchool 2.0 — a complete school management platform with 16 integrated modules.\n\nFrom Student Information Systems to e-Exam & CBT, from Finance management to Hostel management, iSchool now covers every aspect of school administration in one unified platform.\n\nKey highlights include:\n- 16 fully integrated modules\n- 21 beautiful themes\n- Multiple payment gateways (Stripe, PayPal, Paystack, Flutterwave)\n- Enterprise-grade security\n- Mobile-first design\n\nWhether you run a small primary school or a large school district, iSchool has a plan that fits your needs. Start with our free plan and upgrade as you grow.', excerpt: 'The biggest update yet — 16 modules, 21 themes, and enterprise-grade features for schools of all sizes.', category: 'Product Updates', tags: JSON.stringify(['release', 'modules', 'platform']), isPublished: true, publishedAt: new Date(), authorId: admin.id },
-    { title: 'How to Choose the Right School Management Software', slug: 'choosing-school-management-software', content: 'Selecting the right school management software is one of the most important decisions a school administrator can make. Here are the key factors to consider:\n\n1. **Comprehensive Modules**: Look for a platform that covers student records, academics, finance, HR, and communication — not just one area.\n\n2. **Ease of Use**: Your staff should be able to start using the system quickly without extensive training.\n\n3. **Mobile-Friendly**: Parents and teachers need access on their phones. Ensure the platform is truly mobile-responsive.\n\n4. **Payment Integration**: Fee collection should be seamless with support for local and international payment gateways.\n\n5. **Scalability**: Choose a platform that grows with your school. You should be able to add more students, staff, and even additional schools without switching platforms.\n\n6. **Security**: Student data is sensitive. Ensure the platform follows security best practices including encryption, access controls, and regular backups.\n\niSchool addresses all these requirements and more, with a free plan to get started.', excerpt: 'Key factors to consider when selecting school management software for your institution.', category: 'Guides', tags: JSON.stringify(['guide', 'comparison', 'selection']), isPublished: true, publishedAt: new Date('2026-05-15'), authorId: admin.id },
-    { title: '5 Ways Digital Tools Improve Student Outcomes', slug: 'digital-tools-improve-student-outcomes', content: 'Technology in education is not just about convenience — it directly impacts student success. Here are five evidence-based ways digital school management tools improve outcomes:\n\n1. **Real-time Progress Tracking**: When teachers can instantly see which students are struggling, interventions happen earlier. Our LMS module provides real-time grade and attendance dashboards.\n\n2. **Automated Parent Communication**: Research shows that parental involvement is one of the strongest predictors of student success. Automated notifications keep parents informed without adding teacher workload.\n\n3. **Data-Driven Instruction**: Analytics tools help teachers identify curriculum areas where classes are struggling, enabling targeted instruction adjustments.\n\n4. **Reduced Administrative Burden**: When teachers spend less time on paperwork, they spend more time teaching. Automated attendance, grading, and reporting give teachers back valuable hours.\n\n5. **Consistent Record-Keeping**: Digital records ensure no student falls through the cracks. Transfer students, attendance patterns, and academic history are always accessible.', excerpt: 'Evidence-based ways that digital school management tools directly improve student academic outcomes.', category: 'Education', tags: JSON.stringify(['education', 'technology', 'outcomes']), isPublished: true, publishedAt: new Date('2026-04-20'), authorId: admin.id },
+    { title: 'Introducing iSchool 2.0: 16 Modules, One Platform', slug: 'introducing-ischool-2', content: 'We are thrilled to announce iSchool 2.0 — a complete school management platform with 16 integrated modules.\n\nFrom Student Information Systems to e-Exam & CBT, from Finance management to Hostel management, iSchool now covers every aspect of school administration in one unified platform.\n\nKey highlights include:\n- 16 fully integrated modules\n- 21 beautiful themes\n- Multiple payment gateways (Stripe, PayPal, Paystack, Flutterwave)\n- Enterprise-grade security\n- Mobile-first design\n\nWhether you run a small primary school or a large school district, iSchool has a plan that fits your needs. Start with our free plan and upgrade as you grow.', excerpt: 'The biggest update yet — 16 modules, 21 themes, and enterprise-grade features for schools of all sizes.', category: 'Product Updates', tags: (['release', 'modules', 'platform']), isPublished: true, publishedAt: new Date(), authorId: admin.id },
+    { title: 'How to Choose the Right School Management Software', slug: 'choosing-school-management-software', content: 'Selecting the right school management software is one of the most important decisions a school administrator can make. Here are the key factors to consider:\n\n1. **Comprehensive Modules**: Look for a platform that covers student records, academics, finance, HR, and communication — not just one area.\n\n2. **Ease of Use**: Your staff should be able to start using the system quickly without extensive training.\n\n3. **Mobile-Friendly**: Parents and teachers need access on their phones. Ensure the platform is truly mobile-responsive.\n\n4. **Payment Integration**: Fee collection should be seamless with support for local and international payment gateways.\n\n5. **Scalability**: Choose a platform that grows with your school. You should be able to add more students, staff, and even additional schools without switching platforms.\n\n6. **Security**: Student data is sensitive. Ensure the platform follows security best practices including encryption, access controls, and regular backups.\n\niSchool addresses all these requirements and more, with a free plan to get started.', excerpt: 'Key factors to consider when selecting school management software for your institution.', category: 'Guides', tags: (['guide', 'comparison', 'selection']), isPublished: true, publishedAt: new Date('2026-05-15'), authorId: admin.id },
+    { title: '5 Ways Digital Tools Improve Student Outcomes', slug: 'digital-tools-improve-student-outcomes', content: 'Technology in education is not just about convenience — it directly impacts student success. Here are five evidence-based ways digital school management tools improve outcomes:\n\n1. **Real-time Progress Tracking**: When teachers can instantly see which students are struggling, interventions happen earlier. Our LMS module provides real-time grade and attendance dashboards.\n\n2. **Automated Parent Communication**: Research shows that parental involvement is one of the strongest predictors of student success. Automated notifications keep parents informed without adding teacher workload.\n\n3. **Data-Driven Instruction**: Analytics tools help teachers identify curriculum areas where classes are struggling, enabling targeted instruction adjustments.\n\n4. **Reduced Administrative Burden**: When teachers spend less time on paperwork, they spend more time teaching. Automated attendance, grading, and reporting give teachers back valuable hours.\n\n5. **Consistent Record-Keeping**: Digital records ensure no student falls through the cracks. Transfer students, attendance patterns, and academic history are always accessible.', excerpt: 'Evidence-based ways that digital school management tools directly improve student academic outcomes.', category: 'Education', tags: (['education', 'technology', 'outcomes']), isPublished: true, publishedAt: new Date('2026-04-20'), authorId: admin.id },
   ]).run();
 
   console.log('');

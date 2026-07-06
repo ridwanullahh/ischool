@@ -70,8 +70,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
     return new Response(JSON.stringify(result), { status: 201, headers: { 'Content-Type': 'application/json' } });
   } else {
     if (!data.name) return new Response(JSON.stringify({ error: 'Name is required' }), { status: 400 });
-    const stops = typeof data.stops === 'string' ? data.stops : JSON.stringify(data.stops || []);
-    const schedule = typeof data.schedule === 'string' ? data.schedule : JSON.stringify(data.schedule || null);
+    const stops = (typeof data.stops === 'object' ? data.stops : (typeof data.stops === 'string' ? (() => { try { return JSON.parse(data.stops); } catch { return []; } })() : [])) as any;
+    const schedule = (data.schedule === null ? null : (typeof data.schedule === 'object' ? data.schedule : (typeof data.schedule === 'string' ? (() => { try { return JSON.parse(data.schedule); } catch { return null; } })() : null))) as any;
     const result = db.insert(transportRoutes).values({
       ...data,
       schoolId,

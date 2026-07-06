@@ -36,8 +36,12 @@ export const POST: APIRoute = async ({ request, redirect }) => {
     mission: form.get('mission')?.toString() || null,
     vision: form.get('vision')?.toString() || null,
     valueProposition: form.get('valueProposition')?.toString() || null,
-    features: JSON.stringify(features),
-    stats: JSON.stringify(stats),
+    // Drizzle text({mode:'json'}) columns auto-serialize objects.
+    // Passing JSON.stringify() causes double-encoding — the DB stores a
+    // string, and Drizzle returns a string on read (not an array).
+    // Pass the raw array/object so Drizzle handles serialization.
+    features: features as any,
+    stats: stats as any,
   };
 
   const existing = db.select().from(aboutPages).where(eq(aboutPages.schoolId, schoolId)).get();

@@ -42,7 +42,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     teacherId: data.teacherId || null,
     coverImageUrl: data.coverImageUrl || null,
     status: data.status || 'draft',
-    settings: data.settings ? JSON.stringify(data.settings) : '{}',
+    settings: (data.settings || {}) as any,
   }).returning().get();
   return new Response(JSON.stringify(result), { status: 201, headers: { 'Content-Type': 'application/json' } });
 };
@@ -58,7 +58,7 @@ export const PUT: APIRoute = async ({ request, locals }) => {
   const existing = db.select().from(courses).where(and(eq(courses.id, data.id), eq(courses.schoolId, schoolId))).get();
   if (!existing) return new Response(JSON.stringify({ error: 'Course not found' }), { status: 404 });
   const { id, schoolId: _, ...updateData } = data;
-  if (updateData.settings && typeof updateData.settings === 'object') updateData.settings = JSON.stringify(updateData.settings);
+  if (updateData.settings && typeof updateData.settings === 'object') updateData.settings = updateData.settings;
   db.update(courses).set({ ...updateData, updatedAt: new Date() }).where(eq(courses.id, id)).run();
   const updated = db.select().from(courses).where(eq(courses.id, id)).get();
   return new Response(JSON.stringify(updated), { headers: { 'Content-Type': 'application/json' } });

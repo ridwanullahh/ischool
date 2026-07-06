@@ -121,8 +121,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
     parentId: data.parentId || null,
     status: data.status || 'active',
     enrollmentDate: data.enrollmentDate || new Date().toISOString().split('T')[0],
-    customFields: data.customFields ? JSON.stringify(data.customFields) : '{}',
-    documents: data.documents ? JSON.stringify(data.documents) : '[]',
+    customFields: (data.customFields || {}) as any,
+    documents: (data.documents || []) as any,
   }).returning().get();
 
   return new Response(JSON.stringify(result), { status: 201, headers: { 'Content-Type': 'application/json' } });
@@ -143,8 +143,8 @@ export const PUT: APIRoute = async ({ request, locals }) => {
   if (!existing) return new Response(JSON.stringify({ error: 'Student not found' }), { status: 404 });
 
   const { id, schoolId: _, ...updateData } = data;
-  if (updateData.customFields && typeof updateData.customFields === 'object') updateData.customFields = JSON.stringify(updateData.customFields);
-  if (updateData.documents && typeof updateData.documents === 'object') updateData.documents = JSON.stringify(updateData.documents);
+  if (updateData.customFields && typeof updateData.customFields === 'object') updateData.customFields = updateData.customFields;
+  if (updateData.documents && typeof updateData.documents === 'object') updateData.documents = updateData.documents;
 
   db.update(students).set({ ...updateData, updatedAt: new Date() }).where(eq(students.id, id)).run();
   const updated = db.select().from(students).where(eq(students.id, id)).get();

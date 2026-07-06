@@ -125,8 +125,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
     month: data.month,
     year: data.year,
     basicSalary: data.basicSalary,
-    allowances: JSON.stringify(allowances),
-    deductions: JSON.stringify(deductions),
+    allowances: (allowances || []) as any,
+    deductions: (deductions || []) as any,
     grossPay,
     netPay,
     status: data.status || 'draft',
@@ -149,8 +149,8 @@ export const PUT: APIRoute = async ({ request, locals }) => {
   if (!existing) return new Response(JSON.stringify({ error: 'Payroll record not found' }), { status: 404 });
 
   const { id, schoolId: _, ...updateData } = data;
-  if (updateData.allowances && typeof updateData.allowances === 'object') updateData.allowances = JSON.stringify(updateData.allowances);
-  if (updateData.deductions && typeof updateData.deductions === 'object') updateData.deductions = JSON.stringify(updateData.deductions);
+  if (updateData.allowances && typeof updateData.allowances === 'object') updateData.allowances = updateData.allowances;
+  if (updateData.deductions && typeof updateData.deductions === 'object') updateData.deductions = updateData.deductions;
   if (updateData.status === 'paid') updateData.paidAt = new Date();
 
   db.update(payroll).set({ ...updateData, updatedAt: new Date() }).where(eq(payroll.id, id)).run();

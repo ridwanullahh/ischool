@@ -31,7 +31,7 @@ export const POST: APIRoute = async ({ request }) => {
       triggerType: (form.get('triggerType')?.toString() || 'on_load') as any,
       triggerDelay: form.get('triggerDelay') ? Number(form.get('triggerDelay')) : 0,
       displayFrequency: (form.get('displayFrequency')?.toString() || 'once_per_session') as any,
-      displayPages: JSON.stringify((form.get('displayPages')?.toString() || 'all').split(',').map(s => s.trim())),
+      displayPages: (form.get('displayPages')?.toString() || 'all').split(',').map(s => s.trim()) as any,
       startDate: form.get('startDate')?.toString() || null,
       endDate: form.get('endDate')?.toString() || null,
       updatedAt: new Date(),
@@ -47,7 +47,7 @@ export const POST: APIRoute = async ({ request }) => {
       triggerType: (form.get('triggerType')?.toString() || 'on_load') as any,
       triggerDelay: form.get('triggerDelay') ? Number(form.get('triggerDelay')) : 0,
       displayFrequency: (form.get('displayFrequency')?.toString() || 'once_per_session') as any,
-      displayPages: JSON.stringify((form.get('displayPages')?.toString() || 'all').split(',').map(s => s.trim())),
+      displayPages: (form.get('displayPages')?.toString() || 'all').split(',').map(s => s.trim()) as any,
       startDate: form.get('startDate')?.toString() || null,
       endDate: form.get('endDate')?.toString() || null,
     }).run();

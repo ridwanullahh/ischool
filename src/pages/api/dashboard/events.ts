@@ -58,7 +58,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     venue: data.venue || null,
     isRecurring: data.isRecurring || false,
     recurrenceRule: data.recurrenceRule || null,
-    audience: data.audience ? JSON.stringify(data.audience) : '[]',
+    audience: (data.audience || []) as any,
     rsvpRequired: data.rsvpRequired || false,
     imageUrl: data.imageUrl || null,
   }).returning().get();
@@ -76,7 +76,7 @@ export const PUT: APIRoute = async ({ request, locals }) => {
   const existing = db.select().from(events).where(and(eq(events.id, data.id), eq(events.schoolId, schoolId))).get();
   if (!existing) return new Response(JSON.stringify({ error: 'Event not found' }), { status: 404 });
   const { id, schoolId: _, ...updateData } = data;
-  if (updateData.audience && typeof updateData.audience === 'object') updateData.audience = JSON.stringify(updateData.audience);
+  if (updateData.audience && typeof updateData.audience === 'object') updateData.audience = updateData.audience;
   db.update(events).set({ ...updateData, updatedAt: new Date() }).where(eq(events.id, id)).run();
   const updated = db.select().from(events).where(eq(events.id, id)).get();
   return new Response(JSON.stringify(updated), { headers: { 'Content-Type': 'application/json' } });

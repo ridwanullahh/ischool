@@ -119,10 +119,15 @@ function autoMigrate(sqlite: Database.Database) {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
       name TEXT NOT NULL,
+      slug TEXT,
       section TEXT,
-      grade_level TEXT,
       description TEXT,
+      content TEXT,
+      grade_level TEXT,
+      teacher_name TEXT,
       capacity INTEGER,
+      image_url TEXT,
+      has_detail_page INTEGER DEFAULT 0,
       homeroom_teacher_id INTEGER,
       sort_order INTEGER DEFAULT 0,
       created_at INTEGER,
@@ -156,6 +161,7 @@ function autoMigrate(sqlite: Database.Database) {
       duration TEXT,
       level TEXT,
       icon TEXT,
+      image_url TEXT,
       has_detail_page INTEGER DEFAULT 0,
       sort_order INTEGER DEFAULT 0,
       created_at INTEGER,
@@ -214,7 +220,9 @@ function autoMigrate(sqlite: Database.Database) {
       school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
       label TEXT NOT NULL,
       url TEXT NOT NULL,
+      parent_id INTEGER,
       sort_order INTEGER DEFAULT 0,
+      is_external INTEGER DEFAULT 0,
       created_at INTEGER,
       updated_at INTEGER
     );
@@ -296,8 +304,10 @@ function autoMigrate(sqlite: Database.Database) {
       status TEXT DEFAULT 'enrolled',
       enrollment_date TEXT,
       created_at INTEGER,
-      updated_at INTEGER
-    );
+      academic_year TEXT,
+      term TEXT,
+      notes TEXT,
+      updated_at INTEGER);
 
     CREATE TABLE IF NOT EXISTS attendance (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -310,8 +320,8 @@ function autoMigrate(sqlite: Database.Database) {
       marked_by INTEGER REFERENCES users(id),
       marked_at INTEGER,
       created_at INTEGER,
-      updated_at INTEGER
-    );
+      period TEXT,
+      updated_at INTEGER);
 
     CREATE TABLE IF NOT EXISTS courses (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -324,8 +334,11 @@ function autoMigrate(sqlite: Database.Database) {
       is_published INTEGER DEFAULT 0,
       sort_order INTEGER DEFAULT 0,
       created_at INTEGER,
-      updated_at INTEGER
-    );
+      slug TEXT,
+      cover_image_url TEXT,
+      status TEXT,
+      settings TEXT,
+      updated_at INTEGER);
 
     CREATE TABLE IF NOT EXISTS assignments (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -338,8 +351,13 @@ function autoMigrate(sqlite: Database.Database) {
       max_points REAL,
       created_by INTEGER REFERENCES users(id),
       created_at INTEGER,
-      updated_at INTEGER
-    );
+      instructions TEXT,
+      allow_late INTEGER,
+      allow_resubmit INTEGER,
+      is_group INTEGER,
+      attachments TEXT,
+      rubric TEXT,
+      updated_at INTEGER);
 
     CREATE TABLE IF NOT EXISTS submissions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -371,8 +389,13 @@ function autoMigrate(sqlite: Database.Database) {
       end_date TEXT,
       status TEXT DEFAULT 'draft',
       created_at INTEGER,
-      updated_at INTEGER
-    );
+      time_limit INTEGER,
+      passing_score INTEGER,
+      randomize INTEGER,
+      show_results INTEGER,
+      scheduled_start TEXT,
+      scheduled_end TEXT,
+      updated_at INTEGER);
 
     CREATE TABLE IF NOT EXISTS questions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -421,8 +444,11 @@ function autoMigrate(sqlite: Database.Database) {
       feedback TEXT,
       graded_by INTEGER REFERENCES users(id),
       created_at INTEGER,
-      updated_at INTEGER
-    );
+      term TEXT,
+      academic_year TEXT,
+      category TEXT,
+      comment TEXT,
+      updated_at INTEGER);
 
     CREATE TABLE IF NOT EXISTS staff (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -712,8 +738,8 @@ function autoMigrate(sqlite: Database.Database) {
       end_date TEXT,
       is_active INTEGER DEFAULT 0,
       created_at INTEGER,
-      updated_at INTEGER
-    );
+      parent_period_id INTEGER,
+      updated_at INTEGER);
 
     CREATE TABLE IF NOT EXISTS timetable_entries (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -741,8 +767,9 @@ function autoMigrate(sqlite: Database.Database) {
       end_date TEXT,
       status TEXT DEFAULT 'draft',
       created_at INTEGER,
-      updated_at INTEGER
-    );
+      type TEXT,
+      academic_year TEXT,
+      updated_at INTEGER);
 
     CREATE TABLE IF NOT EXISTS exams (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1205,15 +1232,17 @@ function autoMigrate(sqlite: Database.Database) {
       course_id INTEGER REFERENCES courses(id) ON DELETE CASCADE,
       title TEXT NOT NULL, content TEXT, type TEXT DEFAULT 'text',
       sort_order INTEGER DEFAULT 0, is_published INTEGER DEFAULT 0,
-      created_at INTEGER, updated_at INTEGER
-    );
+      file_url TEXT,
+      external_url TEXT,
+      duration INTEGER,
+      created_at INTEGER, updated_at INTEGER);
     CREATE TABLE IF NOT EXISTS bell_schedules (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
       name TEXT NOT NULL, period_name TEXT, start_time TEXT, end_time TEXT,
       day_of_week INTEGER, sort_order INTEGER DEFAULT 0,
-      created_at INTEGER, updated_at INTEGER
-    );
+      periods TEXT,
+      created_at INTEGER, updated_at INTEGER);
     CREATE TABLE IF NOT EXISTS asset_checkouts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
@@ -1693,6 +1722,52 @@ function autoMigrate(sqlite: Database.Database) {
 
   // Fix contact_submissions — add status if missing
   addColumnIfMissing('contact_submissions', 'status', "TEXT DEFAULT 'new'");
+
+  // Fix navigation_items — add parent_id and is_external if missing
+  addColumnIfMissing('navigation_items', 'parent_id', 'INTEGER');
+  addColumnIfMissing('navigation_items', 'is_external', 'INTEGER DEFAULT 0');
+
+  // Fix programs — add image_url if missing
+  addColumnIfMissing('programs', 'image_url', 'TEXT');
+
+  // Fix classes — add columns missing from older CREATE TABLE versions
+  addColumnIfMissing('classes', 'slug', 'TEXT');
+  addColumnIfMissing('classes', 'content', 'TEXT');
+  addColumnIfMissing('classes', 'teacher_name', 'TEXT');
+  addColumnIfMissing('classes', 'image_url', 'TEXT');
+  addColumnIfMissing('classes', 'has_detail_page', 'INTEGER DEFAULT 0');
+  addColumnIfMissing('enrollments', 'academic_year', 'TEXT');
+  addColumnIfMissing('enrollments', 'term', 'TEXT');
+  addColumnIfMissing('enrollments', 'notes', 'TEXT');
+  addColumnIfMissing('attendance', 'period', 'TEXT');
+  addColumnIfMissing('courses', 'slug', 'TEXT');
+  addColumnIfMissing('courses', 'cover_image_url', 'TEXT');
+  addColumnIfMissing('courses', 'status', 'TEXT');
+  addColumnIfMissing('courses', 'settings', 'TEXT');
+  addColumnIfMissing('lessons', 'file_url', 'TEXT');
+  addColumnIfMissing('lessons', 'external_url', 'TEXT');
+  addColumnIfMissing('lessons', 'duration', 'INTEGER');
+  addColumnIfMissing('assignments', 'instructions', 'TEXT');
+  addColumnIfMissing('assignments', 'allow_late', 'INTEGER');
+  addColumnIfMissing('assignments', 'allow_resubmit', 'INTEGER');
+  addColumnIfMissing('assignments', 'is_group', 'INTEGER');
+  addColumnIfMissing('assignments', 'attachments', 'TEXT');
+  addColumnIfMissing('assignments', 'rubric', 'TEXT');
+  addColumnIfMissing('quizzes', 'time_limit', 'INTEGER');
+  addColumnIfMissing('quizzes', 'attempts', 'INTEGER');
+  addColumnIfMissing('quizzes', 'passing_score', 'INTEGER');
+  addColumnIfMissing('quizzes', 'randomize', 'INTEGER');
+  addColumnIfMissing('quizzes', 'show_results', 'INTEGER');
+  addColumnIfMissing('quizzes', 'scheduled_start', 'TEXT');
+  addColumnIfMissing('quizzes', 'scheduled_end', 'TEXT');
+  addColumnIfMissing('grades', 'term', 'TEXT');
+  addColumnIfMissing('grades', 'academic_year', 'TEXT');
+  addColumnIfMissing('grades', 'category', 'TEXT');
+  addColumnIfMissing('grades', 'comment', 'TEXT');
+  addColumnIfMissing('academic_periods', 'parent_period_id', 'INTEGER');
+  addColumnIfMissing('bell_schedules', 'periods', 'TEXT');
+  addColumnIfMissing('exam_series', 'type', 'TEXT');
+  addColumnIfMissing('exam_series', 'academic_year', 'TEXT');
 }
 
 export function getDb() {

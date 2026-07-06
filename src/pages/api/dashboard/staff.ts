@@ -97,13 +97,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
     email: data.email || null,
     phone: data.phone || null,
     address: data.address || null,
-    qualifications: data.qualifications ? JSON.stringify(data.qualifications) : '[]',
-    certifications: data.certifications ? JSON.stringify(data.certifications) : '[]',
+    qualifications: (data.qualifications || []) as any,
+    certifications: (data.certifications || []) as any,
     joinDate: data.joinDate || null,
     salary: data.salary || null,
-    bankDetails: data.bankDetails ? JSON.stringify(data.bankDetails) : null,
-    emergencyContact: data.emergencyContact ? JSON.stringify(data.emergencyContact) : null,
-    documents: data.documents ? JSON.stringify(data.documents) : '[]',
+    bankDetails: (data.bankDetails || null) as any,
+    emergencyContact: (data.emergencyContact || null) as any,
+    documents: (data.documents || []) as any,
     status: data.status || 'active',
     userId: data.userId || null,
   }).returning().get();
@@ -125,11 +125,11 @@ export const PUT: APIRoute = async ({ request, locals }) => {
   if (!existing) return new Response(JSON.stringify({ error: 'Staff not found' }), { status: 404 });
 
   const { id, schoolId: _, ...updateData } = data;
-  if (updateData.qualifications && typeof updateData.qualifications === 'object') updateData.qualifications = JSON.stringify(updateData.qualifications);
-  if (updateData.certifications && typeof updateData.certifications === 'object') updateData.certifications = JSON.stringify(updateData.certifications);
-  if (updateData.bankDetails && typeof updateData.bankDetails === 'object') updateData.bankDetails = JSON.stringify(updateData.bankDetails);
-  if (updateData.emergencyContact && typeof updateData.emergencyContact === 'object') updateData.emergencyContact = JSON.stringify(updateData.emergencyContact);
-  if (updateData.documents && typeof updateData.documents === 'object') updateData.documents = JSON.stringify(updateData.documents);
+  if (updateData.qualifications && typeof updateData.qualifications === 'object') updateData.qualifications = updateData.qualifications;
+  if (updateData.certifications && typeof updateData.certifications === 'object') updateData.certifications = updateData.certifications;
+  if (updateData.bankDetails && typeof updateData.bankDetails === 'object') updateData.bankDetails = updateData.bankDetails;
+  if (updateData.emergencyContact && typeof updateData.emergencyContact === 'object') updateData.emergencyContact = updateData.emergencyContact;
+  if (updateData.documents && typeof updateData.documents === 'object') updateData.documents = updateData.documents;
 
   db.update(staff).set({ ...updateData, updatedAt: new Date() }).where(eq(staff.id, id)).run();
   const updated = db.select().from(staff).where(eq(staff.id, id)).get();

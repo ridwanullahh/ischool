@@ -54,7 +54,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     return new Response(JSON.stringify({ error: 'Title and type are required' }), { status: 400 });
   }
 
-  const sections = typeof data.sections === 'string' ? data.sections : JSON.stringify(data.sections || null);
+  const sections = (data.sections === undefined || data.sections === null) ? null : (typeof data.sections === 'object' ? data.sections : (() => { try { return JSON.parse(data.sections); } catch { return null; } })());
 
   const result = db.insert(cbtExams).values({
     ...data,
@@ -87,7 +87,7 @@ export const PUT: APIRoute = async ({ request, locals }) => {
     return new Response(JSON.stringify({ error: 'Not found' }), { status: 404 });
   }
 
-  const sections = typeof data.sections === 'string' ? data.sections : JSON.stringify(data.sections || null);
+  const sections = (data.sections === undefined || data.sections === null) ? null : (typeof data.sections === 'object' ? data.sections : (() => { try { return JSON.parse(data.sections); } catch { return null; } })());
 
   const result = db.update(cbtExams).set({
     ...data,
