@@ -1,7 +1,6 @@
 ---
 import { getV3Theme, getThemeLayout, themeList } from '../../../themes/index.js';
-import { getSchoolBySlug, getSchoolAbout, getSchoolGallery, getSchoolPrograms, getSchoolClasses, getSchoolFaqs, getSchoolAnnouncements, getSchoolPosts } from '../../../lib/school-safe.ts';
-import { eq, desc, and } from 'drizzle-orm';
+import { getSchoolBySlug, getSchoolPosts } from '../../../lib/school-safe.ts';
 
 const slug = Astro.params.slug!;
 
@@ -16,11 +15,33 @@ const activeTheme = isPreviewing ? previewTheme : (school.theme || 'aurora');
 const v3Theme = getV3Theme(activeTheme);
 const Layout = v3Theme?.Layout || getThemeLayout(activeTheme);
 const PageComponent = v3Theme?.BlogIndexPage;
-import { blogPosts } from '../../../lib/db/schema.js';
-const posts = getSchoolPosts(school.id);
-const pageData = { items: posts };
+
+// Search/filter/sort params
+const search = (Astro.url.searchParams.get('q') || '').trim().toLowerCase();
+const sort = Astro.url.searchParams.get('sort') || 'newest';
+
+let posts = getSchoolPosts(school.id);
+
+// Apply search
+if (search) {
+  posts = posts.filter((p: any) =>
+    (p.title || '').toLowerCase().includes(search) ||
+    (p.excerpt || '').toLowerCase().includes(search) ||
+    (p.content || '').toLowerCase().includes(search)
+  );
+}
+
+// Apply sort
+if (sort === 'oldest') {
+  posts = posts.slice().reverse();
+} else if (sort === 'title') {
+  posts = posts.slice().sort((a: any, b: any) => (a.title || '').localeCompare(b.title || ''));
+}
+// 'newest' is default (already sorted DESC by created_at)
+
+const pageData = { items: posts, search, sort, total: posts.length };
 ---
-<Layout school={school} title={PageComponent ? "" : "Index"}>
+<Layout school={school} title={PageComponent ? "" : "Blog"}>
   {isPreviewing && (
     <div class="bg-blue-600 text-white py-2 px-4 text-center text-sm font-medium sticky top-0 z-[100]">
       Previewing <strong>{previewTheme}</strong> theme
@@ -32,7 +53,7 @@ const pageData = { items: posts };
   ) : (
     <div class="px-4 py-16">
       <div class="max-w-4xl mx-auto">
-        <h1 class="text-4xl font-bold text-[var(--text)] mb-8">Index</h1>
+        <h1 class="text-4xl font-bold text-[var(--text)] mb-8">Blog</h1>
         <p class="text-[var(--muted)]">This page uses a legacy theme. Please switch to a v3 theme for full page autonomy.</p>
       </div>
     </div>

@@ -1,7 +1,6 @@
 ---
 import { getV3Theme, getThemeLayout, themeList } from '../../themes/index.js';
-import { getSchoolBySlug, getSchoolAbout, getSchoolGallery, getSchoolPrograms, getSchoolClasses, getSchoolFaqs, getSchoolAnnouncements, getSchoolPosts } from '../../lib/school-safe.ts';
-import { eq, desc, and } from 'drizzle-orm';
+import { getSchoolBySlug, getSchoolClasses } from '../../lib/school-safe.ts';
 
 const slug = Astro.params.slug!;
 
@@ -16,8 +15,31 @@ const activeTheme = isPreviewing ? previewTheme : (school.theme || 'aurora');
 const v3Theme = getV3Theme(activeTheme);
 const Layout = v3Theme?.Layout || getThemeLayout(activeTheme);
 const PageComponent = v3Theme?.ClassesPage;
-const schoolClasses = getSchoolClasses(school.id);
-const pageData = { items: schoolClasses };
+
+// Search/filter/sort params
+const search = (Astro.url.searchParams.get('q') || '').trim().toLowerCase();
+const sort = Astro.url.searchParams.get('sort') || 'newest';
+
+let schoolClasses = getSchoolClasses(school.id);
+
+// Apply search
+if (search) {
+  schoolClasses = schoolClasses.filter((c: any) =>
+    (c.name || '').toLowerCase().includes(search) ||
+    (c.description || '').toLowerCase().includes(search) ||
+    (c.gradeLevel || c.grade_level || '').toLowerCase().includes(search) ||
+    (c.teacherName || c.teacher_name || '').toLowerCase().includes(search)
+  );
+}
+
+// Apply sort
+if (sort === 'title') {
+  schoolClasses = schoolClasses.slice().sort((a: any, b: any) => (a.name || '').localeCompare(b.name || ''));
+} else if (sort === 'grade') {
+  schoolClasses = schoolClasses.slice().sort((a: any, b: any) => (a.gradeLevel || a.grade_level || '').localeCompare(b.gradeLevel || b.grade_level || ''));
+}
+
+const pageData = { items: schoolClasses, search, sort, total: schoolClasses.length };
 ---
 <Layout school={school} title={PageComponent ? "" : "Classes"}>
   {isPreviewing && (

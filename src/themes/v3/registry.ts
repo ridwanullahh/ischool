@@ -23,6 +23,7 @@ import auroraAdmissionsPage from './aurora/AdmissionsPage.astro';
 import auroraProgramsPage from './aurora/ProgramsPage.astro';
 import auroraProgramDetailPage from './aurora/ProgramDetailPage.astro';
 import auroraClassesPage from './aurora/ClassesPage.astro';
+import auroraClassDetailPage from './aurora/ClassDetailPage.astro';
 import auroraBlogIndexPage from './aurora/BlogIndexPage.astro';
 import auroraBlogPostPage from './aurora/BlogPostPage.astro';
 import auroraAnnouncementsIndexPage from './aurora/AnnouncementsIndexPage.astro';
@@ -749,6 +750,7 @@ const registry: Record<string, RegisteredTheme> = {
     ProgramsPage: auroraProgramsPage,
     ProgramDetailPage: auroraProgramDetailPage,
     ClassesPage: auroraClassesPage,
+    ClassDetailPage: auroraClassDetailPage,
     BlogIndexPage: auroraBlogIndexPage,
     BlogPostPage: auroraBlogPostPage,
     AnnouncementsIndexPage: auroraAnnouncementsIndexPage,

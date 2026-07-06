@@ -1,7 +1,6 @@
 ---
 import { getV3Theme, getThemeLayout, themeList } from '../../../themes/index.js';
-import { getSchoolBySlug, getSchoolAbout, getSchoolGallery, getSchoolPrograms, getSchoolClasses, getSchoolFaqs, getSchoolAnnouncements, getSchoolPosts } from '../../../lib/school-safe.ts';
-import { eq, desc, and } from 'drizzle-orm';
+import { getSchoolBySlug, getSchoolAnnouncements } from '../../../lib/school-safe.ts';
 
 const slug = Astro.params.slug!;
 
@@ -16,11 +15,38 @@ const activeTheme = isPreviewing ? previewTheme : (school.theme || 'aurora');
 const v3Theme = getV3Theme(activeTheme);
 const Layout = v3Theme?.Layout || getThemeLayout(activeTheme);
 const PageComponent = v3Theme?.AnnouncementsIndexPage;
-import { announcements } from '../../../lib/db/schema.js';
-const schoolAnnouncements = getSchoolAnnouncements(school.id);
-const pageData = { items: schoolAnnouncements };
+
+// Search/filter/sort params
+const search = (Astro.url.searchParams.get('q') || '').trim().toLowerCase();
+const sort = Astro.url.searchParams.get('sort') || 'newest';
+const filter = Astro.url.searchParams.get('filter') || 'all'; // all, pinned
+
+let schoolAnnouncements = getSchoolAnnouncements(school.id);
+
+// Apply filter
+if (filter === 'pinned') {
+  schoolAnnouncements = schoolAnnouncements.filter((a: any) => a.isPinned || a.is_pinned);
+}
+
+// Apply search
+if (search) {
+  schoolAnnouncements = schoolAnnouncements.filter((a: any) =>
+    (a.title || '').toLowerCase().includes(search) ||
+    (a.excerpt || '').toLowerCase().includes(search) ||
+    (a.content || '').toLowerCase().includes(search)
+  );
+}
+
+// Apply sort
+if (sort === 'oldest') {
+  schoolAnnouncements = schoolAnnouncements.slice().reverse();
+} else if (sort === 'title') {
+  schoolAnnouncements = schoolAnnouncements.slice().sort((a: any, b: any) => (a.title || '').localeCompare(b.title || ''));
+}
+
+const pageData = { items: schoolAnnouncements, search, sort, filter, total: schoolAnnouncements.length };
 ---
-<Layout school={school} title={PageComponent ? "" : "Index"}>
+<Layout school={school} title={PageComponent ? "" : "Announcements"}>
   {isPreviewing && (
     <div class="bg-blue-600 text-white py-2 px-4 text-center text-sm font-medium sticky top-0 z-[100]">
       Previewing <strong>{previewTheme}</strong> theme
@@ -32,7 +58,7 @@ const pageData = { items: schoolAnnouncements };
   ) : (
     <div class="px-4 py-16">
       <div class="max-w-4xl mx-auto">
-        <h1 class="text-4xl font-bold text-[var(--text)] mb-8">Index</h1>
+        <h1 class="text-4xl font-bold text-[var(--text)] mb-8">Announcements</h1>
         <p class="text-[var(--muted)]">This page uses a legacy theme. Please switch to a v3 theme for full page autonomy.</p>
       </div>
     </div>

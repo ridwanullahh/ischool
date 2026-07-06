@@ -1,7 +1,6 @@
 ---
 import { getV3Theme, getThemeLayout, themeList } from '../../themes/index.js';
-import { getSchoolBySlug, getSchoolAbout, getSchoolGallery, getSchoolPrograms, getSchoolClasses, getSchoolFaqs, getSchoolAnnouncements, getSchoolPosts } from '../../lib/school-safe.ts';
-import { eq, desc, and } from 'drizzle-orm';
+import { getSchoolBySlug, getSchoolPrograms } from '../../lib/school-safe.ts';
 
 const slug = Astro.params.slug!;
 
@@ -16,8 +15,30 @@ const activeTheme = isPreviewing ? previewTheme : (school.theme || 'aurora');
 const v3Theme = getV3Theme(activeTheme);
 const Layout = v3Theme?.Layout || getThemeLayout(activeTheme);
 const PageComponent = v3Theme?.ProgramsPage;
-const schoolPrograms = getSchoolPrograms(school.id);
-const pageData = { items: schoolPrograms };
+
+// Search/filter/sort params
+const search = (Astro.url.searchParams.get('q') || '').trim().toLowerCase();
+const sort = Astro.url.searchParams.get('sort') || 'newest';
+
+let schoolPrograms = getSchoolPrograms(school.id);
+
+// Apply search
+if (search) {
+  schoolPrograms = schoolPrograms.filter((p: any) =>
+    (p.name || '').toLowerCase().includes(search) ||
+    (p.description || '').toLowerCase().includes(search) ||
+    (p.level || '').toLowerCase().includes(search)
+  );
+}
+
+// Apply sort
+if (sort === 'title') {
+  schoolPrograms = schoolPrograms.slice().sort((a: any, b: any) => (a.name || '').localeCompare(b.name || ''));
+} else if (sort === 'level') {
+  schoolPrograms = schoolPrograms.slice().sort((a: any, b: any) => (a.level || '').localeCompare(b.level || ''));
+}
+
+const pageData = { items: schoolPrograms, search, sort, total: schoolPrograms.length };
 ---
 <Layout school={school} title={PageComponent ? "" : "Programs"}>
   {isPreviewing && (

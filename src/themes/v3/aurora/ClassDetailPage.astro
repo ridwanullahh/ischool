@@ -1,6 +1,6 @@
 ---
 import { getSchoolNav, getSchoolContacts } from '../../../lib/school.ts';
-import { getSchoolPrograms } from '../../../lib/school-safe.ts';
+import { getSchoolClasses } from '../../../lib/school-safe.ts';
 import { normalizeSocialUrl } from '../../../lib/social.ts';
 import { getSocialIconPath } from '../_shared/social-icons';
 
@@ -10,9 +10,9 @@ const nav = getSchoolNav(school.id);
 const prefix = '/' + school.slug;
 const formatDate = (d: string | Date | null) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
 
-// Related programs
-const allPrograms = getSchoolPrograms(school.id);
-const relatedPrograms = allPrograms.filter((p: any) => p.id !== item?.id).slice(0, 3);
+// Related classes (same school, excluding current)
+const allClasses = getSchoolClasses(school.id);
+const relatedClasses = allClasses.filter((c: any) => c.id !== item?.id).slice(0, 3);
 
 // Social share URLs
 const currentUrl = new URL(Astro.url.pathname, Astro.site || 'http://localhost:4321').toString();
@@ -25,41 +25,46 @@ const shareLinks = [
   { label: 'LinkedIn', icon: getSocialIconPath('linkedin'), url: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}` },
 ].filter(s => s.icon);
 
-// Reading time
+// Reading time estimate from content
 const contentText = item?.content || item?.description || '';
 const wordCount = contentText.split(/\s+/).filter(Boolean).length;
 const readingTime = Math.max(1, Math.ceil(wordCount / 200));
 ---
 <div class="px-4 py-16">
   <article class="max-w-4xl mx-auto">
-    <a href={`/${school.slug}/programs`} class="inline-flex items-center gap-1.5 text-sm mb-6 hover:opacity-70" style="color:var(--muted)">
+    <a href={`${prefix}/classes`} class="inline-flex items-center gap-1.5 text-sm mb-6 hover:opacity-70" style="color:var(--muted)">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-      Back to Programs
+      Back to Classes
     </a>
 
     <div class="aurora-glass-strong rounded-3xl overflow-hidden">
-      {item?.imageUrl && <img src={item.imageUrl} alt={item.name} class="w-full h-64 sm:h-80 object-cover" />}
+      {item?.imageUrl && (
+        <img src={item.imageUrl} alt={item.name} class="w-full h-64 sm:h-80 object-cover" />
+      )}
       <div class="p-8 sm:p-12">
         <div class="flex flex-wrap items-center gap-3 mb-4">
-          {item?.level && <span class="aurora-grad px-3 py-1 text-xs font-bold uppercase tracking-wider text-white rounded-full">{item.level}</span>}
-          {item?.duration && <span class="text-sm" style="color:var(--muted)">Duration: {item.duration}</span>}
-          <span class="text-xs" style="color:var(--muted)">{readingTime} min read</span>
+          {item?.gradeLevel && <span class="aurora-grad px-3 py-1 text-xs font-bold uppercase tracking-wider text-white rounded-full">{item.gradeLevel}</span>}
+          {item?.teacherName && <span class="text-sm" style="color:var(--muted)">Teacher: {item.teacherName}</span>}
+          {item?.capacity && <span class="text-sm" style="color:var(--muted)">Capacity: {item.capacity}</span>}
         </div>
 
-        <h1 class="text-3xl sm:text-4xl font-extrabold mb-4" style="color:var(--text)">{item?.name || 'Program'}</h1>
+        <h1 class="text-3xl sm:text-4xl font-extrabold mb-4" style="color:var(--text)">{item?.name || 'Class'}</h1>
 
         {item?.description && <p class="text-lg leading-relaxed mb-6" style="color:var(--muted)">{item.description}</p>}
 
-        {item?.content && (
-          <div class="prose max-w-none whitespace-pre-wrap leading-relaxed mb-6" style="color:var(--text)">{item.content}</div>
+        {contentText && (
+          <>
+            <div class="flex items-center gap-4 text-xs mb-6 pb-6 border-b" style="color:var(--muted);border-color:var(--border)">
+              <span>{readingTime} min read</span>
+            </div>
+            <div class="prose max-w-none whitespace-pre-wrap leading-relaxed" style="color:var(--text)">{item.content}</div>
+          </>
         )}
-
-        <a href={`/${school.slug}/admissions`} class="aurora-grad inline-flex px-6 py-3 text-sm font-semibold text-white rounded-xl shadow-lg hover:scale-105 transition-transform">Apply Now</a>
 
         <!-- Social Share -->
         <div class="mt-8 pt-6 border-t" style="border-color:var(--border)">
           <div class="flex items-center gap-4 flex-wrap">
-            <span class="text-sm font-semibold" style="color:var(--text)">Share this program:</span>
+            <span class="text-sm font-semibold" style="color:var(--text)">Share this class:</span>
             <div class="flex items-center gap-2">
               {shareLinks.map(s => (
                 <a href={s.url} target="_blank" rel="noopener noreferrer" aria-label={`Share on ${s.label}`} class="aurora-glass p-2.5 rounded-lg hover:scale-110 transition-transform">
@@ -75,19 +80,16 @@ const readingTime = Math.max(1, Math.ceil(wordCount / 200));
       </div>
     </div>
 
-    <!-- Related Programs -->
-    {relatedPrograms.length > 0 && (
+    <!-- Related Classes -->
+    {relatedClasses.length > 0 && (
       <section class="mt-16">
-        <h2 class="text-2xl font-bold mb-6" style="color:var(--text)">Explore More Programs</h2>
+        <h2 class="text-2xl font-bold mb-6" style="color:var(--text)">Explore Other Classes</h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {relatedPrograms.map((p: any) => (
-            <a href={`/${school.slug}/programs/${p.slug || p.id}`} class="aurora-glass rounded-2xl overflow-hidden hover:scale-105 transition-transform block group">
-              {p.imageUrl && <img src={p.imageUrl} alt={p.name} class="w-full h-32 object-cover" loading="lazy" />}
-              <div class="p-5">
-                <h3 class="font-bold mb-2 group-hover:text-[var(--primary)] transition-colors" style="color:var(--text)">{p.name}</h3>
-                {p.description && <p class="text-sm line-clamp-2" style="color:var(--muted)">{p.description}</p>}
-                {p.duration && <span class="inline-block mt-3 text-xs font-semibold px-3 py-1 rounded-full" style="background:color-mix(in srgb, var(--primary) 10%, transparent);color:var(--primary)">{p.duration}</span>}
-              </div>
+          {relatedClasses.map((c: any) => (
+            <a href={`${prefix}/classes/${c.slug || c.id}`} class="aurora-glass rounded-2xl p-6 hover:scale-105 transition-transform block group">
+              <h3 class="font-bold mb-2 group-hover:text-[var(--primary)] transition-colors" style="color:var(--text)">{c.name}</h3>
+              {c.description && <p class="text-sm line-clamp-2" style="color:var(--muted)">{c.description}</p>}
+              {c.gradeLevel && <span class="inline-block mt-3 text-xs font-semibold px-3 py-1 rounded-full" style="background:color-mix(in srgb, var(--primary) 10%, transparent);color:var(--primary)">{c.gradeLevel}</span>}
             </a>
           ))}
         </div>
