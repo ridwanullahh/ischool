@@ -251,3 +251,27 @@ export function getSchoolFontPresetSafe(school: any): any {
     };
   } catch { return null; }
 }
+
+// --- Admissions helpers ---
+
+export function getSchoolAdmissionPeriods(schoolId: number): any[] {
+  try {
+    const db = rawDb();
+    return db.prepare('SELECT * FROM admission_periods WHERE school_id = ? ORDER BY open_date DESC').all(schoolId);
+  } catch { return []; }
+}
+
+export function getActiveAdmissionPeriod(schoolId: number): any | null {
+  try {
+    const db = rawDb();
+    const today = new Date().toISOString().split('T')[0];
+    return db.prepare('SELECT * FROM admission_periods WHERE school_id = ? AND is_active = 1 AND open_date <= ? AND close_date >= ? ORDER BY close_date ASC LIMIT 1').get(schoolId, today, today) || null;
+  } catch { return null; }
+}
+
+export function getSchoolAdmissionApplications(schoolId: number): any[] {
+  try {
+    const db = rawDb();
+    return db.prepare('SELECT * FROM admission_applications WHERE school_id = ? ORDER BY created_at DESC').all(schoolId);
+  } catch { return []; }
+}

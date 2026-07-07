@@ -1888,3 +1888,57 @@ export const classSubjects = sqliteTable('class_subjects', {
   sortOrder: integer('sort_order').default(0),
   ...timestamps,
 });
+
+// ═══════════════════════════════════════════════════════
+// ADMISSIONS SYSTEM
+// ═══════════════════════════════════════════════════════
+
+export const admissionPeriods = sqliteTable('admission_periods', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
+  title: text('title').notNull(),
+  academicYear: text('academic_year').notNull(),
+  openDate: text('open_date').notNull(),
+  closeDate: text('close_date').notNull(),
+  description: text('description'),
+  isActive: integer('is_active', { mode: 'boolean' }).default(true),
+  autoAnnounce: integer('auto_announce', { mode: 'boolean' }).default(true),
+  ...timestamps,
+});
+
+export const admissionApplications = sqliteTable('admission_applications', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
+  periodId: integer('period_id').references(() => admissionPeriods.id),
+  applicationNumber: text('application_number').notNull().unique(),
+  // Student info
+  studentFirstName: text('student_first_name').notNull(),
+  studentLastName: text('student_last_name').notNull(),
+  studentDateOfBirth: text('student_date_of_birth'),
+  studentGender: text('student_gender'),
+  studentNationality: text('student_nationality'),
+  studentCurrentSchool: text('student_current_school'),
+  // Parent/Guardian
+  parentName: text('parent_name').notNull(),
+  parentRelationship: text('parent_relationship'),
+  parentEmail: text('parent_email').notNull(),
+  parentPhone: text('parent_phone').notNull(),
+  parentOccupation: text('parent_occupation'),
+  parentAddress: text('parent_address'),
+  // Program selection
+  programId: integer('program_id'),
+  programName: text('program_name'),
+  preferredClass: text('preferred_class'),
+  // Additional info
+  message: text('message'),
+  howDidYouHear: text('how_did_you_hear'),
+  documents: text('documents', { mode: 'json' }).default('[]'),
+  // Status workflow
+  status: text('status', { enum: ['submitted', 'reviewing', 'interview_scheduled', 'accepted', 'rejected', 'enrolled', 'waitlisted'] }).notNull().default('submitted'),
+  reviewNotes: text('review_notes'),
+  interviewDate: text('interview_date'),
+  interviewNotes: text('interview_notes'),
+  decisionDate: text('decision_date'),
+  decidedBy: integer('decided_by'),
+  ...timestamps,
+});

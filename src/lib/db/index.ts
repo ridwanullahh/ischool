@@ -1554,6 +1554,53 @@ function autoMigrate(sqlite: Database.Database) {
       created_at INTEGER,
       updated_at INTEGER
     );
+
+    CREATE TABLE IF NOT EXISTS admission_periods (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      academic_year TEXT NOT NULL,
+      open_date TEXT NOT NULL,
+      close_date TEXT NOT NULL,
+      description TEXT,
+      is_active INTEGER DEFAULT 1,
+      auto_announce INTEGER DEFAULT 1,
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS admission_applications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      period_id INTEGER REFERENCES admission_periods(id),
+      application_number TEXT NOT NULL UNIQUE,
+      student_first_name TEXT NOT NULL,
+      student_last_name TEXT NOT NULL,
+      student_date_of_birth TEXT,
+      student_gender TEXT,
+      student_nationality TEXT,
+      student_current_school TEXT,
+      parent_name TEXT NOT NULL,
+      parent_relationship TEXT,
+      parent_email TEXT NOT NULL,
+      parent_phone TEXT NOT NULL,
+      parent_occupation TEXT,
+      parent_address TEXT,
+      program_id INTEGER,
+      program_name TEXT,
+      preferred_class TEXT,
+      message TEXT,
+      how_did_you_hear TEXT,
+      documents TEXT DEFAULT '[]',
+      status TEXT NOT NULL DEFAULT 'submitted',
+      review_notes TEXT,
+      interview_date TEXT,
+      interview_notes TEXT,
+      decision_date TEXT,
+      decided_by INTEGER,
+      created_at INTEGER,
+      updated_at INTEGER
+    );
   `);
 
   // Add missing columns to existing tables (ALTER TABLE IF NOT EXISTS workaround)

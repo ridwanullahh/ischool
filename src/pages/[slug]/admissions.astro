@@ -9,7 +9,7 @@
  * - Email notification to school on submission
  */
 import { getV3Theme, getThemeLayout, themeList } from '../../themes/index.js';
-import { getSchoolBySlug, getSchoolPrograms, getSchoolContacts } from '../../lib/school-safe.ts';
+import { getSchoolBySlug, getSchoolPrograms, getSchoolContacts, getActiveAdmissionPeriod, getSchoolAdmissionPeriods } from '../../lib/school-safe.ts';
 import { getDb } from '../../lib/db/index.js';
 
 const slug = Astro.params.slug!;
@@ -27,6 +27,11 @@ const PageComponent = v3Theme?.AdmissionsPage;
 const schoolPrograms = getSchoolPrograms(school.id);
 const contacts = getSchoolContacts(school.id);
 const admissionsEmail = contacts.find(c => c.type === 'admissions')?.value || contacts.find(c => c.label?.toLowerCase().includes('email'))?.value || '';
+
+// Admission period info
+const activePeriod = getActiveAdmissionPeriod(school.id);
+const allPeriods = getSchoolAdmissionPeriods(school.id);
+const admissionsOpen = allPeriods.length === 0 || !!activePeriod; // open if no periods configured or active period exists
 ---
 
 <Layout school={school} title={PageComponent ? '' : 'Admissions'}>
@@ -78,8 +83,26 @@ const admissionsEmail = contacts.find(c => c.type === 'admissions')?.value || co
 
         {/* Application Form */}
         <div class="rounded-xl border p-6 mb-8" style="background:var(--surface);border-color:var(--border)">
-          <h2 class="text-lg font-bold mb-6" style="color:var(--text)">Application Form</h2>
-          <form id="admissionForm" class="space-y-6">
+          <h2 class="text-lg font-bold mb-4" style="color:var(--text)">Application Form</h2>
+
+          {/* Admission Status Banner */}
+          {allPeriods.length > 0 && (
+            admissionsOpen && activePeriod ? (
+              <div class="p-4 rounded-lg mb-6" style="background:color-mix(in srgb, var(--primary) 10%, transparent);border:1px solid var(--primary)">
+                <p class="text-sm font-semibold" style="color:var(--primary)">Admissions Open: {activePeriod.title}</p>
+                <p class="text-xs mt-1" style="color:var(--muted)">Academic Year {activePeriod.academicYear} | Closes on {new Date(activePeriod.closeDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                {activePeriod.description && <p class="text-xs mt-2" style="color:var(--muted)">{activePeriod.description}</p>}
+              </div>
+            ) : (
+              <div class="p-4 rounded-lg mb-6 bg-amber-50 border border-amber-200">
+                <p class="text-sm font-semibold text-amber-700">Admissions Currently Closed</p>
+                <p class="text-xs mt-1 text-amber-600">We are not accepting applications at this time. Please check back later or contact us for more information.</p>
+              </div>
+            )
+          )}
+
+          {admissionsOpen ? (
+            <form id="admissionForm" class="space-y-6">
             {/* Student Information */}
             <div>
               <h3 class="text-sm font-bold uppercase tracking-wider mb-3" style="color:var(--primary)">Student Information</h3>
@@ -167,6 +190,9 @@ const admissionsEmail = contacts.find(c => c.type === 'admissions')?.value || co
 
             <button type="submit" class="px-6 py-3 text-sm font-bold text-white rounded-lg" style="background:var(--primary)">Submit Application</button>
           </form>
+          ) : (
+            <p class="text-sm text-center py-8" style="color:var(--muted)">Applications are not being accepted at this time.</p>
+          )}
         </div>
 
         {/* Contact info */}
@@ -187,7 +213,7 @@ const admissionsEmail = contacts.find(c => c.type === 'admissions')?.value || co
     </div>
   )}
 
-  <script is:inline define:vars={{ schoolSlug: slug, schoolName: school.name, admissionsEmail }}>
+  <script is:inline define:vars={{ schoolSlug: slug, schoolName: school.name, admissionsEmail, admissionsOpen, activePeriod }}>
     document.getElementById('admissionForm')?.addEventListener('submit', async function(e) {
       e.preventDefault();
       var msgEl = document.getElementById('formMessage');
@@ -197,26 +223,19 @@ const admissionsEmail = contacts.find(c => c.type === 'admissions')?.value || co
         if (key !== 'documents') data[key] = val;
       });
 
-      // Submit as a contact submission with type 'admissions'
+      // Submit to admissions API
       try {
-        var res = await fetch('/api/' + schoolSlug + '/support', {
+        var res = await fetch('/api/' + schoolSlug + '/admissions/submit', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: data.parentName || data.studentFirstName,
-            email: data.parentEmail,
-            phone: data.parentPhone,
-            subject: 'Admissions Application - ' + (data.studentFirstName || '') + ' ' + (data.studentLastName || ''),
-            message: JSON.stringify(data, null, 2),
-            type: 'admissions',
-          }),
+          body: JSON.stringify(data),
         });
         var result = await res.json();
-        if (res.ok) {
+        if (res.ok && result.success) {
           msgEl.className = 'p-4 rounded-lg';
           msgEl.style.background = 'color-mix(in srgb, var(--primary) 10%, transparent)';
           msgEl.style.color = 'var(--text)';
-          msgEl.innerHTML = '<p class="text-sm font-medium">Application submitted successfully! We will contact you at ' + data.parentEmail + ' within 2-3 business days.</p>';
+          msgEl.innerHTML = '<p class="text-sm font-bold">Application submitted successfully!</p><p class="text-xs mt-1">Your application number is: <strong>' + result.applicationNumber + '</strong></p><p class="text-xs mt-1">We will contact you at ' + data.parentEmail + ' within 2-3 business days.</p>';
           msgEl.classList.remove('hidden');
           this.reset();
           msgEl.scrollIntoView({ behavior: 'smooth' });
@@ -225,7 +244,7 @@ const admissionsEmail = contacts.find(c => c.type === 'admissions')?.value || co
         }
       } catch(err) {
         msgEl.className = 'p-4 rounded-lg bg-red-50 border border-red-200';
-        msgEl.innerHTML = '<p class="text-sm text-red-700">Failed to submit application. Please try again or contact us directly at ' + (admissionsEmail || 'the school') + '.</p>';
+        msgEl.innerHTML = '<p class="text-sm text-red-700">Failed to submit application: ' + (err.message || 'Unknown error') + '</p><p class="text-xs mt-1 text-red-600">Please try again or contact us directly at ' + (admissionsEmail || 'the school') + '.</p>';
         msgEl.classList.remove('hidden');
       }
     });
