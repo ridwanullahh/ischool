@@ -151,17 +151,20 @@ const sidebarBanners = banners.filter(b => b.position === 'sidebar');
 
 {popups.length > 0 && (
   <div id="ischool-popup-overlay" class="ischool-popup-overlay" style="display:none" data-popup-overlay>
-    {popups.map(p => (
-      <div class="ischool-popup" data-trigger={p.triggerType} data-delay={p.triggerDelay} data-frequency={p.displayFrequency} data-id={p.id}>
-        <button type="button" class="ischool-popup-close" data-popup-close={p.id} aria-label="Close popup">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
-        {p.imageUrl && <img src={p.imageUrl} alt={p.title} class="ischool-popup-image" />}
-        <h3 class="ischool-popup-title">{p.title}</h3>
-        <p class="ischool-popup-content">{p.content}</p>
-        {p.linkUrl && <a href={p.linkUrl} class="ischool-popup-link">{p.linkText}</a>}
-      </div>
-    ))}
+    <div id="ischool-popup-container" data-popup-container>
+      {/* Only render the FIRST active popup — show one at a time */}
+      {popups.slice(0, 1).map(p => (
+        <div class="ischool-popup" data-trigger={p.triggerType} data-delay={p.triggerDelay} data-frequency={p.displayFrequency} data-id={p.id}>
+          <button type="button" class="ischool-popup-close" data-popup-close={p.id} aria-label="Close popup">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+          {p.imageUrl && <img src={p.imageUrl} alt={p.title} class="ischool-popup-image" />}
+          <h3 class="ischool-popup-title">{p.title}</h3>
+          <p class="ischool-popup-content">{p.content}</p>
+          {p.linkUrl && <a href={p.linkUrl} class="ischool-popup-link">{p.linkText}</a>}
+        </div>
+      ))}
+    </div>
   </div>
 )}
 
