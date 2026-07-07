@@ -5,5 +5,6 @@ const config: ThemeConfig = {
   category: 'conventional', defaultMode: 'light', typography: 'Bricolage Grotesque',
   iconPath: 'M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5',
   defaultPrimaryColor: '#e11d48', tags: ['vibrant', 'bold', 'saturated', 'premium'],
+  status: 'coming_soon',
 };
 export default config;

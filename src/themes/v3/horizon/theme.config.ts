@@ -5,5 +5,6 @@ const config: ThemeConfig = {
   category: 'conventional', defaultMode: 'light', typography: 'Space Grotesk',
   iconPath: 'M3 12h18M3 6h18M3 18h18',
   defaultPrimaryColor: '#000000', tags: ['minimal', 'whitespace', 'mono', 'sparse'],
+  status: 'ready',
 };
 export default config;

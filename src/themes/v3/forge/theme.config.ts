@@ -5,5 +5,6 @@ const config: ThemeConfig = {
   category: 'conventional', defaultMode: 'light', typography: 'Archivo',
   iconPath: 'M12 2L2 7l10 5 10-5-10-5z',
   defaultPrimaryColor: '#a16207', tags: ['industrial', 'bold', 'metallic', 'premium'],
+  status: 'ready',
 };
 export default config;

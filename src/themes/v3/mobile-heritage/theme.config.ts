@@ -6,5 +6,6 @@ const config: ThemeConfig = {
   iconPath: 'M4 4h16v16H4V4z',
   defaultPrimaryColor: '#991b1b',
   tags: ['mobile', 'app-like', 'native', 'editorial', 'serif'],
+  status: 'coming_soon',
 };
 export default config;

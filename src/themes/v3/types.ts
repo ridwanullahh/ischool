@@ -24,6 +24,14 @@ export interface ThemeConfig {
   iconPath: string;
   defaultPrimaryColor: string;
   tags: string[];
+  /**
+   * Whether the theme is fully implemented with all page templates
+   * (Layout + HomePage + 13 page templates all distinct) or is a
+   * stub/clone that will be implemented in a future release.
+   * - 'ready': Fully fledged, ready for production use
+   * - 'coming_soon': Stub/clone, not yet fully implemented
+   */
+  status?: 'ready' | 'coming_soon';
 }
 
 /**

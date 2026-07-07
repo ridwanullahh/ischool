@@ -9,5 +9,6 @@ const config: ThemeConfig = {
   iconPath: 'M3 12c0-5 4-9 9-9s9 4 9 9-4 9-9 9-9-4-9-9z',
   defaultPrimaryColor: '#8b5cf6',
   tags: ["modern", "glassmorphism", "gradient", "premium"],
+  status: 'ready',
 };
 export default config;

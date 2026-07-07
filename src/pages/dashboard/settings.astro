@@ -10,7 +10,13 @@ import { PALETTE_PRESETS } from '../../lib/palette-presets.js';
 import { FONT_PRESETS } from '../../lib/font-presets.js';
 
 // Issue #1: theme selector shows ONLY the newly reimplemented v3 themes.
-const v3Themes = listV2Themes();
+// Sort: ready themes first (alphabetically), then coming_soon themes (alphabetically)
+const v3Themes = listV2Themes().sort((a, b) => {
+  const aReady = a.status === 'ready' ? 0 : 1;
+  const bReady = b.status === 'ready' ? 0 : 1;
+  if (aReady !== bReady) return aReady - bReady;
+  return a.label.localeCompare(b.label);
+});
 
 const user = Astro.locals.user!;
 const school = getUserSchool(user.id);
@@ -167,11 +173,11 @@ const defaultPalette = generateDefaultPalette(school?.primaryColor || '#2563eb')
       <div class="flex items-center justify-between mb-4">
         <div>
           <h2 class="text-base font-semibold text-gray-900">Theme</h2>
-          <p class="text-xs text-gray-500 mt-1">Each theme has full layout autonomy with its own header, footer, and page designs.</p>
+          <p class="text-xs text-gray-500 mt-1">Each theme has full layout autonomy with its own header, footer, and page designs. Ready themes are fully implemented; Coming Soon themes are stubs.</p>
         </div>
         <div class="flex items-center gap-2 text-xs">
-          <span class="px-2 py-1 rounded-full bg-gray-100 text-gray-600 font-medium">{v3Themes.filter(t => t.category === 'conventional').length} conventional</span>
-          <span class="px-2 py-1 rounded-full bg-gray-100 text-gray-600 font-medium">{v3Themes.filter(t => t.category === 'mobile').length} mobile</span>
+          <span class="px-2 py-1 rounded-full bg-green-100 text-green-700 font-medium">{v3Themes.filter(t => t.status === 'ready').length} ready</span>
+          <span class="px-2 py-1 rounded-full bg-amber-100 text-amber-700 font-medium">{v3Themes.filter(t => t.status === 'coming_soon').length} coming soon</span>
         </div>
       </div>
       {v3Themes.length === 0 ? (
@@ -181,24 +187,32 @@ const defaultPalette = generateDefaultPalette(school?.primaryColor || '#2563eb')
           {v3Themes.map(theme => {
             const isActive = school?.theme === theme.name;
             const primary = theme.defaultPrimaryColor || school?.primaryColor || '#2563eb';
+            const isReady = theme.status === 'ready';
+            const isComingSoon = theme.status === 'coming_soon';
             return (
               <label class:list={[
-                'relative flex flex-col p-4 rounded-xl border-2 cursor-pointer transition-all overflow-hidden',
-                isActive ? '' : 'border-gray-200 hover:border-gray-300'
+                'relative flex flex-col p-4 rounded-xl border-2 transition-all overflow-hidden',
+                isComingSoon ? 'border-gray-100 opacity-60 cursor-not-allowed' : (isActive ? '' : 'border-gray-200 hover:border-gray-300 cursor-pointer')
               ]} style={isActive ? `border-color:${primary};background:${primary}08` : ''}>
-                <input type="radio" name="theme" value={theme.name} checked={isActive} class="sr-only" onchange="this.form.submit()" />
+                <input type="radio" name="theme" value={theme.name} checked={isActive} disabled={isComingSoon} class="sr-only" onchange="this.form.submit()" />
                 <div class="w-full h-20 rounded-lg mb-3 flex items-center justify-center relative overflow-hidden" style={`background:linear-gradient(135deg, ${primary}18, ${primary}08)`}>
                   <svg class="w-8 h-8" fill="none" stroke={primary} viewBox="0 0 24 24" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d={theme.iconPath} />
                   </svg>
                   <span class="absolute top-1.5 right-1.5 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded" style={`color:${primary};background:${primary}15`}>{theme.category === 'mobile' ? 'Mobile' : theme.defaultMode === 'dark' ? 'Dark' : 'Light'}</span>
+                  {isComingSoon && (
+                    <span class="absolute bottom-1.5 left-1.5 text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500 text-white">Coming Soon</span>
+                  )}
+                  {isReady && !isComingSoon && (
+                    <span class="absolute bottom-1.5 left-1.5 text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-green-500 text-white">Ready</span>
+                  )}
                 </div>
                 <span class="text-sm font-semibold text-gray-900">{theme.label}</span>
                 <span class="text-xs text-gray-500 mt-0.5 leading-snug">{theme.description}</span>
                 <div class="mt-2 flex items-center gap-2">
                   <span class="text-[10px] font-medium uppercase tracking-wider text-gray-400">{theme.archetype}</span>
                 </div>
-                {school?.slug && (
+                {school?.slug && !isComingSoon && (
                   <a href={`/${school.slug}?preview_theme=${theme.name}`} target="_blank" class="mt-2 text-[11px] font-medium hover:underline" style={`color:${primary}`}>Preview</a>
                 )}
                 {isActive && (

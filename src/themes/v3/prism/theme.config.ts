@@ -5,5 +5,6 @@ const config: ThemeConfig = {
   category: 'conventional', defaultMode: 'light', typography: 'Syne',
   iconPath: 'M12 2L2 22h20L12 2z',
   defaultPrimaryColor: '#db2777', tags: ['colorful', 'geometric', 'angular', 'premium'],
+  status: 'coming_soon',
 };
 export default config;

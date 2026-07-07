@@ -6,5 +6,6 @@ const config: ThemeConfig = {
   iconPath: 'M13 2L3 14h7v8l10-12h-7V2z',
   defaultPrimaryColor: '#06b6d4',
   tags: ['mobile', 'app-like', 'native', 'dark', 'tech'],
+  status: 'coming_soon',
 };
 export default config;
