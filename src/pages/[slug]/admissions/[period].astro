@@ -1,0 +1,187 @@
+---
+import { getV3Theme, getThemeLayout, themeList } from '../../../themes/index.js';
+import { getSchoolBySlug, getAdmissionPeriodBySlug, getSchoolAdmissionPeriods } from '../../../lib/school-safe.ts';
+
+const slug = Astro.params.slug!;
+const periodSlug = Astro.params.period!;
+
+const school = getSchoolBySlug(slug);
+if (!school) return Astro.redirect('/404');
+
+const previewTheme = Astro.url.searchParams.get('preview_theme');
+const user = Astro.locals.user;
+const isPreviewing = previewTheme && themeList.includes(previewTheme) && user;
+const activeTheme = isPreviewing ? previewTheme : (school.theme || 'aurora');
+
+const v3Theme = getV3Theme(activeTheme);
+const Layout = v3Theme?.Layout || getThemeLayout(activeTheme);
+
+const period = getAdmissionPeriodBySlug(school.id, periodSlug);
+if (!period) return Astro.redirect('/404');
+
+const today = new Date().toISOString().split('T')[0];
+const isOpen = period.is_active && period.open_date <= today && period.close_date >= today;
+const isUpcoming = period.is_active && period.open_date > today;
+const isClosed = !period.is_active || period.close_date < today;
+
+const formatDate = (d: string | null) => d ? new Date(d).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '';
+
+// Parse JSON fields
+function parseJson(val: any, fallback: any) {
+  if (val === null || val === undefined) return fallback;
+  if (typeof val === 'object') return val;
+  if (typeof val === 'string') { try { return JSON.parse(val); } catch { return fallback; } }
+  return fallback;
+}
+
+const requirements = parseJson(period.requirements, []);
+const processSteps = parseJson(period.process_steps, []);
+const importantDates = parseJson(period.important_dates, []);
+
+const prefix = '/' + school.slug;
+---
+
+<Layout school={school} title={period.title}>
+  {isPreviewing && (
+    <div class="bg-blue-600 text-white py-2 px-4 text-center text-sm font-medium sticky top-0 z-[100]">
+      Previewing <strong>{previewTheme}</strong> theme
+      <a href={`/${slug}`} class="underline text-xs hover:text-blue-200 ml-2">Close</a>
+    </div>
+  )}
+
+  <div class="px-4 py-16">
+    <div class="max-w-4xl mx-auto">
+      {/* Back link */}
+      <a href={`${prefix}/admissions`} class="inline-flex items-center gap-1.5 text-sm mb-6 hover:opacity-70" style="color:var(--muted)">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        Back to Admissions
+      </a>
+
+      {/* Header */}
+      <div class="rounded-2xl border p-8 mb-8" style="background:var(--surface);border-color:var(--border)">
+        <div class="flex items-center gap-2 mb-3">
+          {isOpen && <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full text-white" style="background:var(--primary)">Open Now</span>}
+          {isUpcoming && <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full" style="background:color-mix(in srgb, var(--primary) 10%, transparent);color:var(--primary)">Upcoming</span>}
+          {isClosed && <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-gray-200 text-gray-600">Closed</span>}
+          <span class="text-xs" style="color:var(--muted)">Academic Year {period.academic_year}</span>
+        </div>
+
+        <h1 class="text-3xl font-extrabold mb-3" style="color:var(--text)">{period.title}</h1>
+
+        {period.description && <p class="text-base leading-relaxed mb-6" style="color:var(--muted)">{period.description}</p>}
+
+        {/* Key Info Grid */}
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div>
+            <p class="text-xs uppercase tracking-wider" style="color:var(--muted)">Opening Date</p>
+            <p class="text-sm font-semibold mt-1" style="color:var(--text)">{formatDate(period.open_date)}</p>
+          </div>
+          <div>
+            <p class="text-xs uppercase tracking-wider" style="color:var(--muted)">Closing Date</p>
+            <p class="text-sm font-semibold mt-1" style="color:var(--text)">{formatDate(period.close_date)}</p>
+          </div>
+          {period.available_seats && (
+            <div>
+              <p class="text-xs uppercase tracking-wider" style="color:var(--muted)">Available Seats</p>
+              <p class="text-sm font-semibold mt-1" style="color:var(--text)">{period.available_seats}</p>
+            </div>
+          )}
+          {period.eligible_grades && (
+            <div>
+              <p class="text-xs uppercase tracking-wider" style="color:var(--muted)">Eligible Grades</p>
+              <p class="text-sm font-semibold mt-1" style="color:var(--text)">{period.eligible_grades}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Application Fee */}
+        {period.application_fee != null && (
+          <div class="flex items-center gap-2 mb-6">
+            <span class="text-sm" style="color:var(--muted)">Application Fee:</span>
+            <span class="text-lg font-bold" style="color:var(--primary)">{period.application_fee_currency || 'USD'} {period.application_fee}</span>
+          </div>
+        )}
+
+        {/* CTA */}
+        {isOpen ? (
+          <a href={`${prefix}/admissions/${period.slug || period.id}/apply`} class="inline-block px-8 py-3 text-sm font-bold text-white rounded-lg shadow-lg hover:scale-105 transition-transform" style="background:var(--primary)">Apply Now</a>
+        ) : isUpcoming ? (
+          <div class="inline-block px-6 py-3 text-sm font-medium rounded-lg border" style="border-color:var(--border);color:var(--muted)">Applications open on {formatDate(period.open_date)}</div>
+        ) : (
+          <div class="inline-block px-6 py-3 text-sm font-medium rounded-lg bg-gray-100 text-gray-500">Applications Closed</div>
+        )}
+      </div>
+
+      {/* Requirements */}
+      {requirements.length > 0 && (
+        <div class="rounded-2xl border p-8 mb-6" style="background:var(--surface);border-color:var(--border)">
+          <h2 class="text-xl font-bold mb-4" style="color:var(--text)">Requirements</h2>
+          <ul class="space-y-3">
+            {requirements.map((r: any, i: number) => (
+              <li class="flex items-start gap-3" style="color:var(--text)">
+                <svg class="w-5 h-5 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color:var(--primary)"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                <span class="text-sm">{typeof r === 'string' ? r : r.text || r.description || JSON.stringify(r)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Process Steps */}
+      {processSteps.length > 0 && (
+        <div class="rounded-2xl border p-8 mb-6" style="background:var(--surface);border-color:var(--border)">
+          <h2 class="text-xl font-bold mb-6" style="color:var(--text)">Application Process</h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {processSteps.map((step: any, i: number) => (
+              <div class="flex items-start gap-3">
+                <div class="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0" style="background:var(--primary)">{i + 1}</div>
+                <div>
+                  <h3 class="font-semibold text-sm" style="color:var(--text)">{typeof step === 'string' ? step : step.title || step.name || ''}</h3>
+                  {typeof step === 'object' && step.description && <p class="text-xs mt-1" style="color:var(--muted)">{step.description}</p>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Important Dates */}
+      {importantDates.length > 0 && (
+        <div class="rounded-2xl border p-8 mb-6" style="background:var(--surface);border-color:var(--border)">
+          <h2 class="text-xl font-bold mb-4" style="color:var(--text)">Important Dates</h2>
+          <div class="space-y-3">
+            {importantDates.map((d: any, i: number) => (
+              <div class="flex items-center justify-between border-b pb-2 last:border-0" style="border-color:var(--border)">
+                <span class="text-sm" style="color:var(--text)">{typeof d === 'string' ? d : d.label || d.title || d.name || ''}</span>
+                {typeof d === 'object' && d.date && <span class="text-sm font-semibold" style="color:var(--primary)">{formatDate(d.date)}</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Contact Info */}
+      {(period.contact_email || period.contact_phone) && (
+        <div class="rounded-2xl border p-8 mb-6" style="background:var(--surface);border-color:var(--border)">
+          <h2 class="text-xl font-bold mb-4" style="color:var(--text)">Contact for Inquiries</h2>
+          {period.contact_email && <p class="text-sm mb-2" style="color:var(--text)">Email: <a href={`mailto:${period.contact_email}`} class="hover:underline" style="color:var(--primary)">{period.contact_email}</a></p>}
+          {period.contact_phone && <p class="text-sm" style="color:var(--text)">Phone: {period.contact_phone}</p>}
+        </div>
+      )}
+
+      {/* Brochure & FAQ Links */}
+      {(period.brochure_url || period.faq_link) && (
+        <div class="flex gap-4">
+          {period.brochure_url && <a href={period.brochure_url} target="_blank" class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-lg border" style="border-color:var(--primary);color:var(--primary)">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+            Download Brochure
+          </a>}
+          {period.faq_link && <a href={period.faq_link} class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-lg border" style="border-color:var(--primary);color:var(--primary)">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            View FAQ
+          </a>}
+        </div>
+      )}
+    </div>
+  </div>
+</Layout>

@@ -1559,10 +1559,22 @@ function autoMigrate(sqlite: Database.Database) {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
       title TEXT NOT NULL,
+      slug TEXT,
       academic_year TEXT NOT NULL,
       open_date TEXT NOT NULL,
       close_date TEXT NOT NULL,
       description TEXT,
+      eligible_grades TEXT,
+      available_seats INTEGER,
+      application_fee INTEGER,
+      application_fee_currency TEXT DEFAULT 'USD',
+      requirements TEXT DEFAULT '[]',
+      process_steps TEXT DEFAULT '[]',
+      important_dates TEXT DEFAULT '[]',
+      contact_email TEXT,
+      contact_phone TEXT,
+      brochure_url TEXT,
+      faq_link TEXT,
       is_active INTEGER DEFAULT 1,
       auto_announce INTEGER DEFAULT 1,
       created_at INTEGER,
@@ -1825,6 +1837,20 @@ function autoMigrate(sqlite: Database.Database) {
   addColumnIfMissing('classes', 'slug', 'TEXT');
   addColumnIfMissing('classes', 'content', 'TEXT');
   addColumnIfMissing('classes', 'teacher_name', 'TEXT');
+
+  // Fix admission_periods — add extended columns if missing
+  addColumnIfMissing('admission_periods', 'slug', 'TEXT');
+  addColumnIfMissing('admission_periods', 'eligible_grades', 'TEXT');
+  addColumnIfMissing('admission_periods', 'available_seats', 'INTEGER');
+  addColumnIfMissing('admission_periods', 'application_fee', 'INTEGER');
+  addColumnIfMissing('admission_periods', 'application_fee_currency', "TEXT DEFAULT 'USD'");
+  addColumnIfMissing('admission_periods', 'requirements', "TEXT DEFAULT '[]'");
+  addColumnIfMissing('admission_periods', 'process_steps', "TEXT DEFAULT '[]'");
+  addColumnIfMissing('admission_periods', 'important_dates', "TEXT DEFAULT '[]'");
+  addColumnIfMissing('admission_periods', 'contact_email', 'TEXT');
+  addColumnIfMissing('admission_periods', 'contact_phone', 'TEXT');
+  addColumnIfMissing('admission_periods', 'brochure_url', 'TEXT');
+  addColumnIfMissing('admission_periods', 'faq_link', 'TEXT');
   addColumnIfMissing('classes', 'image_url', 'TEXT');
   addColumnIfMissing('classes', 'has_detail_page', 'INTEGER DEFAULT 0');
   addColumnIfMissing('enrollments', 'academic_year', 'TEXT');

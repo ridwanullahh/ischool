@@ -53,7 +53,7 @@ export const POST: APIRoute = async ({ request, params }) => {
   try {
     const [application] = db.insert(admissionApplications).values({
       schoolId: school.id,
-      periodId: activePeriod?.id || null,
+      periodId: data.periodId || activePeriod?.id || null,
       applicationNumber,
       studentFirstName: data.studentFirstName.trim(),
       studentLastName: data.studentLastName.trim(),

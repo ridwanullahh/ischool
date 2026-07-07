@@ -63,7 +63,15 @@ export function getSchoolNav(schoolId: number): any[] {
 export function getSchoolContacts(schoolId: number): any[] {
   try {
     const db = rawDb();
-    return db.prepare('SELECT * FROM contact_info WHERE school_id = ? ORDER BY sort_order').all(schoolId);
+    const rows = db.prepare('SELECT * FROM contact_info WHERE school_id = ? ORDER BY sort_order').all(schoolId);
+    // Deduplicate by (label + value) to prevent doubled contacts from repeated seeds
+    const seen = new Set();
+    return rows.filter((c: any) => {
+      const key = (c.label || '') + '|' + (c.value || '');
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
   } catch { return []; }
 }
 
@@ -274,4 +282,19 @@ export function getSchoolAdmissionApplications(schoolId: number): any[] {
     const db = rawDb();
     return db.prepare('SELECT * FROM admission_applications WHERE school_id = ? ORDER BY created_at DESC').all(schoolId);
   } catch { return []; }
+}
+
+export function getAdmissionPeriodBySlug(schoolId: number, slug: string): any | null {
+  try {
+    const db = rawDb();
+    // Try slug first, then id if numeric
+    try {
+      return db.prepare('SELECT * FROM admission_periods WHERE school_id = ? AND slug = ?').get(schoolId, slug);
+    } catch {
+      if (/^\d+$/.test(slug)) {
+        return db.prepare('SELECT * FROM admission_periods WHERE school_id = ? AND id = ?').get(schoolId, Number(slug));
+      }
+      return null;
+    }
+  } catch { return null; }
 }

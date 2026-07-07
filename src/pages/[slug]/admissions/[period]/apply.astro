@@ -1,0 +1,218 @@
+---
+import { getV3Theme, getThemeLayout, themeList } from '../../../../themes/index.js';
+import { getSchoolBySlug, getAdmissionPeriodBySlug, getSchoolPrograms } from '../../../../lib/school-safe.ts';
+
+const slug = Astro.params.slug!;
+const periodSlug = Astro.params.period!;
+
+const school = getSchoolBySlug(slug);
+if (!school) return Astro.redirect('/404');
+
+const previewTheme = Astro.url.searchParams.get('preview_theme');
+const user = Astro.locals.user;
+const isPreviewing = previewTheme && themeList.includes(previewTheme) && user;
+const activeTheme = isPreviewing ? previewTheme : (school.theme || 'aurora');
+
+const v3Theme = getV3Theme(activeTheme);
+const Layout = v3Theme?.Layout || getThemeLayout(activeTheme);
+
+const period = getAdmissionPeriodBySlug(school.id, periodSlug);
+if (!period) return Astro.redirect('/404');
+
+const today = new Date().toISOString().split('T')[0];
+const isOpen = period.is_active && period.open_date <= today && period.close_date >= today;
+
+const schoolPrograms = getSchoolPrograms(school.id);
+const formatDate = (d: string | null) => d ? new Date(d).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '';
+const prefix = '/' + school.slug;
+---
+
+<Layout school={school} title={`Apply: ${period.title}`}>
+  {isPreviewing && (
+    <div class="bg-blue-600 text-white py-2 px-4 text-center text-sm font-medium sticky top-0 z-[100]">
+      Previewing <strong>{previewTheme}</strong> theme
+      <a href={`/${slug}`} class="underline text-xs hover:text-blue-200 ml-2">Close</a>
+    </div>
+  )}
+
+  <div class="px-4 py-16">
+    <div class="max-w-3xl mx-auto">
+      <a href={`${prefix}/admissions/${period.slug || period.id}`} class="inline-flex items-center gap-1.5 text-sm mb-6 hover:opacity-70" style="color:var(--muted)">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        Back to {period.title}
+      </a>
+
+      {!isOpen ? (
+        <div class="rounded-2xl border p-8 text-center" style="background:var(--surface);border-color:var(--border)">
+          <svg class="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color:var(--muted)"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <h1 class="text-xl font-bold mb-2" style="color:var(--text)">Applications Not Open</h1>
+          <p class="text-sm mb-4" style="color:var(--muted)">This admission period is not currently accepting applications.</p>
+          <a href={`${prefix}/admissions/${period.slug || period.id}`} class="inline-block px-6 py-2 text-sm font-semibold text-white rounded-lg" style="background:var(--primary)">View Details</a>
+        </div>
+      ) : (
+        <>
+          <div class="rounded-2xl border p-6 mb-8" style="background:var(--surface);border-color:var(--border)">
+            <h1 class="text-2xl font-extrabold mb-2" style="color:var(--text)">Application Form</h1>
+            <p class="text-sm mb-3" style="color:var(--muted)">{period.title} - Academic Year {period.academic_year}</p>
+            <p class="text-xs" style="color:var(--muted)">Closes on {formatDate(period.close_date)}</p>
+            {period.application_fee != null && (
+              <p class="text-xs mt-1" style="color:var(--muted)">Application fee: {period.application_fee_currency || 'USD'} {period.application_fee}</p>
+            )}
+          </div>
+
+          <form id="admissionForm" class="space-y-6">
+            {/* Student Information */}
+            <div class="rounded-xl border p-6" style="background:var(--surface);border-color:var(--border)">
+              <h2 class="text-sm font-bold uppercase tracking-wider mb-4" style="color:var(--primary)">Student Information</h2>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-medium mb-1" style="color:var(--text)">First Name *</label>
+                  <input name="studentFirstName" type="text" required class="w-full px-3 py-2 border rounded-lg text-sm outline-none" style="background:var(--bg);border-color:var(--border);color:var(--text)" />
+                </div>
+                <div>
+                  <label class="block text-xs font-medium mb-1" style="color:var(--text)">Last Name *</label>
+                  <input name="studentLastName" type="text" required class="w-full px-3 py-2 border rounded-lg text-sm outline-none" style="background:var(--bg);border-color:var(--border);color:var(--text)" />
+                </div>
+                <div>
+                  <label class="block text-xs font-medium mb-1" style="color:var(--text)">Date of Birth</label>
+                  <input name="studentDateOfBirth" type="date" class="w-full px-3 py-2 border rounded-lg text-sm outline-none" style="background:var(--bg);border-color:var(--border);color:var(--text)" />
+                </div>
+                <div>
+                  <label class="block text-xs font-medium mb-1" style="color:var(--text)">Gender</label>
+                  <select name="studentGender" class="w-full px-3 py-2 border rounded-lg text-sm outline-none" style="background:var(--bg);border-color:var(--border);color:var(--text)">
+                    <option value="">Select...</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium mb-1" style="color:var(--text)">Nationality</label>
+                  <input name="studentNationality" type="text" class="w-full px-3 py-2 border rounded-lg text-sm outline-none" style="background:var(--bg);border-color:var(--border);color:var(--text)" />
+                </div>
+                <div>
+                  <label class="block text-xs font-medium mb-1" style="color:var(--text)">Current School</label>
+                  <input name="studentCurrentSchool" type="text" class="w-full px-3 py-2 border rounded-lg text-sm outline-none" style="background:var(--bg);border-color:var(--border);color:var(--text)" />
+                </div>
+              </div>
+            </div>
+
+            {/* Parent/Guardian Information */}
+            <div class="rounded-xl border p-6" style="background:var(--surface);border-color:var(--border)">
+              <h2 class="text-sm font-bold uppercase tracking-wider mb-4" style="color:var(--primary)">Parent / Guardian Information</h2>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-medium mb-1" style="color:var(--text)">Full Name *</label>
+                  <input name="parentName" type="text" required class="w-full px-3 py-2 border rounded-lg text-sm outline-none" style="background:var(--bg);border-color:var(--border);color:var(--text)" />
+                </div>
+                <div>
+                  <label class="block text-xs font-medium mb-1" style="color:var(--text)">Relationship</label>
+                  <select name="parentRelationship" class="w-full px-3 py-2 border rounded-lg text-sm outline-none" style="background:var(--bg);border-color:var(--border);color:var(--text)">
+                    <option value="">Select...</option>
+                    <option value="father">Father</option>
+                    <option value="mother">Mother</option>
+                    <option value="guardian">Guardian</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium mb-1" style="color:var(--text)">Email *</label>
+                  <input name="parentEmail" type="email" required class="w-full px-3 py-2 border rounded-lg text-sm outline-none" style="background:var(--bg);border-color:var(--border);color:var(--text)" />
+                </div>
+                <div>
+                  <label class="block text-xs font-medium mb-1" style="color:var(--text)">Phone *</label>
+                  <input name="parentPhone" type="tel" required class="w-full px-3 py-2 border rounded-lg text-sm outline-none" style="background:var(--bg);border-color:var(--border);color:var(--text)" />
+                </div>
+                <div>
+                  <label class="block text-xs font-medium mb-1" style="color:var(--text)">Occupation</label>
+                  <input name="parentOccupation" type="text" class="w-full px-3 py-2 border rounded-lg text-sm outline-none" style="background:var(--bg);border-color:var(--border);color:var(--text)" />
+                </div>
+                <div class="sm:col-span-2">
+                  <label class="block text-xs font-medium mb-1" style="color:var(--text)">Address</label>
+                  <textarea name="parentAddress" rows="2" class="w-full px-3 py-2 border rounded-lg text-sm outline-none" style="background:var(--bg);border-color:var(--border);color:var(--text)"></textarea>
+                </div>
+              </div>
+            </div>
+
+            {/* Program Selection */}
+            <div class="rounded-xl border p-6" style="background:var(--surface);border-color:var(--border)">
+              <h2 class="text-sm font-bold uppercase tracking-wider mb-4" style="color:var(--primary)">Program Selection</h2>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-medium mb-1" style="color:var(--text)">Program of Interest</label>
+                  <select name="programId" class="w-full px-3 py-2 border rounded-lg text-sm outline-none" style="background:var(--bg);border-color:var(--border);color:var(--text)">
+                    <option value="">Select a program...</option>
+                    {schoolPrograms.map((p: any) => <option value={p.id}>{p.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium mb-1" style="color:var(--text)">Preferred Class</label>
+                  <input name="preferredClass" type="text" placeholder="e.g., Grade 5" class="w-full px-3 py-2 border rounded-lg text-sm outline-none" style="background:var(--bg);border-color:var(--border);color:var(--text)" />
+                </div>
+              </div>
+            </div>
+
+            {/* Additional Information */}
+            <div class="rounded-xl border p-6" style="background:var(--surface);border-color:var(--border)">
+              <h2 class="text-sm font-bold uppercase tracking-wider mb-4" style="color:var(--primary)">Additional Information</h2>
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-xs font-medium mb-1" style="color:var(--text)">Message (optional)</label>
+                  <textarea name="message" rows="3" placeholder="Tell us about your child, any special needs, or questions you have..." class="w-full px-3 py-2 border rounded-lg text-sm outline-none" style="background:var(--bg);border-color:var(--border);color:var(--text)"></textarea>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium mb-1" style="color:var(--text)">How did you hear about us?</label>
+                  <select name="howDidYouHear" class="w-full px-3 py-2 border rounded-lg text-sm outline-none" style="background:var(--bg);border-color:var(--border);color:var(--text)">
+                    <option value="">Select...</option>
+                    <option value="friend">Friend or Family</option>
+                    <option value="social_media">Social Media</option>
+                    <option value="website">Website</option>
+                    <option value="advertisement">Advertisement</option>
+                    <option value="community">Community Event</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div id="formMessage" class="hidden"></div>
+
+            <button type="submit" class="w-full px-6 py-3 text-sm font-bold text-white rounded-lg" style="background:var(--primary)">Submit Application</button>
+          </form>
+        </>
+      )}
+    </div>
+  </div>
+
+  <script is:inline define:vars={{ schoolSlug: slug, periodId: period.id, periodSlug: period.slug || period.id }}>
+    document.getElementById('admissionForm')?.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      var msgEl = document.getElementById('formMessage');
+      var formData = new FormData(this);
+      var data = {};
+      formData.forEach(function(val, key) { data[key] = val; });
+
+      try {
+        var res = await fetch('/api/' + schoolSlug + '/admissions/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...data, periodId: periodId }),
+        });
+        var result = await res.json();
+        if (res.ok && result.success) {
+          msgEl.className = 'p-4 rounded-lg';
+          msgEl.style.background = 'color-mix(in srgb, var(--primary) 10%, transparent)';
+          msgEl.style.border = '1px solid var(--primary)';
+          msgEl.innerHTML = '<p class="text-sm font-bold" style="color:var(--text)">Application submitted successfully!</p><p class="text-xs mt-1" style="color:var(--muted)">Your application number is: <strong>' + result.applicationNumber + '</strong></p><p class="text-xs mt-1" style="color:var(--muted)">We will contact you at ' + data.parentEmail + ' within 2-3 business days.</p>';
+          msgEl.classList.remove('hidden');
+          this.reset();
+          msgEl.scrollIntoView({ behavior: 'smooth' });
+        } else {
+          throw new Error(result.error || 'Failed');
+        }
+      } catch(err) {
+        msgEl.className = 'p-4 rounded-lg bg-red-50 border border-red-200';
+        msgEl.innerHTML = '<p class="text-sm text-red-700">Failed to submit: ' + (err.message || 'Unknown error') + '</p>';
+        msgEl.classList.remove('hidden');
+      }
+    });
+  </script>
+</Layout>

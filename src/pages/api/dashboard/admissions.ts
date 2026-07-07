@@ -23,14 +23,42 @@ export const POST: APIRoute = async ({ request }) => {
     const closeDate = form.get('closeDate')?.toString() || '';
     const description = form.get('description')?.toString() || '';
     const autoAnnounce = form.get('autoAnnounce') === 'on';
+    const eligibleGrades = form.get('eligibleGrades')?.toString() || null;
+    const availableSeats = form.get('availableSeats') ? Number(form.get('availableSeats')) : null;
+    const applicationFee = form.get('applicationFee') ? Number(form.get('applicationFee')) : null;
+    const applicationFeeCurrency = form.get('applicationFeeCurrency')?.toString() || 'USD';
+    const contactEmail = form.get('contactEmail')?.toString() || null;
+    const contactPhone = form.get('contactPhone')?.toString() || null;
+    const brochureUrl = form.get('brochureUrl')?.toString() || null;
+
+    // Parse JSON fields
+    let requirements: any[] = [];
+    let processSteps: any[] = [];
+    let importantDates: any[] = [];
+    try { requirements = JSON.parse(form.get('requirements')?.toString() || '[]'); } catch {}
+    try { processSteps = JSON.parse(form.get('processSteps')?.toString() || '[]'); } catch {}
+    try { importantDates = JSON.parse(form.get('importantDates')?.toString() || '[]'); } catch {}
 
     if (!title || !academicYear || !openDate || !closeDate) {
       return new Response('Missing required fields', { status: 400 });
     }
 
+    // Generate slug from title
+    const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') + '-' + academicYear.replace(/[^a-z0-9]/gi, '-');
+
     const [period] = db.insert(admissionPeriods).values({
-      schoolId, title, academicYear, openDate, closeDate,
+      schoolId, title, slug, academicYear, openDate, closeDate,
       description: description || null,
+      eligibleGrades: eligibleGrades || null,
+      availableSeats: availableSeats || null,
+      applicationFee: applicationFee || null,
+      applicationFeeCurrency,
+      requirements: requirements as any,
+      processSteps: processSteps as any,
+      importantDates: importantDates as any,
+      contactEmail: contactEmail || null,
+      contactPhone: contactPhone || null,
+      brochureUrl: brochureUrl || null,
       isActive: true,
       autoAnnounce,
     } as any).returning().all();
@@ -38,11 +66,11 @@ export const POST: APIRoute = async ({ request }) => {
     // Auto-generate announcement if enabled
     if (autoAnnounce && period) {
       try {
-        const slug = `admissions-open-${academicYear}-${period.id}`;
+        const annSlug = `admissions-open-${academicYear}-${period.id}`;
         db.insert(announcements).values({
           schoolId,
           title: `Admissions Open: ${title}`,
-          slug,
+          slug: annSlug,
           content: `We are now accepting applications for the ${academicYear} academic year. ${description} Applications open on ${openDate} and close on ${closeDate}. Apply now to secure your child's place.`,
           excerpt: `Admissions for ${academicYear} are now open. Apply by ${closeDate}.`,
           isPinned: true,
