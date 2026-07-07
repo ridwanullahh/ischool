@@ -309,6 +309,21 @@ async function seed() {
     { schoolId: school1.id, userId: teacher2.id, role: 'teacher' },
   ]);
 
+  // Create student user accounts (for portal access)
+  const studentUser1 = insertIfNotExists(users, 'email', 'ahmad.rashid@student.alnoor.edu', {
+    email: 'ahmad.rashid@student.alnoor.edu',
+    passwordHash: await bcrypt.hash('student123', 12),
+    name: 'Ahmad Al-Rashid',
+    role: 'student',
+  }, db) || { id: 100 };
+
+  const studentUser2 = insertIfNotExists(users, 'email', 'aisha.rahman@student.alnoor.edu', {
+    email: 'aisha.rahman@student.alnoor.edu',
+    passwordHash: await bcrypt.hash('student123', 12),
+    name: 'Aisha Rahman',
+    role: 'student',
+  }, db) || { id: 101 };
+
   // Create students
   const student1 = safeInsertReturning(db, students, {
     schoolId: school1.id,
@@ -323,6 +338,7 @@ async function seed() {
     emergencyContactPhone: '+1 (555) 111-2222',
     status: 'active',
     enrollmentDate: '2024-09-01',
+    userId: studentUser1.id,
   });
 
   const student2 = safeInsertReturning(db, students, {
@@ -338,6 +354,7 @@ async function seed() {
     emergencyContactPhone: '+1 (555) 333-4444',
     status: 'active',
     enrollmentDate: '2023-09-01',
+    userId: studentUser2.id,
   });
 
   const student3 = safeInsertReturning(db, students, {
@@ -354,6 +371,12 @@ async function seed() {
     status: 'active',
     enrollmentDate: '2024-09-01',
   });
+
+  // Add school members for student users
+  safeInsertRun(db, schoolMembers, [
+    { schoolId: school1.id, userId: studentUser1.id, role: 'student' },
+    { schoolId: school1.id, userId: studentUser2.id, role: 'student' },
+  ]);
 
   // Enrollments
   safeInsertRun(db, enrollments, [
@@ -1081,8 +1104,11 @@ async function seed() {
   console.log('  Admin:    principal@alnoor.edu / school123');
   console.log('  Teacher:  ibrahim.musa@alnoor.edu / teacher123');
   console.log('  Teacher:  fatima.zahra@alnoor.edu / teacher123');
+  console.log('  Student:  ahmad.rashid@student.alnoor.edu / student123');
+  console.log('  Student:  aisha.rahman@student.alnoor.edu / student123');
   console.log('  Public:   /alnoor');
   console.log('  Support:  /alnoor/support');
+  console.log('  Portal:   /portal (login as teacher or student)');
   console.log('');
   console.log('Darul Hikmah School (Growth Plan):');
   console.log('  Admin:    principal@darulhikmah.edu / school123');
