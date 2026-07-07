@@ -100,7 +100,8 @@ export const classes = sqliteTable('classes', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
-  slug: text('slug').notNull(),
+  slug: text('slug'),
+  section: text('section'),
   description: text('description'),
   content: text('content'),
   gradeLevel: text('grade_level'),
@@ -108,6 +109,7 @@ export const classes = sqliteTable('classes', {
   capacity: integer('capacity'),
   imageUrl: text('image_url'),
   hasDetailPage: integer('has_detail_page', { mode: 'boolean' }).default(true),
+  homeroomTeacherId: integer('homeroom_teacher_id'),
   sortOrder: integer('sort_order').default(0),
   ...timestamps,
 });
@@ -424,6 +426,7 @@ export const assignments = sqliteTable('assignments', {
 
 export const submissions = sqliteTable('submissions', {
   id: integer('id').primaryKey({ autoIncrement: true }),
+  schoolId: integer('school_id').references(() => schools.id, { onDelete: 'cascade' }),
   assignmentId: integer('assignment_id').notNull().references(() => assignments.id, { onDelete: 'cascade' }),
   studentId: integer('student_id').notNull().references(() => students.id, { onDelete: 'cascade' }),
   content: text('content'),
@@ -473,12 +476,15 @@ export const questions = sqliteTable('questions', {
 
 export const quizAttempts = sqliteTable('quiz_attempts', {
   id: integer('id').primaryKey({ autoIncrement: true }),
+  schoolId: integer('school_id').references(() => schools.id, { onDelete: 'cascade' }),
   quizId: integer('quiz_id').notNull().references(() => quizzes.id, { onDelete: 'cascade' }),
   studentId: integer('student_id').notNull().references(() => students.id, { onDelete: 'cascade' }),
   answers: text('answers', { mode: 'json' }).notNull(),
   score: integer('score'),
+  maxScore: integer('max_score'),
   totalPoints: integer('total_points'),
   timeTaken: integer('time_taken'),
+  status: text('status').default('in_progress'),
   startedAt: integer('started_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
   completedAt: integer('completed_at', { mode: 'timestamp' }),
   ...timestamps,

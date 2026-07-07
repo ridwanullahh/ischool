@@ -4,7 +4,12 @@ import Input from '../../components/ui/Input.astro';
 import Button from '../../components/ui/Button.astro';
 
 if (Astro.locals.user) {
-  return Astro.redirect(Astro.locals.user.role === 'super_admin' ? '/admin' : '/dashboard');
+  const role = Astro.locals.user.role;
+  if (role === 'student') return Astro.redirect('/portal/student');
+  if (role === 'teacher') return Astro.redirect('/portal/teacher');
+  if (role === 'parent') return Astro.redirect('/portal/parent');
+  if (role === 'super_admin') return Astro.redirect('/admin');
+  return Astro.redirect('/dashboard');
 }
 
 const redirect = Astro.url.searchParams.get('redirect') || '/dashboard';

@@ -14,6 +14,13 @@ const { title = 'Dashboard - iSchool' } = Astro.props;
 const user = Astro.locals.user;
 const { pathname } = Astro.url;
 
+// Role-based access control: only admin-level roles can access the dashboard
+if (user && (user.role === 'student' || user.role === 'teacher' || user.role === 'parent')) {
+  if (user.role === 'student') return Astro.redirect('/portal/student');
+  if (user.role === 'teacher') return Astro.redirect('/portal/teacher');
+  if (user.role === 'parent') return Astro.redirect('/portal/parent');
+}
+
 let school = null;
 if (user) {
   const db = getDb();

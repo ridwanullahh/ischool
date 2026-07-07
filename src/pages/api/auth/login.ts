@@ -56,7 +56,17 @@ export const POST: APIRoute = async ({ request, redirect }) => {
   const sessionId = await createSession(user.id);
   const headers = new Headers();
   setSessionCookie(headers, sessionId);
-  headers.set('Location', redirectTo);
+
+  // Role-based redirect: students/teachers/parents go to /portal, admins to /dashboard
+  let finalRedirect = redirectTo;
+  if (redirectTo === '/dashboard' || redirectTo === '/portal') {
+    if (user.role === 'student') finalRedirect = '/portal/student';
+    else if (user.role === 'teacher') finalRedirect = '/portal/teacher';
+    else if (user.role === 'parent') finalRedirect = '/portal/parent';
+    else finalRedirect = '/dashboard'; // school_admin, super_admin, etc.
+  }
+
+  headers.set('Location', finalRedirect);
   logAudit({ userId: user.id, action: 'login_success' });
   return new Response(null, { status: 302, headers });
 };

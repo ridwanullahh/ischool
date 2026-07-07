@@ -22,34 +22,46 @@ const db = getDb();
 
 // Today's schedule
 const todayDow = new Date().getDay();
-const scheduleQuery = schoolId
-  ? db.select().from(timetableEntries)
-    .where(and(eq(timetableEntries.schoolId, schoolId), eq(timetableEntries.dayOfWeek, todayDow)))
-    .orderBy(timetableEntries.startTime).all()
-  : [];
+let scheduleQuery: any[] = [];
+try {
+  scheduleQuery = schoolId
+    ? db.select().from(timetableEntries)
+      .where(and(eq(timetableEntries.schoolId, schoolId), eq(timetableEntries.dayOfWeek, todayDow)))
+      .orderBy(timetableEntries.startTime).all()
+    : [];
+} catch (e) { console.error('Teacher portal schedule query error:', (e as any).message); }
 // If teacher has a staff record, filter to their entries
 const todaysSchedule = staff?.id
-  ? scheduleQuery.filter(e => !e.teacherId || e.teacherId === staff.id)
+  ? scheduleQuery.filter((e: any) => !e.teacherId || e.teacherId === staff.id)
   : scheduleQuery;
 
 // Teacher's classes (classes where they are the homeroom teacher)
-const myClasses = staff
-  ? db.select().from(classes).where(eq(classes.homeroomTeacherId, staff.id)).all()
-  : [];
+let myClasses: any[] = [];
+try {
+  myClasses = staff
+    ? db.select().from(classes).where(eq(classes.homeroomTeacherId, staff.id)).all()
+    : [];
+} catch (e) { console.error('Teacher portal myClasses query error:', (e as any).message); }
 
 // All classes in the school (for assignment/grade entry)
-const allClasses = schoolId
-  ? db.select().from(classes).where(eq(classes.schoolId, schoolId)).all()
-  : [];
+let allClasses: any[] = [];
+try {
+  allClasses = schoolId
+    ? db.select().from(classes).where(eq(classes.schoolId, schoolId)).all()
+    : [];
+} catch (e) { console.error('Teacher portal allClasses query error:', (e as any).message); }
 
 // Pending grading (submissions not yet graded)
-const pendingGradingRaw = staff && schoolId
-  ? db.select().from(submissions)
-    .leftJoin(assignments, eq(submissions.assignmentId, assignments.id))
-    .leftJoin(students, eq(submissions.studentId, students.id))
-    .where(eq(submissions.schoolId, schoolId))
-    .orderBy(desc(submissions.submittedAt)).limit(20).all()
-  : [];
+let pendingGradingRaw: any[] = [];
+try {
+  pendingGradingRaw = staff && schoolId
+    ? db.select().from(submissions)
+      .leftJoin(assignments, eq(submissions.assignmentId, assignments.id))
+      .leftJoin(students, eq(submissions.studentId, students.id))
+      .where(eq(submissions.schoolId, schoolId))
+      .orderBy(desc(submissions.submittedAt)).limit(20).all()
+    : [];
+} catch (e) { console.error('Teacher portal pendingGrading query error:', (e as any).message); }
 // Filter to ungraded only (in JS to avoid SQL template literal parsing issues)
 const pendingGrading = pendingGradingRaw
   .filter(r => !r.submissions.gradedAt)

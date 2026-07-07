@@ -1794,6 +1794,20 @@ function autoMigrate(sqlite: Database.Database) {
   addColumnIfMissing('timetable_entries', 'subject', 'TEXT');
   addColumnIfMissing('timetable_entries', 'teacher_name', 'TEXT');
   addColumnIfMissing('timetable_entries', 'room', 'TEXT');
+  addColumnIfMissing('timetable_entries', 'course_id', 'INTEGER');
+  addColumnIfMissing('timetable_entries', 'period_number', 'INTEGER');
+
+  // Fix submissions — add link_url and grade if missing
+  addColumnIfMissing('submissions', 'link_url', 'TEXT');
+  addColumnIfMissing('submissions', 'school_id', 'INTEGER');
+  addColumnIfMissing('submissions', 'grade', 'INTEGER');
+
+  // Fix quiz_attempts — add total_points and school_id if missing
+  addColumnIfMissing('quiz_attempts', 'total_points', 'INTEGER');
+  addColumnIfMissing('quiz_attempts', 'school_id', 'INTEGER');
+  addColumnIfMissing('quiz_attempts', 'time_taken', 'INTEGER');
+  addColumnIfMissing('quiz_attempts', 'max_score', 'INTEGER');
+  addColumnIfMissing('quiz_attempts', 'status', "TEXT DEFAULT 'in_progress'");
 
   // Fix exams — ensure series_id
   addColumnIfMissing('exams', 'series_id', 'INTEGER');

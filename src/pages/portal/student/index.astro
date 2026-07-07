@@ -27,7 +27,7 @@ const presentDays = db.select({ c: sql<number>`count(*)` }).from(attendance).whe
 const attendanceRate = totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 100;
 
 // Today's schedule (timetable entries for today)
-const today = new Date().toLocaleDateString('en-US', { weekday: 'lowercase' });
+const today = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
 const dayMap: Record<string, number> = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
 const todayDow = dayMap[today] ?? new Date().getDay();
 const todaysSchedule = db.select().from(timetableEntries)
