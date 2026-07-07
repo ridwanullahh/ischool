@@ -1,0 +1,146 @@
+---
+interface Props { school: any; items?: any[]; albums?: any[]; virtualTours?: any[]; categories?: string[]; [key: string]: any; }
+const { school, items = [], albums = [], virtualTours = [], categories = [] } = Astro.props;
+const prefix = '/' + school.slug;
+const gallery = Array.isArray(items) ? items : [];
+const albumList = Array.isArray(albums) ? albums : [];
+const tourList = Array.isArray(virtualTours) ? virtualTours : [];
+const categoryList = Array.isArray(categories) ? categories : [];
+const getVal = (obj: any, camel: string, snake: string) => obj?.[camel] ?? obj?.[snake] ?? null;
+---
+<div class="ma-feed space-y-4">
+  <section class="ma-glass ma-glow rounded-[28px] p-6">
+    <span class="ma-chip inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] rounded-full"><span class="w-1.5 h-1.5 rounded-full ma-grad"></span> Moments</span>
+    <h1 class="text-2xl font-bold mt-3 leading-tight" style="color:var(--text)">Gallery</h1>
+  </section>
+
+  {albumList.length > 0 && (
+    <section>
+      <h2 class="text-sm font-semibold mb-2 px-1" style="color:var(--text)">Albums</h2>
+      <div class="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
+        {albumList.map(album => {
+          const cover = getVal(album, 'coverImageUrl', 'cover_image_url');
+          const itemCount = gallery.filter(g => getVal(g, 'albumId', 'album_id') === album.id).length;
+          return (
+            <div class="ma-glass overflow-hidden cursor-pointer flex-shrink-0 w-36" data-album-filter={album.id}>
+              <div class="relative h-28 overflow-hidden">
+                {cover ? <img src={cover} alt={album.name} class="w-full h-full object-cover" loading="lazy" /> : <div class="w-full h-full ma-grad flex items-center justify-center"><svg class="w-8 h-8 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></div>}
+                <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-2"><div><h3 class="text-white text-xs font-semibold">{album.name}</h3><p class="text-white/80 text-[10px]">{itemCount}</p></div></div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  )}
+
+  {categoryList.length > 1 && (
+    <div class="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+      <button type="button" class="gallery-filter-btn ma-grad px-3.5 py-1.5 text-xs font-semibold text-white rounded-full flex-shrink-0 ma-tap" data-category="all">All</button>
+      {categoryList.map(cat => <button type="button" class="gallery-filter-btn ma-glass px-3.5 py-1.5 text-xs font-medium rounded-full flex-shrink-0 ma-tap" style="color:var(--text)" data-category={cat}>{cat}</button>)}
+    </div>
+  )}
+
+  {gallery.length > 0 ? (
+    <div id="gallery-grid" class="grid grid-cols-2 gap-2.5">
+      {gallery.map((item, i) => {
+        const imageUrl = getVal(item, 'imageUrl', 'image_url');
+        const title = item.title || item.caption || '';
+        const category = item.category || 'General';
+        const albumId = getVal(item, 'albumId', 'album_id');
+        return (
+          <div class="gallery-item ma-glass overflow-hidden cursor-pointer" data-category={category} data-album={albumId || ''} data-index={i}>
+            <div class="relative aspect-square overflow-hidden">
+              <img src={imageUrl} alt={title} class="w-full h-full object-cover" loading="lazy" />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  ) : (
+    <div class="ma-glass p-8 text-center">
+      <svg class="w-10 h-10 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color:var(--muted)"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+      <p class="text-sm font-semibold" style="color:var(--text)">No photos yet</p>
+      <p class="text-xs mt-1" style="color:var(--muted)">Gallery images will appear here once added.</p>
+    </div>
+  )}
+
+  {tourList.length > 0 && (
+    <section>
+      <h2 class="text-sm font-semibold mb-2 px-1" style="color:var(--text)">Virtual Tours</h2>
+      <div class="space-y-3">
+        {tourList.map(tour => {
+          const thumb = getVal(tour, 'thumbnailUrl', 'thumbnail_url');
+          const embed = getVal(tour, 'embedUrl', 'embed_url');
+          return (
+            <div class="ma-glass overflow-hidden">
+              <div class="relative h-44 overflow-hidden cursor-pointer" data-tour-embed={embed}>
+                {thumb && <img src={thumb} alt={tour.title} class="w-full h-full object-cover" loading="lazy" />}
+                <div class="absolute inset-0 bg-black/40 flex items-center justify-center"><div class="ma-grad rounded-full p-4"><svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div></div>
+              </div>
+              <div class="p-4"><h3 class="text-sm font-semibold" style="color:var(--text)">{tour.title}</h3>{tour.description && <p class="text-xs line-clamp-2 mt-1" style="color:var(--muted)">{tour.description}</p>}</div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  )}
+</div>
+
+<div id="gallery-lightbox" class="fixed inset-0 z-[9999] hidden items-center justify-center p-4" style="background:rgba(0,0,0,0.92);backdrop-filter:blur(8px)">
+  <button type="button" id="lightbox-close" class="absolute top-4 right-4 text-white p-2.5 rounded-full hover:bg-white/10 ma-tap" aria-label="Close"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+  <button type="button" id="lightbox-prev" class="absolute left-3 top-1/2 -translate-y-1/2 text-white p-3 rounded-full hover:bg-white/10 ma-tap" aria-label="Previous"><svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg></button>
+  <button type="button" id="lightbox-next" class="absolute right-3 top-1/2 -translate-y-1/2 text-white p-3 rounded-full hover:bg-white/10 ma-tap" aria-label="Next"><svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></button>
+  <div class="max-w-full max-h-[85vh] flex flex-col items-center">
+    <img id="lightbox-image" src="" alt="" class="max-w-full max-h-[75vh] rounded-2xl" />
+    <div id="lightbox-caption" class="text-white text-center mt-3 px-4 text-sm"></div>
+  </div>
+</div>
+
+<script is:inline set:html={`(function(){
+  var galleryItems = document.querySelectorAll('.gallery-item');
+  var lightbox = document.getElementById('gallery-lightbox');
+  var lightboxImg = document.getElementById('lightbox-image');
+  var lightboxCaption = document.getElementById('lightbox-caption');
+  var currentIdx = 0; var visibleItems = [];
+  function updateVisibleItems() { visibleItems = Array.from(galleryItems).filter(function(el){ return el.style.display !== 'none'; }); }
+  function showImage(idx) {
+    if (idx < 0) idx = visibleItems.length - 1; if (idx >= visibleItems.length) idx = 0;
+    currentIdx = idx; var item = visibleItems[idx]; if (!item) return;
+    var img = item.querySelector('img'); if (img) { lightboxImg.src = img.src; lightboxCaption.textContent = img.alt || ''; }
+  }
+  galleryItems.forEach(function(el) {
+    el.addEventListener('click', function() {
+      updateVisibleItems(); var itemIdx = visibleItems.indexOf(el);
+      if (itemIdx >= 0) { showImage(itemIdx); lightbox.classList.remove('hidden'); lightbox.classList.add('flex'); document.body.style.overflow = 'hidden'; }
+    });
+  });
+  document.getElementById('lightbox-close')?.addEventListener('click', function(){ lightbox.classList.add('hidden'); lightbox.classList.remove('flex'); document.body.style.overflow = ''; });
+  document.getElementById('lightbox-prev')?.addEventListener('click', function(){ showImage(currentIdx - 1); });
+  document.getElementById('lightbox-next')?.addEventListener('click', function(){ showImage(currentIdx + 1); });
+  lightbox?.addEventListener('click', function(e){ if (e.target === lightbox) { lightbox.classList.add('hidden'); lightbox.classList.remove('flex'); document.body.style.overflow = ''; } });
+  document.addEventListener('keydown', function(e){
+    if (lightbox.classList.contains('hidden')) return;
+    if (e.key === 'Escape') { lightbox.classList.add('hidden'); lightbox.classList.remove('flex'); document.body.style.overflow = ''; }
+    else if (e.key === 'ArrowLeft') showImage(currentIdx - 1);
+    else if (e.key === 'ArrowRight') showImage(currentIdx + 1);
+  });
+  var filterBtns = document.querySelectorAll('.gallery-filter-btn');
+  filterBtns.forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var cat = btn.getAttribute('data-category');
+      filterBtns.forEach(function(b){ b.classList.remove('ma-grad'); b.classList.add('ma-glass'); b.style.color = 'var(--text)'; b.classList.remove('text-white'); });
+      btn.classList.add('ma-grad'); btn.classList.remove('ma-glass'); btn.classList.add('text-white'); btn.style.color = '';
+      galleryItems.forEach(function(el){ var elCat = el.getAttribute('data-category'); el.style.display = (cat === 'all' || elCat === cat) ? '' : 'none'; });
+    });
+  });
+  document.querySelectorAll('[data-album-filter]')?.forEach(function(el){
+    el.addEventListener('click', function(){
+      var albumId = el.getAttribute('data-album-filter');
+      galleryItems.forEach(function(item){ var itemAlbum = item.getAttribute('data-album'); item.style.display = (!albumId || !itemAlbum || itemAlbum === albumId) ? '' : 'none'; });
+    });
+  });
+  document.querySelectorAll('[data-tour-embed]')?.forEach(function(el){
+    el.addEventListener('click', function(){ var embedUrl = el.getAttribute('data-tour-embed'); if (embedUrl) { el.innerHTML = '<iframe src="' + embedUrl + '" class="w-full h-full" frameborder="0" allowfullscreen></iframe>'; } });
+  });
+})();`} />

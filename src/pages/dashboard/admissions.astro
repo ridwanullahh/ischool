@@ -159,32 +159,61 @@ const formatDate = (d: string | null) => d ? new Date(d).toLocaleDateString('en-
   </div>
 
   <!-- Create Period Modal -->
-  <div id="createPeriodModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl p-6 max-w-md w-full">
+  <div id="createPeriodModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-2xl p-6 max-w-2xl w-full my-8 max-h-[90vh] overflow-y-auto">
       <h3 class="text-lg font-bold text-gray-900 mb-4">Schedule Admission Period</h3>
       <form method="POST" action="/api/dashboard/admissions" class="space-y-4">
         <input type="hidden" name="action" value="create_period" />
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Title</label>
-          <input type="text" name="title" required placeholder="e.g., Fall 2026 Admissions" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Academic Year</label>
-          <input type="text" name="academicYear" required placeholder="e.g., 2026-2027" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-        </div>
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Opening Date</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Title *</label>
+            <input type="text" name="title" required placeholder="e.g., Fall 2026 Admissions" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Academic Year *</label>
+            <input type="text" name="academicYear" required placeholder="e.g., 2026-2027" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Opening Date *</label>
             <input type="date" name="openDate" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Closing Date</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Closing Date *</label>
             <input type="date" name="closeDate" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
           </div>
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
           <textarea name="description" rows="3" placeholder="Describe the admission period..." class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"></textarea>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Eligible Grades</label>
+            <input type="text" name="eligibleGrades" placeholder="e.g., Pre-K to Grade 8" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Available Seats</label>
+            <input type="number" name="availableSeats" placeholder="e.g., 50" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Application Fee</label>
+            <input type="number" name="applicationFee" placeholder="e.g., 50" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Requirements (one per line)</label>
+          <textarea name="requirementsText" rows="4" placeholder="Completed online application form&#10;Birth certificate copy&#10;Previous school records" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"></textarea>
+          <p class="text-xs text-gray-500 mt-1">Enter each requirement on a new line. These will show on the public detail page.</p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Contact Email</label>
+          <input type="email" name="contactEmail" placeholder="admissions@school.edu" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Contact Phone</label>
+          <input type="tel" name="contactPhone" placeholder="+1 (555) 123-4567" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
         </div>
         <label class="flex items-center gap-2">
           <input type="checkbox" name="autoAnnounce" checked class="rounded" />

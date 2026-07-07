@@ -31,13 +31,19 @@ export const POST: APIRoute = async ({ request }) => {
     const contactPhone = form.get('contactPhone')?.toString() || null;
     const brochureUrl = form.get('brochureUrl')?.toString() || null;
 
-    // Parse JSON fields
+    // Parse JSON fields — support both JSON string and textarea (one per line)
     let requirements: any[] = [];
     let processSteps: any[] = [];
     let importantDates: any[] = [];
     try { requirements = JSON.parse(form.get('requirements')?.toString() || '[]'); } catch {}
     try { processSteps = JSON.parse(form.get('processSteps')?.toString() || '[]'); } catch {}
     try { importantDates = JSON.parse(form.get('importantDates')?.toString() || '[]'); } catch {}
+
+    // If requirementsText is provided (textarea), convert to array
+    const requirementsText = form.get('requirementsText')?.toString();
+    if (requirementsText) {
+      requirements = requirementsText.split('\n').map(s => s.trim()).filter(Boolean);
+    }
 
     if (!title || !academicYear || !openDate || !closeDate) {
       return new Response('Missing required fields', { status: 400 });

@@ -1,0 +1,60 @@
+---
+interface Props { school: any; [key: string]: any; }
+const { school, ...data } = Astro.props;
+const prefix = '/' + school.slug;
+const features = Array.isArray(data.features) ? data.features : [];
+const stats = Array.isArray(data.stats) ? data.stats : [];
+const about = data.about || {};
+---
+<div>
+  <section class="px-4 py-16">
+    <div class="max-w-4xl mx-auto">
+      <p class="verdant-mono text-[11px] uppercase tracking-[0.2em] mb-3" style="color:var(--primary)">/ our story</p>
+      <h1 class="text-5xl sm:text-6xl mb-6 leading-[1.05] tracking-tight" style="color:var(--text)">About {school.name}</h1>
+      {about.valueProposition && <p class="text-2xl leading-[1.4] mb-10" style="color:var(--muted)">{about.valueProposition}</p>}
+    </div>
+  </section>
+
+  <section class="px-4 pb-6">
+    <div class="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div class="verdant-surface verdant-organic p-8">
+        <div class="w-12 h-12 verdant-grad rounded-2xl flex items-center justify-center mb-5"><svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C7 6 4 10 4 14a8 8 0 0016 0c0-4-3-8-8-12z"/></svg></div>
+        <h3 class="verdant-mono text-[11px] uppercase tracking-[0.2em] mb-3" style="color:var(--primary)">/ mission</h3>
+        <p class="leading-relaxed" style="color:var(--text)">{about.mission || 'Our mission shapes every decision we make.'}</p>
+      </div>
+      <div class="verdant-surface verdant-organic-2 p-8">
+        <div class="w-12 h-12 verdant-grad rounded-2xl flex items-center justify-center mb-5"><svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></div>
+        <h3 class="verdant-mono text-[11px] uppercase tracking-[0.2em] mb-3" style="color:var(--primary)">/ vision</h3>
+        <p class="leading-relaxed" style="color:var(--text)">{about.vision || 'A future where every learner finds their light.'}</p>
+      </div>
+    </div>
+  </section>
+
+  {stats.length > 0 && (
+    <section class="px-4 py-16">
+      <div class="verdant-grad max-w-5xl mx-auto rounded-[40px] p-10 relative overflow-hidden">
+        <svg class="absolute -bottom-8 -right-8 w-48 h-48 opacity-15" viewBox="0 0 100 100" fill="none" aria-hidden="true"><path d="M50 5 C20 25 15 60 50 95 C85 60 80 25 50 5 Z" fill="white"/></svg>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-8 relative">
+          {stats.map(s => <div class="text-center text-white"><p class="text-4xl sm:text-5xl font-bold tracking-tight">{s.value}</p><p class="verdant-mono text-[11px] uppercase tracking-[0.18em] mt-2 opacity-90">{s.label}</p></div>)}
+        </div>
+      </div>
+    </section>
+  )}
+
+  {features.length > 0 && (
+    <section class="px-4 py-10">
+      <div class="max-w-5xl mx-auto">
+        <div class="text-center mb-10"><p class="verdant-mono text-[11px] uppercase tracking-[0.2em] mb-2" style="color:var(--primary)">/ why us</p><h2 class="text-3xl sm:text-4xl tracking-tight" style="color:var(--text)">Our highlights</h2></div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {features.map((f, idx) => (
+            <div class:list={["verdant-surface p-6", idx % 2 === 0 ? "verdant-organic" : "verdant-organic-2"]}>
+              <div class="w-10 h-10 verdant-grad rounded-xl flex items-center justify-center mb-4"><svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C7 6 4 10 4 14a8 8 0 0016 0c0-4-3-8-8-12z"/></svg></div>
+              <h4 class="text-lg mb-2" style="color:var(--text)">{f.title}</h4>
+              <p class="text-sm leading-relaxed" style="color:var(--muted)">{f.description}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+</div>

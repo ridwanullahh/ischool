@@ -1,0 +1,155 @@
+---
+interface Props { school: any; [key: string]: any; }
+const { school, ...data } = Astro.props;
+const prefix = '/' + school.slug;
+const formatDate = (d: string | Date | null) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+const features = Array.isArray(data.features) ? data.features : [];
+const stats = Array.isArray(data.stats) ? data.stats : [];
+const announcements = Array.isArray(data.recentAnnouncements) ? data.recentAnnouncements : [];
+const posts = Array.isArray(data.recentPosts) ? data.recentPosts : [];
+const programs = Array.isArray(data.schoolPrograms) ? data.schoolPrograms : [];
+---
+<div>
+  <!-- Garden hero -->
+  <section class="relative overflow-hidden px-4 sm:px-6 pt-14 pb-20">
+    <div class="absolute inset-0 -z-10" aria-hidden="true">
+      <div class="absolute -top-10 right-0 w-[50%] h-72 blur-3xl rounded-full" style="background:radial-gradient(circle,var(--primary),transparent 70%);opacity:.18"></div>
+      <div class="absolute top-20 -left-20 w-[40%] h-64 blur-3xl rounded-full" style="background:radial-gradient(circle,#34d399,transparent 70%);opacity:.14"></div>
+    </div>
+    <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+      <div class="lg:col-span-7">
+        <span class="verdant-pill verdant-mono inline-flex items-center text-[11px] font-semibold uppercase tracking-[0.18em] px-3 py-1.5 rounded-full">now growing — admissions open</span>
+        <h1 class="mt-5 text-5xl sm:text-6xl lg:text-7xl leading-[1.02] tracking-tight" style="color:var(--text)">
+          Where minds take <span class="verdant-grad-text">root</span> and flourish
+        </h1>
+        <p class="mt-6 text-lg max-w-xl leading-relaxed" style="color:var(--muted)">{school.tagline || `A nurturing learning garden at ${school.name}.`}</p>
+        <div class="mt-8 flex flex-col sm:flex-row gap-3">
+          <a href={`${prefix}/admissions`} class="verdant-grad px-7 py-3.5 text-sm font-semibold text-white rounded-full transition-transform hover:scale-[1.03]">Plant Your Roots</a>
+          <a href={`${prefix}/about`} class="verdant-surface px-7 py-3.5 text-sm font-semibold rounded-full transition-transform hover:scale-[1.03]" style="color:var(--text)">Tour Our Garden</a>
+        </div>
+      </div>
+      <div class="lg:col-span-5">
+        <div class="verdant-organic verdant-soft p-8 relative">
+          <svg class="absolute -top-6 -right-6 w-24 h-24 opacity-30" viewBox="0 0 100 100" fill="none" aria-hidden="true"><path d="M50 5 C20 25 15 60 50 95 C85 60 80 25 50 5 Z M50 15 V90" stroke="var(--primary)" stroke-width="2.5"/></svg>
+          <p class="verdant-mono text-[11px] uppercase tracking-[0.18em] mb-4" style="color:var(--primary)">/ why choose us</p>
+          <ul class="space-y-3">
+            <li class="flex items-start gap-3"><span class="verdant-dot mt-2.5"></span><span class="text-sm" style="color:var(--text)">Holistic, whole-child learning</span></li>
+            <li class="flex items-start gap-3"><span class="verdant-dot mt-2.5"></span><span class="text-sm" style="color:var(--text)">Caring, qualified educators</span></li>
+            <li class="flex items-start gap-3"><span class="verdant-dot mt-2.5"></span><span class="text-sm" style="color:var(--text)">Vibrant community & green spaces</span></li>
+            <li class="flex items-start gap-3"><span class="verdant-dot mt-2.5"></span><span class="text-sm" style="color:var(--text)">Values rooted in character</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {announcements.length > 0 && (
+    <div class="px-4">
+      <a href={`/${school.slug}/announcements/${announcements[0].slug}`} class="verdant-soft verdant-organic max-w-6xl mx-auto rounded-3xl p-4 flex items-center gap-3 hover:scale-[1.01] transition-transform block">
+        <span class="verdant-grad px-3 py-1 verdant-mono text-[10px] font-bold uppercase tracking-[0.18em] text-white rounded-full">Latest</span>
+        <span class="text-sm font-medium truncate" style="color:var(--text)">{announcements[0].title}</span>
+        <span class="ml-auto verdant-mono text-xs hidden sm:block" style="color:var(--muted)">{formatDate(announcements[0].publishedAt || announcements[0].createdAt)}</span>
+      </a>
+    </div>
+  )}
+
+  {data.about?.valueProposition && (
+    <section class="px-4 py-20">
+      <div class="max-w-3xl mx-auto text-center">
+        <p class="verdant-mono text-[11px] uppercase tracking-[0.2em] mb-4" style="color:var(--primary)">/ our promise</p>
+        <p class="text-3xl sm:text-4xl font-bold leading-[1.25] tracking-tight" style="color:var(--text)">{data.about.valueProposition}</p>
+      </div>
+    </section>
+  )}
+
+  {features.length > 0 && (
+    <section class="px-4 py-12">
+      <div class="max-w-6xl mx-auto">
+        <div class="flex items-end justify-between mb-10">
+          <div>
+            <p class="verdant-mono text-[11px] uppercase tracking-[0.2em] mb-2" style="color:var(--primary)">/ highlights</p>
+            <h2 class="text-3xl sm:text-4xl tracking-tight" style="color:var(--text)">Cultivating excellence</h2>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {features.map((f, idx) => (
+            <div class:list={["verdant-surface p-7 transition-transform hover:-translate-y-1", idx % 2 === 0 ? "verdant-organic" : "verdant-organic-2"]}>
+              <div class="w-12 h-12 verdant-grad rounded-2xl flex items-center justify-center mb-5">
+                <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C7 6 4 10 4 14a8 8 0 0016 0c0-4-3-8-8-12z"/></svg>
+              </div>
+              <h3 class="text-xl mb-2" style="color:var(--text)">{f.title}</h3>
+              <p class="text-sm leading-relaxed" style="color:var(--muted)">{f.description}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  {stats.length > 0 && (
+    <section class="px-4 py-16">
+      <div class="verdant-grad max-w-6xl mx-auto rounded-[40px] p-10 relative overflow-hidden">
+        <svg class="absolute -bottom-8 -right-8 w-48 h-48 opacity-15" viewBox="0 0 100 100" fill="none" aria-hidden="true"><path d="M50 5 C20 25 15 60 50 95 C85 60 80 25 50 5 Z" fill="white"/></svg>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-8 relative">
+          {stats.map(s => <div class="text-center text-white"><p class="text-4xl sm:text-5xl font-bold tracking-tight">{s.value}</p><p class="verdant-mono text-[11px] uppercase tracking-[0.18em] mt-2 opacity-90">{s.label}</p></div>)}
+        </div>
+      </div>
+    </section>
+  )}
+
+  {programs.length > 0 && (
+    <section class="px-4 py-12">
+      <div class="max-w-6xl mx-auto">
+        <div class="text-center mb-10">
+          <p class="verdant-mono text-[11px] uppercase tracking-[0.2em] mb-2" style="color:var(--primary)">/ programs</p>
+          <h2 class="text-3xl sm:text-4xl tracking-tight" style="color:var(--text)">Fields of study</h2>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+          {programs.map(p => (
+            <a href={`/${school.slug}/programs/${p.slug}`} class:list={["verdant-surface p-6 transition-transform hover:-translate-y-1 block group", "verdant-organic"]}>
+              <div class="w-10 h-10 verdant-grad rounded-xl flex items-center justify-center mb-4"><svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C7 6 4 10 4 14a8 8 0 0016 0c0-4-3-8-8-12z"/></svg></div>
+              <h3 class="text-lg mb-2 group-hover:text-[var(--primary)] transition-colors" style="color:var(--text)">{p.name}</h3>
+              {p.level && <p class="verdant-mono text-[10px] uppercase tracking-[0.18em] mb-2" style="color:var(--primary)">{p.level}</p>}
+              {p.description && <p class="text-sm line-clamp-3" style="color:var(--muted)">{p.description}</p>}
+              {p.duration && <p class="verdant-mono text-xs mt-4" style="color:var(--muted)">{p.duration}</p>}
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  {posts.length > 0 && (
+    <section class="px-4 py-12">
+      <div class="max-w-6xl mx-auto">
+        <div class="flex items-end justify-between mb-10">
+          <div><p class="verdant-mono text-[11px] uppercase tracking-[0.2em] mb-2" style="color:var(--primary)">/ journal</p><h2 class="text-3xl sm:text-4xl tracking-tight" style="color:var(--text)">From the garden</h2></div>
+          <a href={`/${school.slug}/blog`} class="verdant-mono text-sm font-medium hover:underline" style="color:var(--primary)">view all</a>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {posts.map(post => (
+            <a href={`/${school.slug}/blog/${post.slug}`} class="verdant-surface overflow-hidden hover:-translate-y-1 transition-transform block group verdant-organic">
+              {post.coverImageUrl && <div class="h-44 overflow-hidden"><img src={post.coverImageUrl} alt={post.title} class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" /></div>}
+              <div class="p-6">
+                <p class="verdant-mono text-[10px] uppercase tracking-[0.18em] mb-2" style="color:var(--primary)">{formatDate(post.publishedAt || post.createdAt)}</p>
+                <h3 class="text-xl mb-2 group-hover:text-[var(--primary)] transition-colors" style="color:var(--text)">{post.title}</h3>
+                <p class="text-sm line-clamp-2" style="color:var(--muted)">{post.excerpt || post.content}</p>
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <section class="px-4 py-20">
+    <div class="verdant-soft verdant-organic max-w-5xl mx-auto rounded-[40px] p-10 sm:p-14 text-center relative overflow-hidden">
+      <svg class="absolute -top-10 -left-10 w-40 h-40 opacity-15" viewBox="0 0 100 100" fill="none" aria-hidden="true"><path d="M50 5 C20 25 15 60 50 95 C85 60 80 25 50 5 Z" fill="var(--primary)"/></svg>
+      <div class="relative">
+        <h2 class="text-4xl sm:text-5xl tracking-tight mb-4" style="color:var(--text)">Ready to grow with us?</h2>
+        <p class="mb-8 max-w-xl mx-auto" style="color:var(--muted)">We would love to welcome your family into our garden of learners. Start the admissions process today.</p>
+        <a href={`/${school.slug}/admissions`} class="verdant-grad inline-flex px-8 py-3.5 text-sm font-semibold text-white rounded-full shadow-lg hover:scale-[1.03] transition-transform">Start Application</a>
+      </div>
+    </div>
+  </section>
+</div>

@@ -1,0 +1,47 @@
+---
+interface Props { school: any; [key: string]: any; }
+const { school, ...data } = Astro.props;
+const prefix = '/' + school.slug;
+const features = Array.isArray(data.features) ? data.features : [];
+const stats = Array.isArray(data.stats) ? data.stats : [];
+const about = data.about || {};
+---
+<div class="mv-feed space-y-4">
+  <section class="mv-grad rounded-[28px] p-6">
+    <p class="text-white/80 text-xs font-semibold uppercase tracking-[0.16em]">About</p>
+    <h1 class="text-white text-2xl font-extrabold mt-1 leading-tight">{school.name}</h1>
+    {about.valueProposition && <p class="text-white/85 text-sm mt-2 leading-relaxed">{about.valueProposition}</p>}
+  </section>
+
+  <section class="mv-card p-5">
+    <div class="w-10 h-10 mv-grad rounded-xl flex items-center justify-center mb-3"><svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C7 6 4 10 4 14a8 8 0 0016 0c0-4-3-8-8-12z"/></svg></div>
+    <h3 class="text-[11px] font-bold uppercase tracking-[0.16em] mb-1" style="color:var(--primary)">Mission</h3>
+    <p class="text-sm leading-relaxed" style="color:var(--text)">{about.mission || 'Our mission shapes every decision we make.'}</p>
+  </section>
+
+  <section class="mv-card p-5">
+    <div class="w-10 h-10 mv-grad rounded-xl flex items-center justify-center mb-3"><svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></div>
+    <h3 class="text-[11px] font-bold uppercase tracking-[0.16em] mb-1" style="color:var(--primary)">Vision</h3>
+    <p class="text-sm leading-relaxed" style="color:var(--text)">{about.vision || 'A future where every learner finds their light.'}</p>
+  </section>
+
+  {stats.length > 0 && (
+    <section class="grid grid-cols-2 gap-3">
+      {stats.slice(0,4).map(s => <div class="mv-soft p-4 text-center"><p class="mv-grad-text text-2xl font-extrabold">{s.value}</p><p class="text-[11px] mt-0.5" style="color:var(--muted)">{s.label}</p></div>)}
+    </section>
+  )}
+
+  {features.length > 0 && (
+    <section>
+      <h2 class="text-base font-bold mb-3 px-1" style="color:var(--text)">Highlights</h2>
+      <div class="space-y-3">
+        {features.map(f => (
+          <div class="mv-card p-4 flex gap-3">
+            <div class="w-10 h-10 mv-grad rounded-xl flex items-center justify-center flex-shrink-0"><svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C7 6 4 10 4 14a8 8 0 0016 0c0-4-3-8-8-12z"/></svg></div>
+            <div class="min-w-0"><h3 class="text-sm font-bold" style="color:var(--text)">{f.title}</h3><p class="text-xs leading-relaxed mt-1" style="color:var(--muted)">{f.description}</p></div>
+          </div>
+        ))}
+      </div>
+    </section>
+  )}
+</div>

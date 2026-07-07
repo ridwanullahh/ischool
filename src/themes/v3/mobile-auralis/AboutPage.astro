@@ -1,0 +1,47 @@
+---
+interface Props { school: any; [key: string]: any; }
+const { school, ...data } = Astro.props;
+const prefix = '/' + school.slug;
+const features = Array.isArray(data.features) ? data.features : [];
+const stats = Array.isArray(data.stats) ? data.stats : [];
+const about = data.about || {};
+---
+<div class="ma-feed space-y-4">
+  <section class="ma-glass ma-glow rounded-[28px] p-6">
+    <span class="ma-chip inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] rounded-full"><span class="w-1.5 h-1.5 rounded-full ma-grad"></span> About</span>
+    <h1 class="text-2xl font-bold mt-3 leading-tight" style="color:var(--text)">{school.name}</h1>
+    {about.valueProposition && <p class="text-sm mt-2 leading-relaxed" style="color:var(--muted)">{about.valueProposition}</p>}
+  </section>
+
+  <section class="ma-glass p-5">
+    <div class="w-10 h-10 ma-grad rounded-xl mb-3"></div>
+    <h3 class="text-[11px] font-semibold uppercase tracking-[0.16em] mb-1" style="color:var(--primary)">Mission</h3>
+    <p class="text-sm leading-relaxed" style="color:var(--text)">{about.mission || 'Our mission shapes every decision we make.'}</p>
+  </section>
+
+  <section class="ma-glass p-5">
+    <div class="w-10 h-10 ma-grad rounded-xl mb-3"></div>
+    <h3 class="text-[11px] font-semibold uppercase tracking-[0.16em] mb-1" style="color:var(--primary)">Vision</h3>
+    <p class="text-sm leading-relaxed" style="color:var(--text)">{about.vision || 'A future where every learner finds their light.'}</p>
+  </section>
+
+  {stats.length > 0 && (
+    <section class="ma-glass ma-glow p-4 grid grid-cols-2 gap-3">
+      {stats.slice(0,4).map(s => <div class="text-center"><p class="ma-grad-text text-2xl font-bold">{s.value}</p><p class="text-[11px] mt-0.5" style="color:var(--muted)">{s.label}</p></div>)}
+    </section>
+  )}
+
+  {features.length > 0 && (
+    <section>
+      <h2 class="text-base font-bold mb-3 px-1" style="color:var(--text)">Highlights</h2>
+      <div class="space-y-3">
+        {features.map(f => (
+          <div class="ma-glass p-4 flex gap-3">
+            <div class="w-10 h-10 ma-grad rounded-xl flex-shrink-0"></div>
+            <div class="min-w-0"><h3 class="text-sm font-semibold" style="color:var(--text)">{f.title}</h3><p class="text-xs leading-relaxed mt-1" style="color:var(--muted)">{f.description}</p></div>
+          </div>
+        ))}
+      </div>
+    </section>
+  )}
+</div>

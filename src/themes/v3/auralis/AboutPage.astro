@@ -1,0 +1,35 @@
+---
+import { getSchoolNav, getSchoolContacts } from '../../../lib/school.ts';
+import { normalizeSocialUrl } from '../../../lib/social.ts';
+import { getSocialIconPath } from '../_shared/social-icons';
+
+interface Props { school: any; [key: string]: any; }
+const { school, ...data } = Astro.props;
+const nav = getSchoolNav(school.id);
+const contacts = getSchoolContacts(school.id);
+const prefix = '/' + school.slug;
+const social = (school.socialHandles as Record<string, string>) || {};
+const socialEntries = Object.entries(social).filter(([, v]) => v && v !== '#');
+const locale = school.locale || 'en';
+const formatDate = (d: string | Date | null) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+---
+<div class="space-y-0">
+  <section class="px-4 py-16">
+    <div class="max-w-4xl mx-auto">
+      <h1 class="text-4xl font-bold mb-6" style="color:var(--text)">About {school.name}</h1>
+      <div class="auralis-glass rounded-2xl p-8">
+        {data.about?.valueProposition && <p class="text-xl leading-relaxed mb-6" style="color:var(--text)">{data.about.valueProposition}</p>}
+        {data.about?.mission && <div class="mb-6"><h3 class="text-sm font-bold uppercase tracking-wider mb-2" style="color:var(--primary)">Mission</h3><p style="color:var(--muted)">{data.about.mission}</p></div>}
+        {data.about?.vision && <div class="mb-6"><h3 class="text-sm font-bold uppercase tracking-wider mb-2" style="color:var(--primary)">Vision</h3><p style="color:var(--muted)">{data.about.vision}</p></div>}
+        {data.features?.length > 0 && <div><h3 class="text-sm font-bold uppercase tracking-wider mb-4" style="color:var(--primary)">Our Highlights</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-4">{data.features.map(f => <div class="auralis-glass rounded-xl p-4"><h4 class="font-bold mb-1" style="color:var(--text)">{f.title}</h4><p class="text-sm" style="color:var(--muted)">{f.description}</p></div>)}</div></div>}
+      </div>
+    </div>
+  </section>
+  {data.stats?.length > 0 && (
+    <section class="auralis-grad py-12 mx-4 rounded-3xl mb-16">
+      <div class="max-w-4xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-6">
+        {data.stats.map(s => <div class="text-center text-white"><p class="text-3xl font-bold">{s.value}</p><p class="text-sm opacity-80 mt-1">{s.label}</p></div>)}
+      </div>
+    </section>
+  )}
+</div>

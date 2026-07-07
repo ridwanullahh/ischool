@@ -1,0 +1,91 @@
+---
+import { getSchoolPrograms } from '../../../lib/school-safe.ts';
+import { getSocialIconPath } from '../_shared/social-icons';
+interface Props { school: any; item: any; [key: string]: any; }
+const { school, item } = Astro.props;
+const prefix = '/' + school.slug;
+const allPrograms = getSchoolPrograms(school.id);
+const relatedPrograms = allPrograms.filter((p: any) => p.id !== item?.id).slice(0, 3);
+const currentUrl = new URL(Astro.url.pathname, Astro.site || 'http://localhost:4321').toString();
+const encodedUrl = encodeURIComponent(currentUrl);
+const encodedTitle = encodeURIComponent(item?.name || '');
+const shareLinks = [
+  { label: 'Facebook', icon: getSocialIconPath('facebook'), url: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}` },
+  { label: 'Twitter', icon: getSocialIconPath('twitter'), url: `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}` },
+  { label: 'WhatsApp', icon: getSocialIconPath('whatsapp'), url: `https://wa.me/?text=${encodedTitle}%20${encodedUrl}` },
+  { label: 'LinkedIn', icon: getSocialIconPath('linkedin'), url: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}` },
+].filter(s => s.icon);
+const contentText = item?.content || item?.description || '';
+const wordCount = contentText.split(/\s+/).filter(Boolean).length;
+const readingTime = Math.max(1, Math.ceil(wordCount / 200));
+---
+<div class="px-4 py-16">
+  <article class="max-w-4xl mx-auto">
+    <a href={`/${school.slug}/programs`} class="inline-flex items-center gap-1.5 text-sm mb-6 hover:opacity-70" style="color:var(--muted)">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+      Back to Programs
+    </a>
+
+    <div class="verdant-surface verdant-organic overflow-hidden">
+      {item?.imageUrl && <img src={item.imageUrl} alt={item.name} class="w-full h-64 sm:h-80 object-cover" />}
+      <div class="p-8 sm:p-12">
+        <div class="flex flex-wrap items-center gap-3 mb-5">
+          {item?.level && <span class="verdant-grad px-3 py-1 verdant-mono text-[10px] font-bold uppercase tracking-[0.18em] text-white rounded-full">{item.level}</span>}
+          {item?.duration && <span class="verdant-pill px-3 py-1 verdant-mono text-xs font-medium rounded-full">{item.duration}</span>}
+          <span class="verdant-mono text-xs" style="color:var(--muted)">{readingTime} min read</span>
+        </div>
+        <h1 class="text-4xl sm:text-5xl mb-5 leading-[1.1] tracking-tight" style="color:var(--text)">{item?.name || 'Program'}</h1>
+        {item?.description && <p class="text-lg leading-relaxed mb-6" style="color:var(--muted)">{item.description}</p>}
+        {item?.content && <div class="prose max-w-none whitespace-pre-wrap leading-relaxed mb-8" style="color:var(--text)">{item.content}</div>}
+        <a href={`/${school.slug}/admissions`} class="verdant-grad inline-flex px-7 py-3 text-sm font-semibold text-white rounded-full shadow-lg hover:scale-[1.03] transition-transform">Apply Now</a>
+
+        <div class="mt-10 pt-6 border-t" style="border-color:color-mix(in srgb, var(--border) 50%, transparent)">
+          <div class="flex items-center gap-4 flex-wrap">
+            <span class="verdant-mono text-[10px] uppercase tracking-[0.18em]" style="color:var(--text)">share this program</span>
+            <div class="flex items-center gap-2">
+              {shareLinks.map(s => (
+                <a href={s.url} target="_blank" rel="noopener noreferrer" aria-label={`Share on ${s.label}`} class="verdant-surface p-2.5 rounded-full hover:scale-110 transition-transform">
+                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" style="color:var(--text)"><path d={s.icon} /></svg>
+                </a>
+              ))}
+              <button type="button" data-copy-url={currentUrl} aria-label="Copy link" class="verdant-surface p-2.5 rounded-full hover:scale-110 transition-transform">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color:var(--text)"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {relatedPrograms.length > 0 && (
+      <section class="mt-16">
+        <div class="flex items-center gap-3 mb-6"><h2 class="text-3xl tracking-tight" style="color:var(--text)">Explore more programs</h2><div class="flex-1 h-px" style="background:color-mix(in srgb, var(--border) 60%, transparent)"></div></div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {relatedPrograms.map((p: any) => (
+            <a href={`/${school.slug}/programs/${p.slug || p.id}`} class="verdant-surface verdant-organic overflow-hidden hover:-translate-y-1 transition-transform block group">
+              {p.imageUrl && <div class="h-32 overflow-hidden"><img src={p.imageUrl} alt={p.name} class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" /></div>}
+              <div class="p-5">
+                <div class="w-8 h-8 verdant-grad rounded-lg flex items-center justify-center mb-3"><svg class="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C7 6 4 10 4 14a8 8 0 0016 0c0-4-3-8-8-12z"/></svg></div>
+                <h3 class="text-lg mb-1 group-hover:text-[var(--primary)] transition-colors" style="color:var(--text)">{p.name}</h3>
+                {p.duration && <span class="verdant-pill inline-block mt-2 px-2.5 py-0.5 verdant-mono text-[10px] font-medium rounded-full">{p.duration}</span>}
+              </div>
+            </a>
+          ))}
+        </div>
+      </section>
+    )}
+  </article>
+</div>
+
+<script is:inline set:html={`(function(){
+  document.querySelectorAll('[data-copy-url]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var url = btn.getAttribute('data-copy-url');
+      navigator.clipboard.writeText(url).then(function() {
+        var original = btn.innerHTML;
+        btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color:var(--primary)"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>';
+        setTimeout(function() { btn.innerHTML = original; }, 2000);
+      });
+    });
+  });
+})();`} />

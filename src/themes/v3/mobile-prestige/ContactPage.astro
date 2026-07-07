@@ -1,0 +1,63 @@
+---
+import { getSchoolContacts } from '../../../lib/school.ts';
+import { normalizeSocialUrl } from '../../../lib/social.ts';
+import { getSocialIconPath } from '../_shared/social-icons';
+interface Props { school: any; [key: string]: any; }
+const { school } = Astro.props;
+const contacts = getSchoolContacts(school.id);
+const social = (school.socialHandles as Record<string, string>) || {};
+const socialEntries = Object.entries(social).filter(([, v]) => v && v !== '#');
+---
+<div class="mp-feed space-y-5">
+  <section class="mp-card-gold p-6 relative overflow-hidden">
+    <div class="mp-shine"></div>
+    <p class="mp-kicker relative">Get in touch</p>
+    <h1 class="mp-serif text-3xl mt-2 leading-tight" style="color:var(--text)">Contact us</h1>
+  </section>
+
+  {contacts.length > 0 && (
+    <section class="mp-card p-5">
+      <p class="mp-kicker mb-3">Contact info</p>
+      <div class="mp-rule mb-4"></div>
+      <ul class="space-y-3">
+        {contacts.map(c => <li><p class="text-[10px] uppercase tracking-widest mp-gold">{c.label || 'Contact'}</p><p class="text-sm mp-serif" style="color:var(--text)">{c.value}</p></li>)}
+      </ul>
+      {socialEntries.length > 0 && (
+        <div class="flex items-center gap-2 mt-4 pt-4" style="border-top:1px solid color-mix(in srgb, var(--primary) 22%, transparent)">
+          {socialEntries.map(([p,h]) => { const path = getSocialIconPath(p); if (!path) return null; return <a href={normalizeSocialUrl(h,p)} target="_blank" rel="noopener noreferrer" aria-label={`Visit our ${p} page`} class="mp-card p-2.5 rounded-lg mp-gold mp-tap"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d={path} /></svg></a>; })}
+        </div>
+      )}
+    </section>
+  )}
+
+  <section class="mp-card p-5">
+    <p class="mp-kicker mb-3">Send a message</p>
+    <div class="mp-rule mb-4"></div>
+    <form id="contactForm" class="space-y-3">
+      <input type="text" name="name" required placeholder="Name" class="w-full px-4 py-3 text-sm outline-none mp-tap" style="background:var(--bg);border:1px solid color-mix(in srgb, var(--primary) 22%, transparent);color:var(--text);border-radius:4px" />
+      <input type="email" name="email" required placeholder="Email" class="w-full px-4 py-3 text-sm outline-none mp-tap" style="background:var(--bg);border:1px solid color-mix(in srgb, var(--primary) 22%, transparent);color:var(--text);border-radius:4px" />
+      <input type="tel" name="phone" placeholder="Phone" class="w-full px-4 py-3 text-sm outline-none mp-tap" style="background:var(--bg);border:1px solid color-mix(in srgb, var(--primary) 22%, transparent);color:var(--text);border-radius:4px" />
+      <input type="text" name="subject" required placeholder="Subject" class="w-full px-4 py-3 text-sm outline-none mp-tap" style="background:var(--bg);border:1px solid color-mix(in srgb, var(--primary) 22%, transparent);color:var(--text);border-radius:4px" />
+      <textarea name="message" rows="4" required placeholder="Message" class="w-full px-4 py-3 text-sm outline-none mp-tap" style="background:var(--bg);border:1px solid color-mix(in srgb, var(--primary) 22%, transparent);color:var(--text);border-radius:4px"></textarea>
+      <div id="contactFormMessage" class="hidden"></div>
+      <button type="submit" class="mp-gold-bg w-full py-3.5 text-[11px] font-semibold tracking-widest uppercase mp-tap" style="color:#1a1410;border-radius:2px">Send Message</button>
+    </form>
+  </section>
+</div>
+
+<script is:inline define:vars={{ schoolSlug: school.slug }}>
+  document.getElementById('contactForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var msgEl = document.getElementById('contactFormMessage');
+    var formData = new FormData(this); var data = {};
+    formData.forEach(function(val, key) { data[key] = val; });
+    data.action = 'create_ticket';
+    msgEl.className = 'p-3 text-sm'; msgEl.style.background = 'color-mix(in srgb, var(--primary) 10%, transparent)'; msgEl.style.color = 'var(--primary)'; msgEl.textContent = 'Sending...'; msgEl.classList.remove('hidden');
+    try {
+      var res = await fetch('/api/' + schoolSlug + '/support', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+      var result = await res.json();
+      if (res.ok) { msgEl.style.color = 'var(--text)'; msgEl.innerHTML = '<strong>Sent.</strong> We will reply soon.'; this.reset(); }
+      else { throw new Error(result.error || 'Failed'); }
+    } catch(err) { msgEl.style.background = 'rgba(239,68,68,0.1)'; msgEl.style.color = '#f87171'; msgEl.textContent = 'Failed: ' + (err.message || 'Unknown error'); }
+  });
+</script>

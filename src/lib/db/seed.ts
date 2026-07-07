@@ -1,5 +1,5 @@
 import { getDb } from './index.js';
-import { users, schools, schoolMembers, aboutPages, navigationItems, contactInfo, announcements, programs, faqs, classes, blogPosts, students, enrollments, attendance, courses, courseUnits, lessons, assignments, quizzes, questions, grades, academicPeriods, bellSchedules, timetableEntries, examSeries, exams, examResults, reportCards, feeStructures, invoices, payments, staff, leaveRequests, payroll, messages, notifications, libraryBooks, libraryLoans, hostels, hostelRooms, vehicles, transportRoutes, assets, inventoryItems, events, behaviorLogs, lessonPlans, auditLogs, moduleSettings, cbtExams, cbtCandidates, notificationTemplates, banners, popups, galleryAlbums, galleryItems, virtualTours, mediaUploads, subscriptionPlans, schoolSubscriptions, coupons, platformFaqs, platformSettings, platformBlogPosts, schoolTicketCategories, aiSettings } from './schema.js';
+import { users, schools, schoolMembers, aboutPages, navigationItems, contactInfo, announcements, programs, faqs, classes, blogPosts, students, enrollments, attendance, courses, courseUnits, lessons, assignments, quizzes, questions, grades, academicPeriods, bellSchedules, timetableEntries, examSeries, exams, examResults, reportCards, feeStructures, invoices, payments, staff, leaveRequests, payroll, messages, notifications, libraryBooks, libraryLoans, hostels, hostelRooms, vehicles, transportRoutes, assets, inventoryItems, events, behaviorLogs, lessonPlans, auditLogs, moduleSettings, cbtExams, cbtCandidates, notificationTemplates, banners, popups, galleryAlbums, galleryItems, virtualTours, mediaUploads, subscriptionPlans, schoolSubscriptions, coupons, platformFaqs, platformSettings, platformBlogPosts, schoolTicketCategories, aiSettings, admissionPeriods, admissionApplications } from './schema.js';
 import bcrypt from 'bcryptjs';
 import { eq } from 'drizzle-orm';
 
@@ -845,6 +845,99 @@ async function seed() {
     { schoolId: school1.id, title: 'Main Campus 360° Tour', description: 'Take a virtual walk through our beautiful campus. Explore classrooms, labs, the masjid, and outdoor spaces.', embedUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ', thumbnailUrl: 'https://images.unsplash.com/photo-1562774053-701939374585?w=600', location: 'Main Campus', isPublished: true, sortOrder: 0 },
     { schoolId: school1.id, title: 'Science Lab Virtual Tour', description: 'Explore our state-of-the-art STEM laboratory with robotics and 3D printing stations.', embedUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ', thumbnailUrl: 'https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?w=600', location: 'STEM Building', isPublished: true, sortOrder: 1 },
   ]);
+
+  // Admission Periods (idempotent — only insert if no periods exist for this school)
+  const existingPeriods = db.select().from(admissionPeriods).where(eq(admissionPeriods.schoolId, school1.id)).all();
+  if (existingPeriods.length === 0) {
+    const today = new Date();
+    const openDate = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // 7 days ago
+    const closeDate = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // 30 days from now
+    const upcomingOpen = new Date(today.getTime() + 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // 60 days from now
+    const upcomingClose = new Date(today.getTime() + 120 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // 120 days from now
+
+    db.insert(admissionPeriods).values([
+      {
+        schoolId: school1.id,
+        title: 'Fall 2026-2027 Admissions',
+        slug: 'fall-2026-2027-admissions',
+        academicYear: '2026-2027',
+        openDate,
+        closeDate,
+        description: 'We are now accepting applications for the Fall 2026-2027 academic year. Apply early to secure your child\'s place. Limited seats available across all grade levels.',
+        eligibleGrades: 'Pre-K to Grade 8',
+        availableSeats: 50,
+        applicationFee: 50,
+        applicationFeeCurrency: 'USD',
+        requirements: ([
+          'Completed online application form',
+          'Birth certificate copy',
+          'Previous school records (if applicable)',
+          'Immunization records',
+          'Two passport-size photographs',
+          'Parent/Guardian ID copy'
+        ]) as any,
+        processSteps: ([
+          { title: 'Submit Application', description: 'Complete the online application form with all required information.' },
+          { title: 'Document Review', description: 'Our admissions team reviews your submitted documents within 3-5 business days.' },
+          { title: 'Assessment', description: 'Student assessment in reading, math, and age-appropriate skills.' },
+          { title: 'Family Interview', description: 'Meet with our admissions team to discuss goals and expectations.' },
+          { title: 'Decision', description: 'Receive admission decision within 2 weeks of completing the process.' }
+        ]) as any,
+        importantDates: ([
+          { label: 'Applications Open', date: openDate },
+          { label: 'Applications Close', date: closeDate },
+          { label: 'Assessment Week', date: new Date(today.getTime() + 45 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
+          { label: 'Decision Notifications', date: new Date(today.getTime() + 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] }
+        ]) as any,
+        contactEmail: 'admissions@alnoor.edu',
+        contactPhone: '+1 (555) 234-5679',
+        brochureUrl: null,
+        faqLink: '/alnoor/faqs',
+        isActive: true,
+        autoAnnounce: false, // Don't auto-announce during seed
+      },
+      {
+        schoolId: school1.id,
+        title: 'Spring 2027 Mid-Year Admissions',
+        slug: 'spring-2027-mid-year-admissions',
+        academicYear: '2026-2027',
+        openDate: upcomingOpen,
+        closeDate: upcomingClose,
+        description: 'Mid-year admissions for the Spring 2027 semester. Transfer students welcome. Limited seats available in select grades.',
+        eligibleGrades: 'Grade 3 to Grade 8 (transfer students only)',
+        availableSeats: 15,
+        applicationFee: 75,
+        applicationFeeCurrency: 'USD',
+        requirements: ([
+          'Completed online application form',
+          'Birth certificate copy',
+          'Previous school records (mandatory for transfer students)',
+          'Transfer recommendation letter from previous school',
+          'Immunization records',
+          'Two passport-size photographs'
+        ]) as any,
+        processSteps: ([
+          { title: 'Submit Application', description: 'Complete the online application form with transfer student details.' },
+          { title: 'Records Review', description: 'Our team reviews previous school records and transfer documents.' },
+          { title: 'Placement Assessment', description: 'Student placement assessment to determine appropriate grade level.' },
+          { title: 'Family Interview', description: 'Meet with our admissions team and potential class teachers.' },
+          { title: 'Decision', description: 'Receive admission decision within 1 week for transfer students.' }
+        ]) as any,
+        importantDates: ([
+          { label: 'Applications Open', date: upcomingOpen },
+          { label: 'Applications Close', date: upcomingClose },
+          { label: 'Placement Assessments', date: new Date(today.getTime() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
+          { label: 'Decision Notifications', date: new Date(today.getTime() + 100 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] }
+        ]) as any,
+        contactEmail: 'admissions@alnoor.edu',
+        contactPhone: '+1 (555) 234-5679',
+        brochureUrl: null,
+        faqLink: '/alnoor/faqs',
+        isActive: true,
+        autoAnnounce: false,
+      },
+    ] as any).run();
+  }
 
   console.log('Seed data created successfully.');
 

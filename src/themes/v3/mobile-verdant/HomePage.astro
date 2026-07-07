@@ -1,0 +1,118 @@
+---
+interface Props { school: any; [key: string]: any; }
+const { school, ...data } = Astro.props;
+const prefix = '/' + school.slug;
+const formatDate = (d: string | Date | null) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+const features = Array.isArray(data.features) ? data.features : [];
+const stats = Array.isArray(data.stats) ? data.stats : [];
+const announcements = Array.isArray(data.recentAnnouncements) ? data.recentAnnouncements : [];
+const posts = Array.isArray(data.recentPosts) ? data.recentPosts : [];
+const programs = Array.isArray(data.schoolPrograms) ? data.schoolPrograms : [];
+---
+<div class="mv-feed space-y-4">
+  <!-- Welcome card -->
+  <section class="mv-grad rounded-[28px] p-6 relative overflow-hidden">
+    <svg class="absolute -top-4 -right-4 w-28 h-28 opacity-20" viewBox="0 0 100 100" fill="none" aria-hidden="true"><path d="M50 5 C20 25 15 60 50 95 C85 60 80 25 50 5 Z" fill="white"/></svg>
+    <div class="relative">
+      <p class="text-white/80 text-xs font-semibold uppercase tracking-[0.16em]">Welcome</p>
+      <h1 class="text-white text-2xl font-extrabold mt-1 leading-tight">{school.name}</h1>
+      {school.tagline && <p class="text-white/85 text-sm mt-2 leading-relaxed">{school.tagline}</p>}
+      <div class="flex gap-2 mt-4">
+        <a href={`${prefix}/admissions`} class="bg-white text-[13px] font-bold px-4 py-2.5 rounded-full mv-tap" style="color:var(--primary)">Apply</a>
+        <a href={`${prefix}/about`} class="border border-white/40 text-white text-[13px] font-semibold px-4 py-2.5 rounded-full mv-tap">About</a>
+      </div>
+    </div>
+  </section>
+
+  {announcements.length > 0 && (
+    <a href={`/${school.slug}/announcements/${announcements[0].slug}`} class="mv-card p-4 flex items-center gap-3 block">
+      <span class="mv-grad px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white rounded-full flex-shrink-0">New</span>
+      <span class="text-sm font-medium truncate" style="color:var(--text)">{announcements[0].title}</span>
+      <svg class="w-4 h-4 ml-auto flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color:var(--muted)"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    </a>
+  )}
+
+  {data.about?.valueProposition && (
+    <section class="mv-card p-5">
+      <p class="text-[11px] font-bold uppercase tracking-[0.16em] mb-2" style="color:var(--primary)">Our Promise</p>
+      <p class="text-base font-semibold leading-snug" style="color:var(--text)">{data.about.valueProposition}</p>
+    </section>
+  )}
+
+  {stats.length > 0 && (
+    <section class="grid grid-cols-2 gap-3">
+      {stats.slice(0,4).map(s => (
+        <div class="mv-soft p-4 text-center">
+          <p class="mv-grad-text text-2xl font-extrabold">{s.value}</p>
+          <p class="text-[11px] mt-0.5" style="color:var(--muted)">{s.label}</p>
+        </div>
+      ))}
+    </section>
+  )}
+
+  {features.length > 0 && (
+    <section>
+      <div class="flex items-center justify-between mb-3 px-1"><h2 class="text-base font-bold" style="color:var(--text)">Highlights</h2></div>
+      <div class="space-y-3">
+        {features.map(f => (
+          <div class="mv-card p-4 flex gap-3">
+            <div class="w-10 h-10 mv-grad rounded-xl flex items-center justify-center flex-shrink-0"><svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C7 6 4 10 4 14a8 8 0 0016 0c0-4-3-8-8-12z"/></svg></div>
+            <div class="min-w-0">
+              <h3 class="text-sm font-bold" style="color:var(--text)">{f.title}</h3>
+              <p class="text-xs leading-relaxed mt-1" style="color:var(--muted)">{f.description}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  )}
+
+  {programs.length > 0 && (
+    <section>
+      <div class="flex items-center justify-between mb-3 px-1">
+        <h2 class="text-base font-bold" style="color:var(--text)">Programs</h2>
+        <a href={`/${school.slug}/programs`} class="text-xs font-semibold mv-tap" style="color:var(--primary)">See all</a>
+      </div>
+      <div class="space-y-3">
+        {programs.slice(0,3).map(p => (
+          <a href={`/${school.slug}/programs/${p.slug}`} class="mv-card p-4 block">
+            <div class="flex items-center justify-between gap-2">
+              <h3 class="text-sm font-bold" style="color:var(--text)">{p.name}</h3>
+              {p.level && <span class="mv-pill px-2 py-0.5 text-[10px] font-semibold rounded-full flex-shrink-0">{p.level}</span>}
+            </div>
+            {p.description && <p class="text-xs line-clamp-2 mt-1.5" style="color:var(--muted)">{p.description}</p>}
+          </a>
+        ))}
+      </div>
+    </section>
+  )}
+
+  {posts.length > 0 && (
+    <section>
+      <div class="flex items-center justify-between mb-3 px-1">
+        <h2 class="text-base font-bold" style="color:var(--text)">News</h2>
+        <a href={`/${school.slug}/blog`} class="text-xs font-semibold mv-tap" style="color:var(--primary)">See all</a>
+      </div>
+      <div class="space-y-3">
+        {posts.slice(0,3).map(post => (
+          <a href={`/${school.slug}/blog/${post.slug}`} class="mv-card overflow-hidden block">
+            {post.coverImageUrl && <img src={post.coverImageUrl} alt={post.title} class="w-full h-36 object-cover" loading="lazy" />}
+            <div class="p-4">
+              <p class="text-[10px] font-semibold uppercase tracking-wider mb-1" style="color:var(--primary)">{formatDate(post.publishedAt || post.createdAt)}</p>
+              <h3 class="text-sm font-bold leading-snug" style="color:var(--text)">{post.title}</h3>
+              <p class="text-xs line-clamp-2 mt-1" style="color:var(--muted)">{post.excerpt || post.content}</p>
+            </div>
+          </a>
+        ))}
+      </div>
+    </section>
+  )}
+
+  <a href={`${prefix}/admissions`} class="mv-soft p-5 flex items-center gap-3 block">
+    <div class="flex-1">
+      <p class="text-sm font-bold" style="color:var(--text)">Ready to join us?</p>
+      <p class="text-xs mt-0.5" style="color:var(--muted)">Start your application today.</p>
+    </div>
+    <span class="mv-grad text-white px-4 py-2.5 rounded-full text-xs font-bold mv-tap">Apply</span>
+  </a>
+</div>

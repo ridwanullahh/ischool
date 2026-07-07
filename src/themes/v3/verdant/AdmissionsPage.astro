@@ -1,0 +1,74 @@
+---
+import { getSchoolAdmissionPeriods } from '../../../lib/school-safe.ts';
+interface Props { school: any; [key: string]: any; }
+const { school, ...rest } = Astro.props;
+const prefix = '/' + school.slug;
+const periods = Array.isArray(rest.items) ? rest.items : (Array.isArray((rest as any).admissionPeriods) ? (rest as any).admissionPeriods : getSchoolAdmissionPeriods(school.id));
+const today = new Date().toISOString().split('T')[0];
+const statusOf = (p: any) => {
+  const open = p.openDate || p.open_date;
+  const close = p.closeDate || p.close_date;
+  if (close && close < today) return 'closed';
+  if (open && open > today) return 'upcoming';
+  return 'open';
+};
+const open = periods.filter((p: any) => statusOf(p) === 'open');
+const upcoming = periods.filter((p: any) => statusOf(p) === 'upcoming');
+const closed = periods.filter((p: any) => statusOf(p) === 'closed');
+const formatDate = (d: string | Date | null) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+const sections = [
+  { key: 'open', label: 'Open Now', items: open, tone: 'grad' },
+  { key: 'upcoming', label: 'Upcoming', items: upcoming, tone: 'soft' },
+  { key: 'closed', label: 'Closed', items: closed, tone: 'surface' },
+].filter(s => s.items.length > 0);
+---
+<div class="px-4 py-16">
+  <div class="max-w-4xl mx-auto">
+    <p class="verdant-mono text-[11px] uppercase tracking-[0.2em] mb-3" style="color:var(--primary)">/ admissions</p>
+    <h1 class="text-5xl sm:text-6xl mb-5 leading-[1.05] tracking-tight" style="color:var(--text)">Begin your journey</h1>
+    <p class="text-lg max-w-2xl mb-12 leading-relaxed" style="color:var(--muted)">We welcome families who share our commitment to growth and excellence. Explore open admission periods below.</p>
+
+    {sections.length === 0 && (
+      <div class="verdant-surface verdant-organic p-8 text-center">
+        <p class="text-sm" style="color:var(--muted)">No admission periods are currently configured. Please contact us directly to learn more.</p>
+      </div>
+    )}
+
+    <div class="space-y-12">
+      {sections.map(sec => (
+        <section>
+          <div class="flex items-center gap-3 mb-5">
+            <span class:list={["px-3 py-1 verdant-mono text-[10px] font-bold uppercase tracking-[0.18em] rounded-full", sec.tone === 'grad' ? 'verdant-grad text-white' : sec.tone === 'soft' ? 'verdant-pill' : 'verdant-surface']} style={sec.tone === 'surface' ? 'color:var(--muted)' : ''}>{sec.label}</span>
+            <div class="flex-1 max-w-[200px] h-px" style="background:color-mix(in srgb, var(--border) 60%, transparent)"></div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {sec.items.map((p: any, idx: number) => (
+              <div class:list={["verdant-surface p-6", idx % 2 === 0 ? "verdant-organic" : "verdant-organic-2"]}>
+                <h3 class="text-xl mb-2" style="color:var(--text)">{p.name || p.title || 'Admission Period'}</h3>
+                {(p.openDate || p.open_date) && <p class="verdant-mono text-xs mb-1" style="color:var(--muted)">opens: {formatDate(p.openDate || p.open_date)}</p>}
+                {(p.closeDate || p.close_date) && <p class="verdant-mono text-xs mb-4" style="color:var(--muted)">closes: {formatDate(p.closeDate || p.close_date)}</p>}
+                {p.description && <p class="text-sm line-clamp-3 mb-5" style="color:var(--muted)">{p.description}</p>}
+                <div class="flex items-center gap-3">
+                  <a href={`/${school.slug}/admissions/${p.slug || p.id}`} class="verdant-grad px-5 py-2 text-sm font-semibold text-white rounded-full">View Details</a>
+                  {sec.key === 'open' && <a href={`/${school.slug}/admissions/${p.slug || p.id}/apply`} class="verdant-mono text-sm font-semibold hover:underline" style="color:var(--primary)">apply now</a>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
+
+    <section class="mt-14 verdant-soft verdant-organic p-8">
+      <h2 class="text-3xl mb-5 tracking-tight" style="color:var(--text)">Application process</h2>
+      <ol class="space-y-3" style="color:var(--muted)">
+        <li class="flex gap-3"><span class="verdant-grad text-white rounded-full w-6 h-6 flex items-center justify-center verdant-mono text-xs font-bold flex-shrink-0">1</span><span>Complete the online application form for your chosen period.</span></li>
+        <li class="flex gap-3"><span class="verdant-grad text-white rounded-full w-6 h-6 flex items-center justify-center verdant-mono text-xs font-bold flex-shrink-0">2</span><span>Submit the required documents and records.</span></li>
+        <li class="flex gap-3"><span class="verdant-grad text-white rounded-full w-6 h-6 flex items-center justify-center verdant-mono text-xs font-bold flex-shrink-0">3</span><span>Attend an assessment interview with our team.</span></li>
+        <li class="flex gap-3"><span class="verdant-grad text-white rounded-full w-6 h-6 flex items-center justify-center verdant-mono text-xs font-bold flex-shrink-0">4</span><span>Receive your admission decision.</span></li>
+        <li class="flex gap-3"><span class="verdant-grad text-white rounded-full w-6 h-6 flex items-center justify-center verdant-mono text-xs font-bold flex-shrink-0">5</span><span>Complete enrollment and fee payment.</span></li>
+      </ol>
+      <a href={`/${school.slug}/contact`} class="verdant-grad inline-flex mt-7 px-7 py-3 text-sm font-semibold text-white rounded-full">Contact Admissions</a>
+    </section>
+  </div>
+</div>

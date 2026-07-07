@@ -1,0 +1,79 @@
+---
+import { getSchoolClasses } from '../../../lib/school-safe.ts';
+import { getSocialIconPath } from '../_shared/social-icons';
+interface Props { school: any; item: any; [key: string]: any; }
+const { school, item } = Astro.props;
+const prefix = '/' + school.slug;
+const allClasses = getSchoolClasses(school.id);
+const relatedClasses = allClasses.filter((c: any) => c.id !== item?.id).slice(0, 3);
+const currentUrl = new URL(Astro.url.pathname, Astro.site || 'http://localhost:4321').toString();
+const encodedUrl = encodeURIComponent(currentUrl);
+const encodedTitle = encodeURIComponent(item?.name || '');
+const shareLinks = [
+  { label: 'Facebook', icon: getSocialIconPath('facebook'), url: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}` },
+  { label: 'WhatsApp', icon: getSocialIconPath('whatsapp'), url: `https://wa.me/?text=${encodedTitle}%20${encodedUrl}` },
+  { label: 'Twitter', icon: getSocialIconPath('twitter'), url: `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}` },
+].filter(s => s.icon);
+const contentText = item?.content || item?.description || '';
+const wordCount = contentText.split(/\s+/).filter(Boolean).length;
+const readingTime = Math.max(1, Math.ceil(wordCount / 200));
+---
+<div class="ma-feed space-y-4">
+  <a href={`${prefix}/classes`} class="inline-flex items-center gap-1.5 text-sm ma-tap" style="color:var(--primary)">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg> Back
+  </a>
+
+  <article class="ma-glass ma-glow overflow-hidden">
+    {item?.imageUrl && <img src={item.imageUrl} alt={item.name} class="w-full h-52 object-cover" />}
+    <div class="p-5">
+      <div class="flex flex-wrap items-center gap-2 mb-3">
+        {item?.gradeLevel && <span class="ma-grad px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white rounded-full">{item.gradeLevel}</span>}
+        {item?.teacherName && <span class="ma-chip px-2.5 py-0.5 text-[10px] font-medium rounded-full">{item.teacherName}</span>}
+        {item?.capacity && <span class="text-[11px]" style="color:var(--muted)">Cap: {item.capacity}</span>}
+      </div>
+      <h1 class="text-xl font-bold leading-tight mb-3" style="color:var(--text)">{item?.name || 'Class'}</h1>
+      {item?.description && <p class="text-sm leading-relaxed mb-4" style="color:var(--muted)">{item.description}</p>}
+      {contentText && (
+        <>
+          <div class="text-[11px] mb-4 pb-3 border-b" style="color:var(--primary);border-color:color-mix(in srgb, var(--border) 50%, transparent)">{readingTime} min read</div>
+          <div class="prose max-w-none whitespace-pre-wrap leading-relaxed text-sm mb-5" style="color:var(--text)">{item.content}</div>
+        </>
+      )}
+
+      <div class="mt-5 pt-4 border-t flex items-center gap-2" style="border-color:color-mix(in srgb, var(--border) 50%, transparent)">
+        <span class="text-xs font-semibold mr-1" style="color:var(--text)">Share</span>
+        {shareLinks.map(s => (
+          <a href={s.url} target="_blank" rel="noopener noreferrer" aria-label={`Share on ${s.label}`} class="ma-glass p-2.5 rounded-xl ma-tap"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" style="color:var(--text)"><path d={s.icon} /></svg></a>
+        ))}
+        <button type="button" data-copy-url={currentUrl} aria-label="Copy link" class="ma-glass p-2.5 rounded-xl ma-tap"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color:var(--text)"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg></button>
+      </div>
+    </div>
+  </article>
+
+  {relatedClasses.length > 0 && (
+    <section>
+      <h2 class="text-sm font-semibold mb-2 px-1" style="color:var(--text)">More classes</h2>
+      <div class="space-y-3">
+        {relatedClasses.map((c: any) => (
+          <a href={`${prefix}/classes/${c.slug || c.id}`} class="ma-glass p-4 block">
+            <h3 class="text-sm font-semibold leading-snug" style="color:var(--text)">{c.name}</h3>
+            {c.gradeLevel && <span class="ma-chip inline-block mt-2 px-2 py-0.5 text-[10px] font-medium rounded-full">{c.gradeLevel}</span>}
+          </a>
+        ))}
+      </div>
+    </section>
+  )}
+</div>
+
+<script is:inline set:html={`(function(){
+  document.querySelectorAll('[data-copy-url]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var url = btn.getAttribute('data-copy-url');
+      navigator.clipboard.writeText(url).then(function() {
+        var original = btn.innerHTML;
+        btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color:var(--primary)"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>';
+        setTimeout(function() { btn.innerHTML = original; }, 2000);
+      });
+    });
+  });
+})();`} />

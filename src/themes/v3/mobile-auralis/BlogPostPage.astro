@@ -1,0 +1,73 @@
+---
+import { getSchoolPosts } from '../../../lib/school-safe.ts';
+import { getSocialIconPath } from '../_shared/social-icons';
+interface Props { school: any; item: any; [key: string]: any; }
+const { school, item } = Astro.props;
+const prefix = '/' + school.slug;
+const formatDate = (d: string | Date | null) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+const allPosts = getSchoolPosts(school.id);
+const relatedPosts = allPosts.filter((p: any) => p.id !== item?.id).slice(0, 3);
+const currentUrl = new URL(Astro.url.pathname, Astro.site || 'http://localhost:4321').toString();
+const encodedUrl = encodeURIComponent(currentUrl);
+const encodedTitle = encodeURIComponent(item?.title || '');
+const shareLinks = [
+  { label: 'Facebook', icon: getSocialIconPath('facebook'), url: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}` },
+  { label: 'WhatsApp', icon: getSocialIconPath('whatsapp'), url: `https://wa.me/?text=${encodedTitle}%20${encodedUrl}` },
+  { label: 'Twitter', icon: getSocialIconPath('twitter'), url: `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}` },
+].filter(s => s.icon);
+const contentText = item?.content || '';
+const wordCount = contentText.split(/\s+/).filter(Boolean).length;
+const readingTime = Math.max(1, Math.ceil(wordCount / 200));
+---
+<div class="ma-feed space-y-4">
+  <a href={`/${school.slug}/blog`} class="inline-flex items-center gap-1.5 text-sm ma-tap" style="color:var(--primary)">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg> Back
+  </a>
+
+  <article class="ma-glass ma-glow overflow-hidden">
+    {item?.coverImageUrl && <img src={item.coverImageUrl} alt={item.title} class="w-full h-52 object-cover" />}
+    <div class="p-5">
+      <div class="flex items-center gap-3 text-[11px] mb-3" style="color:var(--muted)">
+        <span class="font-medium uppercase tracking-wider" style="color:var(--primary)">{formatDate(item?.publishedAt || item?.createdAt)}</span>
+        <span>{readingTime} min</span>
+      </div>
+      <h1 class="text-xl font-bold leading-tight mb-4" style="color:var(--text)">{item?.title || 'Post'}</h1>
+      <div class="prose max-w-none whitespace-pre-wrap leading-relaxed text-sm" style="color:var(--text)">{item?.content || ''}</div>
+
+      <div class="mt-6 pt-4 border-t flex items-center gap-2" style="border-color:color-mix(in srgb, var(--border) 50%, transparent)">
+        <span class="text-xs font-semibold mr-1" style="color:var(--text)">Share</span>
+        {shareLinks.map(s => (
+          <a href={s.url} target="_blank" rel="noopener noreferrer" aria-label={`Share on ${s.label}`} class="ma-glass p-2.5 rounded-xl ma-tap"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" style="color:var(--text)"><path d={s.icon} /></svg></a>
+        ))}
+        <button type="button" data-copy-url={currentUrl} aria-label="Copy link" class="ma-glass p-2.5 rounded-xl ma-tap"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color:var(--text)"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg></button>
+      </div>
+    </div>
+  </article>
+
+  {relatedPosts.length > 0 && (
+    <section>
+      <h2 class="text-sm font-semibold mb-2 px-1" style="color:var(--text)">More articles</h2>
+      <div class="space-y-3">
+        {relatedPosts.map((p: any) => (
+          <a href={`/${school.slug}/blog/${p.slug || p.id}`} class="ma-glass p-4 block">
+            <p class="text-[10px] font-medium uppercase tracking-wider mb-1" style="color:var(--primary)">{formatDate(p.publishedAt || p.createdAt)}</p>
+            <h3 class="text-sm font-semibold leading-snug" style="color:var(--text)">{p.title}</h3>
+          </a>
+        ))}
+      </div>
+    </section>
+  )}
+</div>
+
+<script is:inline set:html={`(function(){
+  document.querySelectorAll('[data-copy-url]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var url = btn.getAttribute('data-copy-url');
+      navigator.clipboard.writeText(url).then(function() {
+        var original = btn.innerHTML;
+        btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color:var(--primary)"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>';
+        setTimeout(function() { btn.innerHTML = original; }, 2000);
+      });
+    });
+  });
+})();`} />

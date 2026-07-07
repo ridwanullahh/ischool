@@ -40,17 +40,14 @@ const pageData = {
 };
 ---
 
-<Layout school={school} title={PageComponent ? '' : 'Admissions'}>
+<Layout school={school} title="Admissions">
   {isPreviewing && (
     <div class="bg-blue-600 text-white py-2 px-4 text-center text-sm font-medium sticky top-0 z-[100]">
       Previewing <strong>{previewTheme}</strong> theme
       <a href={`/${slug}`} class="underline text-xs hover:text-blue-200 ml-2">Close</a>
     </div>
   )}
-  {PageComponent ? (
-    <PageComponent school={school} {...pageData} />
-  ) : (
-    <div class="px-4 py-16">
+  <div class="px-4 py-16">
       <div class="max-w-5xl mx-auto">
         <h1 class="text-4xl font-extrabold mb-4" style="color:var(--text)">Admissions</h1>
         <p class="text-lg mb-10" style="color:var(--muted)">Begin your journey with {school.name}. Explore our open admission periods below.</p>
@@ -144,5 +141,4 @@ const pageData = {
         </div>
       </div>
     </div>
-  )}
 </Layout>
