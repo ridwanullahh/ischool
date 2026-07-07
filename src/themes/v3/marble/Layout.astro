@@ -69,7 +69,9 @@ const primaryContact = contacts[0];
   </div>
 
   <!-- Masthead: refined centered -->
-  <header class="border-b marble-rule marble-texture" style="background:var(--bg)">
+    <SchoolBannerPopup school={school} currentPage={Astro.url.pathname} />
+
+<header class="border-b marble-rule marble-texture" style="background:var(--bg)">
     <div class="max-w-7xl mx-auto px-4 py-8 text-center">
       <a href={`${prefix}/`} class="inline-flex flex-col items-center gap-2" aria-label={`${school.name} home`}>
         {school.logoUrl ? <img src={school.logoUrl} alt={school.name} class="h-12 w-auto" /> : <span class="marble-serif text-3xl font-semibold" style="color:var(--primary)">{school.name.charAt(0)}</span>}
@@ -128,10 +130,7 @@ const primaryContact = contacts[0];
       </div>
     </div>
   </footer>
-
-  <SchoolBannerPopup school={school} currentPage={Astro.url.pathname} />
-
-  <button id="marble-chat-toggle" type="button" class="fixed bottom-6 right-6 z-50 marble-grad px-5 py-3 shadow-lg" style="border-radius:6px" aria-label="Open chat"><span class="marble-serif text-sm font-medium text-white">Inquire</span></button>
+<button id="marble-chat-toggle" type="button" class="fixed bottom-6 right-6 z-50 marble-grad px-5 py-3 shadow-lg" style="border-radius:6px" aria-label="Open chat"><span class="marble-serif text-sm font-medium text-white">Inquire</span></button>
   <div id="marble-chat-panel" class="fixed bottom-20 right-6 z-50 w-[min(380px,calc(100vw-3rem))] hidden flex-col shadow-2xl border" style="background:var(--surface);border-color:var(--primary);border-radius:8px;max-height:70vh">
     <div class="marble-grad px-5 py-4 text-center"><p class="marble-serif text-lg font-semibold text-white">Concierge</p><p class="marble-serif italic text-xs text-white/85 mt-0.5">How may we assist?</p></div>
     <div id="marble-chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3" style="color:var(--text)"><div class="border-l-2 pl-3 text-sm marble-serif italic" style="border-color:var(--primary);color:var(--muted)">Welcome. Please leave your question below.</div></div>

@@ -60,7 +60,9 @@ const primaryContact = contacts[0];
     </div>
   </div>
   <!-- Masthead -->
-  <header class="border-b-2 heritage-rule" style="background:var(--bg)">
+    <SchoolBannerPopup school={school} currentPage={Astro.url.pathname} />
+
+<header class="border-b-2 heritage-rule" style="background:var(--bg)">
     <div class="max-w-7xl mx-auto px-4 py-8 text-center">
       <a href={`${prefix}/`} class="inline-flex flex-col items-center gap-2" aria-label={`${school.name} home`}>
         {school.logoUrl ? <img src={school.logoUrl} alt={school.name} class="h-12 w-auto" /> : <span class="heritage-serif text-3xl font-bold" style="color:var(--primary)">{school.name.charAt(0)}</span>}
@@ -101,8 +103,7 @@ const primaryContact = contacts[0];
       <div class="mt-10 pt-6 border-t heritage-rule flex flex-col sm:flex-row items-center justify-between gap-2"><p class="text-xs" style="color:var(--muted)">© {new Date().getFullYear()} {school.name}. All rights reserved.</p><a href="/" class="text-xs uppercase tracking-widest hover:opacity-70" style="color:var(--primary)">Powered by iSchool</a></div>
     </div>
   </footer>
-  <SchoolBannerPopup school={school} currentPage={Astro.url.pathname} />
-  <button id="heritage-chat-toggle" type="button" class="fixed bottom-6 right-6 z-50 px-5 py-3 border-2 shadow-lg" style="background:var(--surface);border-color:var(--primary);color:var(--primary)" aria-label="Open chat"><span class="heritage-serif text-sm font-semibold">Inquire</span></button>
+<button id="heritage-chat-toggle" type="button" class="fixed bottom-6 right-6 z-50 px-5 py-3 border-2 shadow-lg" style="background:var(--surface);border-color:var(--primary);color:var(--primary)" aria-label="Open chat"><span class="heritage-serif text-sm font-semibold">Inquire</span></button>
   <div id="heritage-chat-panel" class="fixed bottom-20 right-6 z-50 w-[min(380px,calc(100vw-3rem))] hidden flex-col shadow-2xl border-2" style="background:var(--surface);border-color:var(--primary);max-height:70vh">
     <div class="px-5 py-4 border-b text-center" style="border-color:color-mix(in srgb, var(--primary) 25%, var(--border))"><p class="heritage-serif text-lg font-bold" style="color:var(--text)">Inquiry Desk</p><p class="text-[9px] uppercase tracking-[0.3em]" style="color:var(--muted)">How may we assist?</p></div>
     <div id="heritage-chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3" style="color:var(--text)"><div class="border-l-2 pl-3 text-sm italic heritage-serif" style="border-color:var(--primary);color:var(--muted)">Welcome. Please leave your question below.</div></div>

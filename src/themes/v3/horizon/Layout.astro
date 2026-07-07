@@ -55,7 +55,9 @@ const primaryContact = contacts[0];
 </head>
 <body>
   <!-- Header: ultra-minimal split layout -->
-  <header class="border-b horizon-line" style="background:var(--bg)">
+    <SchoolBannerPopup school={school} currentPage={Astro.url.pathname} />
+
+<header class="border-b horizon-line" style="background:var(--bg)">
     <div class="max-w-7xl mx-auto px-6 lg:px-10">
       <div class="flex items-center justify-between h-20">
         <a href={`${prefix}/`} class="flex items-center gap-3" aria-label={`${school.name} home`}>
@@ -105,10 +107,7 @@ const primaryContact = contacts[0];
       </div>
     </div>
   </footer>
-
-  <SchoolBannerPopup school={school} currentPage={Astro.url.pathname} />
-
-  <button id="horizon-chat-toggle" type="button" class="fixed bottom-6 right-6 z-50 horizon-btn horizon-btn-primary shadow-lg" style="padding:14px 20px" aria-label="Open chat"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg></button>
+<button id="horizon-chat-toggle" type="button" class="fixed bottom-6 right-6 z-50 horizon-btn horizon-btn-primary shadow-lg" style="padding:14px 20px" aria-label="Open chat"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg></button>
   <div id="horizon-chat-panel" class="fixed bottom-24 right-6 z-50 w-[min(380px,calc(100vw-3rem))] horizon-card hidden flex-col overflow-hidden shadow-2xl" style="max-height:70vh">
     <div class="px-5 py-4 border-b horizon-line" style="background:var(--bg)"><p class="horizon-mono text-sm font-semibold" style="color:var(--text)">{school.name}</p><p class="horizon-label mt-1" style="color:var(--muted)">Chat with us</p></div>
     <div id="horizon-chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3" style="background:var(--bg)"><div class="horizon-mono text-sm max-w-[85%]" style="color:var(--muted)">How can we help?</div></div>

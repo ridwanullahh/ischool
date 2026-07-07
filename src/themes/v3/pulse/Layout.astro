@@ -44,7 +44,9 @@ const rtl = ['ar','he','fa','ur'].includes(locale);
 </head>
 <body>
   <div class="pulse-grid-top"></div>
-  <header class="sticky top-0 z-40 border-b pulse-border" style="background:color-mix(in srgb, var(--bg) 85%, transparent);backdrop-filter:blur(12px)">
+    <SchoolBannerPopup school={school} currentPage={Astro.url.pathname} />
+
+<header class="sticky top-0 z-40 border-b pulse-border" style="background:color-mix(in srgb, var(--bg) 85%, transparent);backdrop-filter:blur(12px)">
     <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
       <a href={`${prefix}/`} class="flex items-center gap-3" aria-label={`${school.name} home`}>
         <span class="inline-block w-2 h-2 rounded-full pulse-glow" style="background:var(--primary)"></span>
@@ -72,8 +74,7 @@ const rtl = ['ar','he','fa','ur'].includes(locale);
       <div class="mt-8 pt-5 border-t pulse-border flex items-center justify-between"><p class="pulse-mono text-[11px]" style="color:var(--muted)">© {new Date().getFullYear()} {school.name} // all rights reserved</p><a href="/" class="pulse-mono text-[11px] uppercase tracking-widest" style="color:var(--primary)">[ iSchool ]</a></div>
     </div>
   </footer>
-  <SchoolBannerPopup school={school} currentPage={Astro.url.pathname} />
-  <button id="pulse-chat-toggle" type="button" class="fixed bottom-6 right-6 z-50 pulse-btn pulse-glow px-4 py-3 flex items-center gap-2" aria-label="Open chat"><span class="pulse-mono text-xs font-bold" style="color:var(--primary)">&gt;_</span><span class="pulse-mono text-xs font-bold uppercase tracking-wider" style="color:var(--primary)">AI</span></button>
+<button id="pulse-chat-toggle" type="button" class="fixed bottom-6 right-6 z-50 pulse-btn pulse-glow px-4 py-3 flex items-center gap-2" aria-label="Open chat"><span class="pulse-mono text-xs font-bold" style="color:var(--primary)">&gt;_</span><span class="pulse-mono text-xs font-bold uppercase tracking-wider" style="color:var(--primary)">AI</span></button>
   <div id="pulse-chat-panel" class="fixed bottom-20 right-6 z-50 w-[min(420px,calc(100vw-3rem))] hidden flex-col pulse-border pulse-glow" style="background:var(--surface);max-height:70vh">
     <div class="px-4 py-3 border-b pulse-border flex items-center gap-2"><span class="inline-block w-2 h-2 rounded-full pulse-glow" style="background:var(--primary)"></span><p class="pulse-mono text-xs uppercase tracking-widest" style="color:var(--primary)">assistant.exe</p></div>
     <div id="pulse-chat-messages" class="flex-1 overflow-y-auto p-4 space-y-2 pulse-mono text-xs" style="color:var(--text)"><div style="color:var(--muted)"><span style="color:var(--primary)">&gt;</span> system ready</div><div style="color:var(--muted)">awaiting input...</div></div>

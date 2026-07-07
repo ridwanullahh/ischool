@@ -69,7 +69,9 @@ const primaryContact = contacts[0];
   </div>
 
   <!-- Masthead -->
-  <header class="border-b" style="background:var(--bg);border-color:var(--border)">
+    <SchoolBannerPopup school={school} currentPage={Astro.url.pathname} />
+
+<header class="border-b" style="background:var(--bg);border-color:var(--border)">
     <div class="max-w-7xl mx-auto px-4 py-8 text-center">
       <a href={`${prefix}/`} class="inline-flex flex-col items-center gap-3" aria-label={`${school.name} home`}>
         {school.logoUrl ? <img src={school.logoUrl} alt={school.name} class="h-14 w-auto" /> : <span class="crest-seal crest-display text-xl font-bold">{school.name.charAt(0)}</span>}
@@ -124,10 +126,7 @@ const primaryContact = contacts[0];
       <div class="mt-10 pt-6 border-t flex flex-col sm:flex-row items-center justify-between gap-2" style="border-color:var(--border)"><p class="crest-display text-[10px] uppercase tracking-[0.2em]" style="color:var(--muted)">© {new Date().getFullYear()} {school.name}. All rights reserved.</p><a href="/" class="crest-display text-[10px] uppercase tracking-[0.2em] hover:opacity-70" style="color:var(--primary)">Powered by iSchool</a></div>
     </div>
   </footer>
-
-  <SchoolBannerPopup school={school} currentPage={Astro.url.pathname} />
-
-  <button id="crest-chat-toggle" type="button" class="fixed bottom-6 right-6 z-50 crest-grad px-5 py-3 shadow-lg" style="clip-path: polygon(15% 0, 85% 0, 100% 50%, 85% 100%, 15% 100%, 0 50%)" aria-label="Open chat"><span class="crest-display text-xs font-bold uppercase tracking-[0.2em] text-white">Inquire</span></button>
+<button id="crest-chat-toggle" type="button" class="fixed bottom-6 right-6 z-50 crest-grad px-5 py-3 shadow-lg" style="clip-path: polygon(15% 0, 85% 0, 100% 50%, 85% 100%, 15% 100%, 0 50%)" aria-label="Open chat"><span class="crest-display text-xs font-bold uppercase tracking-[0.2em] text-white">Inquire</span></button>
   <div id="crest-chat-panel" class="fixed bottom-20 right-6 z-50 w-[min(380px,calc(100vw-3rem))] hidden flex-col shadow-2xl border" style="background:var(--surface);border-color:var(--primary);max-height:70vh">
     <div class="crest-grad px-5 py-4 text-center"><p class="crest-display text-base font-bold text-white">Inquiry Office</p><p class="crest-display text-[9px] uppercase tracking-[0.3em] text-white/80 mt-1">How may we assist?</p></div>
     <div id="crest-chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3"><div class="border-l-2 pl-3 text-sm italic crest-body" style="border-color:var(--primary);color:var(--muted)">Welcome. Please leave your question below.</div></div>
