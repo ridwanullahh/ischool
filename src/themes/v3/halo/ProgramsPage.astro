@@ -6,7 +6,7 @@ const { school, items = [], search = '', sort = 'newest', total = 0, ...rest } =
 const nav = getSchoolNav(school.id);
 const prefix = '/' + school.slug;
 const formatDate = (d: string | Date | null) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
-const programs = Array.isArray(items) ? items : (Array.isArray(rest.schoolPrograms) ? rest.schoolPrograms : []);
+const programs = Array.isArray(items) ? items : [];
 ---
 <div class="px-4 py-16">
   <div class="max-w-6xl mx-auto">
@@ -15,25 +15,27 @@ const programs = Array.isArray(items) ? items : (Array.isArray(rest.schoolProgra
 
     <!-- Search & Sort Bar -->
     <div class="halo-card rounded-2xl p-4 mb-8 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
-      <form method="GET" action="" class="flex-1 flex gap-2">
+      <div class="flex-1 flex gap-2">
         <div class="relative flex-1">
           <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color:var(--muted)"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-          <input type="text" name="q" value={search} placeholder="Search programs..." class="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm outline-none border" style="background:var(--bg);border-color:var(--border);color:var(--text)" />
+          <input type="text" id="live-search-input" value={search} placeholder="Search programs..." class="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm outline-none border" style="background:var(--bg);border-color:var(--border);color:var(--text)" autocomplete="off" />
+          <div id="live-search-spinner" class="hidden absolute right-3 top-1/2 -translate-y-1/2">
+            <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24" style="color:var(--muted)"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+          </div>
         </div>
-        <button type="submit" class="halo-grad px-5 py-2.5 text-sm font-semibold text-white rounded-xl">Search</button>
-      </form>
+      </div>
       <div class="flex items-center gap-2">
-        <label for="sort" class="text-xs font-medium" style="color:var(--muted)">Sort:</label>
-        <select id="sort" onchange="window.location.href=this.value" class="px-3 py-2 rounded-xl text-sm outline-none border" style="background:var(--bg);border-color:var(--border);color:var(--text)">
-          <option value={prefix + '/programs?sort=newest' + (search ? '&q=' + encodeURIComponent(search) : '')} selected={sort === 'newest'}>Newest</option>
-          <option value={prefix + '/programs?sort=title' + (search ? '&q=' + encodeURIComponent(search) : '')} selected={sort === 'title'}>Title A-Z</option>
-          <option value={prefix + '/programs?sort=level' + (search ? '&q=' + encodeURIComponent(search) : '')} selected={sort === 'level'}>Level</option>
+        <label for="sort-select" class="text-xs font-medium" style="color:var(--muted)">Sort:</label>
+        <select id="sort-select" class="px-3 py-2 rounded-xl text-sm outline-none border" style="background:var(--bg);border-color:var(--border);color:var(--text)">
+          <option value="newest" selected={sort === 'newest'}>Newest</option>
+          <option value="title" selected={sort === 'title'}>Title A-Z</option>
+          <option value="level" selected={sort === 'level'}>Level</option>
         </select>
       </div>
     </div>
 
     <!-- Results count -->
-    <div class="mb-6 text-sm" style="color:var(--muted)">
+    <div id="results-count" class="mb-6 text-sm" style="color:var(--muted)">
       {search ? (
         <span>Found <strong style="color:var(--text)">{total}</strong> program{total !== 1 ? 's' : ''} matching "<em style="color:var(--primary)">{search}</em>"</span>
       ) : (
@@ -41,27 +43,107 @@ const programs = Array.isArray(items) ? items : (Array.isArray(rest.schoolProgra
       )}
     </div>
 
-    {programs.length > 0 ? (
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {programs.map(p => (
-          <a href={`/${school.slug}/programs/${p.slug || p.id}`} class="halo-card rounded-2xl overflow-hidden hover:scale-105 transition-transform block group">
-            {p.imageUrl && <img src={p.imageUrl} alt={p.name} class="w-full h-40 object-cover" loading="lazy" />}
-            <div class="p-6">
-              <h3 class="text-lg font-bold mb-2 group-hover:text-[var(--primary)] transition-colors" style="color:var(--text)">{p.name}</h3>
-              {p.level && <p class="text-sm font-medium mb-2" style="color:var(--primary)">{p.level}</p>}
-              {p.description && <p class="text-sm line-clamp-3" style="color:var(--muted)">{p.description}</p>}
-              {p.duration && <span class="inline-block mt-3 text-xs font-semibold px-3 py-1 rounded-full" style="background:color-mix(in srgb, var(--primary) 10%, transparent);color:var(--primary)">{p.duration}</span>}
-            </div>
-          </a>
-        ))}
-      </div>
-    ) : (
-      <div class="halo-card rounded-2xl p-12 text-center">
-        <svg class="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color:var(--muted)"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-        <p class="text-lg font-semibold mb-2" style="color:var(--text)">No programs found</p>
-        <p class="text-sm mb-4" style="color:var(--muted)">{search ? 'Try a different search term.' : 'Programs will appear here once added.'}</p>
-        {search && <a href={`${prefix}/programs`} class="inline-block halo-grad px-5 py-2 text-sm font-semibold text-white rounded-xl">Clear search</a>}
-      </div>
-    )}
+    <!-- Results grid -->
+    <div id="results-grid">
+      {programs.length > 0 ? (
+        <div id="results-inner" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {programs.map(p => (
+            <a href={`/${school.slug}/programs/${p.slug || p.id}`} class="halo-card rounded-2xl overflow-hidden hover:scale-105 transition-transform block group">
+              {p.imageUrl && <img src={p.imageUrl} alt={p.name} class="w-full h-40 object-cover" loading="lazy" />}
+              <div class="p-6">
+                <h3 class="text-lg font-bold mb-2 group-hover:text-[var(--primary)] transition-colors" style="color:var(--text)">{p.name}</h3>
+                {p.level && <p class="text-sm font-medium mb-2" style="color:var(--primary)">{p.level}</p>}
+                {p.description && <p class="text-sm line-clamp-3" style="color:var(--muted)">{p.description}</p>}
+                {p.duration && <span class="inline-block mt-3 text-xs font-semibold px-3 py-1 rounded-full" style="background:color-mix(in srgb, var(--primary) 10%, transparent);color:var(--primary)">{p.duration}</span>}
+              </div>
+            </a>
+          ))}
+        </div>
+      ) : (
+        <div id="results-inner" class="halo-card rounded-2xl p-12 text-center">
+          <svg class="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color:var(--muted)"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <p class="text-lg font-semibold mb-2" style="color:var(--text)">No programs found</p>
+          <p class="text-sm mb-4" style="color:var(--muted)">{search ? 'Try a different search term.' : 'Programs will appear here once added.'}</p>
+        </div>
+      )}
+    </div>
   </div>
 </div>
+
+<script is:inline define:vars={{ schoolSlug: school.slug }}>
+  (function() {
+    var searchInput = document.getElementById('live-search-input');
+    var sortSelect = document.getElementById('sort-select');
+    var spinner = document.getElementById('live-search-spinner');
+    var resultsGrid = document.getElementById('results-grid');
+    var resultsCount = document.getElementById('results-count');
+    var debounceTimer = null;
+    var currentRequest = null;
+
+    function escapeHtml(text) {
+      var div = document.createElement('div');
+      div.textContent = text || '';
+      return div.innerHTML;
+    }
+
+    function renderResults(data) {
+      var items = data.items || [];
+      var q = data.q || '';
+      var total = data.total || 0;
+
+      if (q) {
+        resultsCount.innerHTML = '<span>Found <strong style="color:var(--text)">' + total + '</strong> program' + (total !== 1 ? 's' : '') + ' matching "<em style="color:var(--primary)">' + escapeHtml(q) + '</em>"</span>';
+      } else {
+        resultsCount.innerHTML = '<span><strong style="color:var(--text)">' + total + '</strong> program' + (total !== 1 ? 's' : '') + ' total</span>';
+      }
+
+      if (items.length > 0) {
+        var html = '<div id="results-inner" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">';
+        items.forEach(function(p) {
+          html += '<a href="/' + schoolSlug + '/programs/' + (p.slug || p.id) + '" class="halo-card rounded-2xl overflow-hidden hover:scale-105 transition-transform block group">';
+          if (p.imageUrl) html += '<img src="' + escapeHtml(p.imageUrl) + '" alt="' + escapeHtml(p.name) + '" class="w-full h-40 object-cover" loading="lazy" />';
+          html += '<div class="p-6">';
+          html += '<h3 class="text-lg font-bold mb-2 group-hover:text-[var(--primary)] transition-colors" style="color:var(--text)">' + escapeHtml(p.name) + '</h3>';
+          if (p.level) html += '<p class="text-sm font-medium mb-2" style="color:var(--primary)">' + escapeHtml(p.level) + '</p>';
+          if (p.description) html += '<p class="text-sm line-clamp-3" style="color:var(--muted)">' + escapeHtml(p.description) + '</p>';
+          if (p.duration) html += '<span class="inline-block mt-3 text-xs font-semibold px-3 py-1 rounded-full" style="background:color-mix(in srgb, var(--primary) 10%, transparent);color:var(--primary)">' + escapeHtml(p.duration) + '</span>';
+          html += '</div></a>';
+        });
+        html += '</div>';
+        resultsGrid.innerHTML = html;
+      } else {
+        resultsGrid.innerHTML = '<div id="results-inner" class="halo-card rounded-2xl p-12 text-center">' +
+          '<svg class="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color:var(--muted)"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>' +
+          '<p class="text-lg font-semibold mb-2" style="color:var(--text)">No programs found</p>' +
+          '<p class="text-sm mb-4" style="color:var(--muted)">' + (q ? 'Try a different search term.' : 'Programs will appear here once added.') + '</p>' +
+          '</div>';
+      }
+    }
+
+    function performSearch() {
+      var q = searchInput.value.trim();
+      var sort = sortSelect.value;
+      var url = new URL(window.location.href);
+      if (q) url.searchParams.set('q', q); else url.searchParams.delete('q');
+      url.searchParams.set('sort', sort);
+      window.history.replaceState({}, '', url.toString());
+      spinner.classList.remove('hidden');
+      if (currentRequest) currentRequest.abort();
+      var xhr = new XMLHttpRequest();
+      currentRequest = xhr;
+      xhr.open('GET', '/api/' + schoolSlug + '/search?type=programs&q=' + encodeURIComponent(q) + '&sort=' + encodeURIComponent(sort));
+      xhr.onload = function() {
+        if (xhr.status === 200) { try { renderResults(JSON.parse(xhr.responseText)); } catch (e) {} }
+        spinner.classList.add('hidden');
+      };
+      xhr.onerror = function() { spinner.classList.add('hidden'); };
+      xhr.send();
+    }
+
+    searchInput.addEventListener('input', function() { clearTimeout(debounceTimer); debounceTimer = setTimeout(performSearch, 300); });
+    sortSelect.addEventListener('change', performSearch);
+    document.addEventListener('keydown', function(e) {
+      if (e.key === '/' && document.activeElement !== searchInput) { e.preventDefault(); searchInput.focus(); }
+    });
+  })();
+</script>

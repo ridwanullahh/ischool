@@ -15,31 +15,32 @@ const announcements = Array.isArray(items) ? items : [];
 
     <!-- Search & Sort Bar -->
     <div class="aurora-glass rounded-2xl p-4 mb-8 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
-      <form method="GET" action="" class="flex-1 flex gap-2">
+      <div class="flex-1 flex gap-2">
         <div class="relative flex-1">
           <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color:var(--muted)"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-          <input type="text" name="q" value={search} placeholder="Search announcements..." class="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm outline-none border" style="background:var(--bg);border-color:var(--border);color:var(--text)" />
+          <input type="text" id="live-search-input" value={search} placeholder="Search announcements..." class="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm outline-none border" style="background:var(--bg);border-color:var(--border);color:var(--text)" autocomplete="off" />
+          <div id="live-search-spinner" class="hidden absolute right-3 top-1/2 -translate-y-1/2">
+            <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24" style="color:var(--muted)"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+          </div>
         </div>
-        <input type="hidden" name="filter" value={filter} />
-        <input type="hidden" name="sort" value={sort} />
-        <button type="submit" class="aurora-grad px-5 py-2.5 text-sm font-semibold text-white rounded-xl">Search</button>
-      </form>
+      </div>
       <div class="flex items-center gap-2">
-        <label for="filter" class="text-xs font-medium" style="color:var(--muted)">Filter:</label>
-        <select id="filter" onchange="window.location.href=this.value" class="px-3 py-2 rounded-xl text-sm outline-none border" style="background:var(--bg);border-color:var(--border);color:var(--text)">
-          <option value={prefix + '/announcements?filter=all&sort=' + sort + (search ? '&q=' + encodeURIComponent(search) : '')} selected={filter === 'all'}>All</option>
-          <option value={prefix + '/announcements?filter=pinned&sort=' + sort + (search ? '&q=' + encodeURIComponent(search) : '')} selected={filter === 'pinned'}>Pinned</option>
+        <label for="filter-select" class="text-xs font-medium" style="color:var(--muted)">Filter:</label>
+        <select id="filter-select" class="px-3 py-2 rounded-xl text-sm outline-none border" style="background:var(--bg);border-color:var(--border);color:var(--text)">
+          <option value="all" selected={filter === 'all'}>All</option>
+          <option value="pinned" selected={filter === 'pinned'}>Pinned</option>
         </select>
-        <select id="sort" onchange="window.location.href=this.value" class="px-3 py-2 rounded-xl text-sm outline-none border" style="background:var(--bg);border-color:var(--border);color:var(--text)">
-          <option value={prefix + '/announcements?sort=newest&filter=' + filter + (search ? '&q=' + encodeURIComponent(search) : '')} selected={sort === 'newest'}>Newest</option>
-          <option value={prefix + '/announcements?sort=oldest&filter=' + filter + (search ? '&q=' + encodeURIComponent(search) : '')} selected={sort === 'oldest'}>Oldest</option>
-          <option value={prefix + '/announcements?sort=title&filter=' + filter + (search ? '&q=' + encodeURIComponent(search) : '')} selected={sort === 'title'}>Title A-Z</option>
+        <label for="sort-select" class="text-xs font-medium" style="color:var(--muted)">Sort:</label>
+        <select id="sort-select" class="px-3 py-2 rounded-xl text-sm outline-none border" style="background:var(--bg);border-color:var(--border);color:var(--text)">
+          <option value="newest" selected={sort === 'newest'}>Newest</option>
+          <option value="oldest" selected={sort === 'oldest'}>Oldest</option>
+          <option value="title" selected={sort === 'title'}>Title A-Z</option>
         </select>
       </div>
     </div>
 
     <!-- Results count -->
-    <div class="mb-6 text-sm" style="color:var(--muted)">
+    <div id="results-count" class="mb-6 text-sm" style="color:var(--muted)">
       {search ? (
         <span>Found <strong style="color:var(--text)">{total}</strong> announcement{total !== 1 ? 's' : ''} matching "<em style="color:var(--primary)">{search}</em>"</span>
       ) : (
@@ -47,30 +48,129 @@ const announcements = Array.isArray(items) ? items : [];
       )}
     </div>
 
-    {announcements.length > 0 ? (
-      <div class="space-y-4">
-        {announcements.map(a => (
-          <a href={`/${school.slug}/announcements/${a.slug}`} class="aurora-glass rounded-2xl p-6 hover:scale-[1.01] transition-transform block group">
-            <div class="flex items-start gap-4">
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2 mb-2">
-                  {a.isPinned && <span class="aurora-grad px-2 py-0.5 text-[10px] font-bold text-white rounded-full">PINNED</span>}
-                  <span class="text-xs" style="color:var(--muted)">{formatDate(a.publishedAt || a.createdAt)}</span>
+    <!-- Results (will be updated by AJAX) -->
+    <div id="results-grid">
+      {announcements.length > 0 ? (
+        <div id="results-inner" class="space-y-4">
+          {announcements.map(a => (
+            <a href={`/${school.slug}/announcements/${a.slug}`} class="aurora-glass rounded-2xl p-6 hover:scale-[1.01] transition-transform block group">
+              <div class="flex items-start gap-4">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 mb-2">
+                    {a.isPinned && <span class="aurora-grad px-2 py-0.5 text-[10px] font-bold text-white rounded-full">PINNED</span>}
+                    <span class="text-xs" style="color:var(--muted)">{formatDate(a.publishedAt || a.createdAt)}</span>
+                  </div>
+                  <h3 class="text-lg font-bold mb-2 group-hover:text-[var(--primary)] transition-colors" style="color:var(--text)">{a.title}</h3>
+                  {a.excerpt && <p class="text-sm line-clamp-2" style="color:var(--muted)">{a.excerpt}</p>}
                 </div>
-                <h3 class="text-lg font-bold mb-2 group-hover:text-[var(--primary)] transition-colors" style="color:var(--text)">{a.title}</h3>
-                {a.excerpt && <p class="text-sm line-clamp-2" style="color:var(--muted)">{a.excerpt}</p>}
               </div>
-            </div>
-          </a>
-        ))}
-      </div>
-    ) : (
-      <div class="aurora-glass rounded-2xl p-12 text-center">
-        <svg class="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color:var(--muted)"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
-        <p class="text-lg font-semibold mb-2" style="color:var(--text)">No announcements found</p>
-        <p class="text-sm mb-4" style="color:var(--muted)">{search ? 'Try a different search term.' : 'Announcements will appear here once published.'}</p>
-        {search && <a href={`${prefix}/announcements`} class="inline-block aurora-grad px-5 py-2 text-sm font-semibold text-white rounded-xl">Clear search</a>}
-      </div>
-    )}
+            </a>
+          ))}
+        </div>
+      ) : (
+        <div id="results-inner" class="aurora-glass rounded-2xl p-12 text-center">
+          <svg class="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color:var(--muted)"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+          <p class="text-lg font-semibold mb-2" style="color:var(--text)">No announcements found</p>
+          <p class="text-sm mb-4" style="color:var(--muted)">{search ? 'Try a different search term.' : 'Announcements will appear here once published.'}</p>
+        </div>
+      )}
+    </div>
   </div>
 </div>
+
+<script is:inline define:vars={{ schoolSlug: school.slug }}>
+  (function() {
+    var searchInput = document.getElementById('live-search-input');
+    var sortSelect = document.getElementById('sort-select');
+    var filterSelect = document.getElementById('filter-select');
+    var spinner = document.getElementById('live-search-spinner');
+    var resultsGrid = document.getElementById('results-grid');
+    var resultsCount = document.getElementById('results-count');
+    var debounceTimer = null;
+    var currentRequest = null;
+
+    function escapeHtml(text) {
+      var div = document.createElement('div');
+      div.textContent = text || '';
+      return div.innerHTML;
+    }
+
+    function renderResults(data) {
+      var items = data.items || [];
+      var q = data.q || '';
+      var total = data.total || 0;
+      var filter = filterSelect.value;
+
+      if (q) {
+        resultsCount.innerHTML = '<span>Found <strong style="color:var(--text)">' + total + '</strong> announcement' + (total !== 1 ? 's' : '') + ' matching "<em style="color:var(--primary)">' + escapeHtml(q) + '</em>"</span>';
+      } else {
+        resultsCount.innerHTML = '<span><strong style="color:var(--text)">' + total + '</strong> announcement' + (total !== 1 ? 's' : '') + (filter === 'pinned' ? ' (pinned only)' : '') + '</span>';
+      }
+
+      if (items.length > 0) {
+        var html = '<div id="results-inner" class="space-y-4">';
+        items.forEach(function(a) {
+          var date = a.publishedAt || a.createdAt;
+          var formattedDate = date ? new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+          html += '<a href="/' + schoolSlug + '/announcements/' + (a.slug || a.id) + '" class="aurora-glass rounded-2xl p-6 hover:scale-[1.01] transition-transform block group">';
+          html += '<div class="flex items-start gap-4"><div class="flex-1 min-w-0">';
+          html += '<div class="flex items-center gap-2 mb-2">';
+          if (a.isPinned) html += '<span class="aurora-grad px-2 py-0.5 text-[10px] font-bold text-white rounded-full">PINNED</span>';
+          html += '<span class="text-xs" style="color:var(--muted)">' + formattedDate + '</span></div>';
+          html += '<h3 class="text-lg font-bold mb-2 group-hover:text-[var(--primary)] transition-colors" style="color:var(--text)">' + escapeHtml(a.title) + '</h3>';
+          if (a.excerpt) html += '<p class="text-sm line-clamp-2" style="color:var(--muted)">' + escapeHtml(a.excerpt) + '</p>';
+          html += '</div></div></a>';
+        });
+        html += '</div>';
+        resultsGrid.innerHTML = html;
+      } else {
+        resultsGrid.innerHTML = '<div id="results-inner" class="aurora-glass rounded-2xl p-12 text-center">' +
+          '<svg class="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color:var(--muted)"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>' +
+          '<p class="text-lg font-semibold mb-2" style="color:var(--text)">No announcements found</p>' +
+          '<p class="text-sm mb-4" style="color:var(--muted)">' + (q ? 'Try a different search term.' : 'Announcements will appear here once published.') + '</p>' +
+          '</div>';
+      }
+    }
+
+    function performSearch() {
+      var q = searchInput.value.trim();
+      var sort = sortSelect.value;
+      var filter = filterSelect.value;
+      
+      var url = new URL(window.location.href);
+      if (q) url.searchParams.set('q', q); else url.searchParams.delete('q');
+      url.searchParams.set('sort', sort);
+      url.searchParams.set('filter', filter);
+      window.history.replaceState({}, '', url.toString());
+
+      spinner.classList.remove('hidden');
+      if (currentRequest) currentRequest.abort();
+
+      var xhr = new XMLHttpRequest();
+      currentRequest = xhr;
+      xhr.open('GET', '/api/' + schoolSlug + '/search?type=announcements&q=' + encodeURIComponent(q) + '&sort=' + encodeURIComponent(sort) + '&filter=' + encodeURIComponent(filter));
+      xhr.onload = function() {
+        if (xhr.status === 200) {
+          try { renderResults(JSON.parse(xhr.responseText)); } catch (e) {}
+        }
+        spinner.classList.add('hidden');
+      };
+      xhr.onerror = function() { spinner.classList.add('hidden'); };
+      xhr.send();
+    }
+
+    searchInput.addEventListener('input', function() {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(performSearch, 300);
+    });
+    sortSelect.addEventListener('change', performSearch);
+    filterSelect.addEventListener('change', performSearch);
+
+    document.addEventListener('keydown', function(e) {
+      if (e.key === '/' && document.activeElement !== searchInput) {
+        e.preventDefault();
+        searchInput.focus();
+      }
+    });
+  })();
+</script>
