@@ -100,6 +100,7 @@ const banners = activeBanners.map(normalizeBanner);
 const popups = activePopups.map(normalizePopup);
 const topBanners = banners.filter(b => b.position === 'top');
 const heroBanners = banners.filter(b => b.position === 'hero');
+const sidebarBanners = banners.filter(b => b.position === 'sidebar');
 ---
 
 {topBanners.map(b => (
@@ -129,6 +130,24 @@ const heroBanners = banners.filter(b => b.position === 'hero');
     </div>
   </section>
 ))}
+
+{sidebarBanners.length > 0 && (
+  <div class="ischool-sidebar-banners fixed right-4 top-1/2 -translate-y-1/2 z-40 space-y-3 max-w-[280px]">
+    {sidebarBanners.map(b => (
+      <div class="ischool-sidebar-banner" data-banner-id={b.id}>
+        <button type="button" class="ischool-sidebar-close" data-banner-close={b.id} aria-label="Close banner">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+        {b.imageUrl && <img src={b.imageUrl} alt={b.title} class="ischool-sidebar-image" />}
+        <div class="ischool-sidebar-content">
+          <h4 class="ischool-sidebar-title">{b.title}</h4>
+          {b.subtitle && <p class="ischool-sidebar-subtitle">{b.subtitle}</p>}
+          {b.linkUrl && <a href={b.linkUrl} class="ischool-sidebar-link">{b.linkText}</a>}
+        </div>
+      </div>
+    ))}
+  </div>
+)}
 
 {popups.length > 0 && (
   <div id="ischool-popup-overlay" class="ischool-popup-overlay" style="display:none" data-popup-overlay>
@@ -276,15 +295,26 @@ const heroBanners = banners.filter(b => b.position === 'hero');
   .ischool-hero-link{display:inline-block;background:#fff;color:#111;padding:12px 28px;border-radius:999px;font-weight:600;text-decoration:none;font-size:14px}
   .ischool-hero-link:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.2)}
 
+  .ischool-sidebar-banner{background:var(--surface,#fff);border:1px solid var(--border,#e2e8f0);border-radius:16px;overflow:hidden;position:relative;box-shadow:0 8px 24px rgba(0,0,0,.08);transition:transform .2s}
+  .ischool-sidebar-banner:hover{transform:translateY(-2px)}
+  .ischool-sidebar-close{position:absolute;top:8px;right:8px;background:rgba(0,0,0,.3);border:none;color:#fff;cursor:pointer;padding:4px;border-radius:50%;display:flex;align-items:center;justify-content:center;width:24px;height:24px;z-index:1}
+  .ischool-sidebar-close:hover{background:rgba(0,0,0,.5)}
+  .ischool-sidebar-image{width:100%;height:120px;object-fit:cover}
+  .ischool-sidebar-content{padding:14px}
+  .ischool-sidebar-title{font-size:.875rem;font-weight:700;color:var(--text,#111);margin-bottom:4px}
+  .ischool-sidebar-subtitle{font-size:.75rem;color:var(--muted,#6b7280);line-height:1.4;margin-bottom:8px}
+  .ischool-sidebar-link{display:inline-block;font-size:.75rem;font-weight:600;color:var(--primary,var(--tp,#2563eb));text-decoration:none}
+  .ischool-sidebar-link:hover{text-decoration:underline}
+
   .ischool-popup-overlay{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
-  .ischool-popup{background:#fff;border-radius:20px;max-width:480px;width:100%;padding:40px;position:relative;box-shadow:0 24px 64px rgba(0,0,0,.25);text-align:center;animation:popupIn .3s ease;max-height:90vh;overflow-y:auto}
+  .ischool-popup{background:var(--surface,#fff);border:1px solid var(--border,#e2e8f0);border-radius:20px;max-width:480px;width:100%;padding:40px;position:relative;box-shadow:0 24px 64px rgba(0,0,0,.25);text-align:center;animation:popupIn .3s ease;max-height:90vh;overflow-y:auto}
   @keyframes popupIn{from{opacity:0;transform:scale(.9) translateY(20px)}to{opacity:1;transform:scale(1) translateY(0)}}
-  .ischool-popup-close{position:absolute;top:12px;right:12px;background:#f3f4f6;border:none;color:#6b7280;cursor:pointer;padding:6px;border-radius:50%;display:flex;align-items:center;justify-content:center;width:36px;height:36px;transition:background .15s,color .15s;z-index:1}
-  .ischool-popup-close:hover{background:#e5e7eb;color:#111}
+  .ischool-popup-close{position:absolute;top:12px;right:12px;background:color-mix(in srgb, var(--muted,#6b7280) 15%, transparent);border:none;color:var(--muted,#6b7280);cursor:pointer;padding:6px;border-radius:50%;display:flex;align-items:center;justify-content:center;width:36px;height:36px;transition:background .15s,color .15s;z-index:1}
+  .ischool-popup-close:hover{background:color-mix(in srgb, var(--muted,#6b7280) 25%, transparent);color:var(--text,#111)}
   .ischool-popup-close svg{display:block}
   .ischool-popup-image{width:100%;max-height:200px;object-fit:cover;border-radius:12px;margin-bottom:20px}
-  .ischool-popup-title{font-size:1.5rem;font-weight:700;color:#111;margin-bottom:8px}
-  .ischool-popup-content{color:#555;line-height:1.6;margin-bottom:20px}
+  .ischool-popup-title{font-size:1.5rem;font-weight:700;color:var(--text,#111);margin-bottom:8px}
+  .ischool-popup-content{color:var(--muted,#555);line-height:1.6;margin-bottom:20px}
   .ischool-popup-link{display:inline-block;background:var(--tp,#2563eb);color:#fff;padding:12px 32px;border-radius:999px;font-weight:600;text-decoration:none;font-size:14px}
   .ischool-popup-link:hover{opacity:.9;transform:translateY(-1px)}
 
@@ -296,5 +326,6 @@ const heroBanners = banners.filter(b => b.position === 'hero');
     .ischool-popup-title{font-size:1.25rem}
     .ischool-hero-overlay{padding:40px 24px}
     .ischool-hero-title{font-size:1.75rem}
+    .ischool-sidebar-banners{display:none}
   }
 `}</style>
