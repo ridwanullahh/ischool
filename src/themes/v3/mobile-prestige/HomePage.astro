@@ -1,97 +1,106 @@
 ---
+import { getSchoolNav } from '../../../lib/school.ts';
+
 interface Props { school: any; [key: string]: any; }
 const { school, ...data } = Astro.props;
 const prefix = '/' + school.slug;
 const formatDate = (d: string | Date | null) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
 const features = Array.isArray(data.features) ? data.features : [];
 const stats = Array.isArray(data.stats) ? data.stats : [];
+const about = data.about || {};
 const announcements = Array.isArray(data.recentAnnouncements) ? data.recentAnnouncements : [];
 const posts = Array.isArray(data.recentPosts) ? data.recentPosts : [];
 const programs = Array.isArray(data.schoolPrograms) ? data.schoolPrograms : [];
 ---
-<div class="mp-feed space-y-5">
-  <section class="mp-card-gold p-6 relative overflow-hidden">
-    <div class="mp-shine"></div>
-    <p class="mp-kicker relative">Welcome</p>
-    <h1 class="mp-serif text-3xl mt-2 leading-tight" style="color:var(--text)">{school.name}</h1>
-    {school.tagline && <p class="text-sm mt-2 leading-relaxed relative" style="color:var(--muted)">{school.tagline}</p>}
-    <div class="mp-rule my-5 relative"></div>
-    <div class="flex gap-2 relative">
-      <a href={`${prefix}/admissions`} class="mp-gold-bg px-5 py-2.5 text-xs font-semibold tracking-widest uppercase mp-tap" style="border-radius:2px">Apply</a>
-      <a href={`${prefix}/about`} class="border px-5 py-2.5 text-xs font-semibold tracking-widest uppercase mp-gold mp-tap" style="border-color:color-mix(in srgb, var(--primary) 50%, transparent);border-radius:2px">About</a>
+<div class="space-y-4">
+  <!-- Welcome Card -->
+  <div class="mobile-prestige-card p-5">
+    <div class="flex items-center gap-3 mb-3">
+      {school.logoUrl ? <img src={school.logoUrl} alt={school.name} class="w-12 h-12 rounded-xl" /> : <div class="w-12 h-12 rounded-xl mobile-prestige-grad flex items-center justify-center text-white font-bold text-lg">{school.name.charAt(0)}</div>}
+      <div>
+        <h1 class="text-lg font-bold" style="color:var(--text)">{school.name}</h1>
+        {school.tagline && <p class="text-xs" style="color:var(--muted)">{school.tagline}</p>}
+      </div>
     </div>
-  </section>
+    <a href={`${prefix}/admissions`} class="mobile-prestige-btn mobile-prestige-btn-primary w-full">Apply for Admission</a>
+  </div>
 
-  {announcements.length > 0 && (
-    <a href={`/${school.slug}/announcements/${announcements[0].slug}`} class="mp-card p-4 flex items-center gap-3 block">
-      <span class="mp-gold-bg px-2 py-0.5 text-[9px] font-semibold uppercase tracking-widest flex-shrink-0" style="border-radius:2px">New</span>
-      <span class="text-sm truncate mp-serif" style="color:var(--text)">{announcements[0].title}</span>
-      <svg class="w-4 h-4 ml-auto flex-shrink-0 mp-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5l7 7-7 7"/></svg>
-    </a>
-  )}
-
-  {data.about?.valueProposition && (
-    <section class="mp-card p-5 text-center">
-      <div class="mp-rule mx-auto mb-4 max-w-[60px]"></div>
-      <p class="mp-serif text-xl leading-snug" style="color:var(--text)">{data.about.valueProposition}</p>
-    </section>
-  )}
-
+  <!-- Stats -->
   {stats.length > 0 && (
-    <section class="mp-card-gold p-5 grid grid-cols-2 gap-4">
-      {stats.slice(0,4).map(s => <div class="text-center"><p class="mp-serif mp-gold text-3xl">{s.value}</p><p class="text-[10px] uppercase tracking-[0.18em] mt-1" style="color:var(--muted)">{s.label}</p></div>)}
-    </section>
+    <div class="flex gap-3 overflow-x-auto pb-2" style="scrollbar-width:none">
+      {stats.slice(0, 4).map(s => (
+        <div class="mobile-prestige-card p-4 flex-shrink-0" style="min-width:120px">
+          <div class="text-2xl font-bold" style="color:var(--primary)">{s.value}</div>
+          <div class="text-xs" style="color:var(--muted)">{s.label}</div>
+        </div>
+      ))}
+    </div>
   )}
 
+  <!-- Value Proposition -->
+  {about.valueProposition && (
+    <div class="mobile-prestige-card p-5">
+      <p class="text-sm font-medium leading-relaxed" style="color:var(--text)">{about.valueProposition}</p>
+    </div>
+  )}
+
+  <!-- Features -->
   {features.length > 0 && (
-    <section>
-      <p class="mp-kicker mb-3 px-1">Highlights</p>
-      <div class="space-y-3">
+    <div>
+      <h2 class="text-sm font-bold uppercase tracking-wider mb-3 px-1" style="color:var(--muted)">Highlights</h2>
+      <div class="flex gap-3 overflow-x-auto pb-2" style="scrollbar-width:none">
         {features.map(f => (
-          <div class="mp-card p-4">
-            <h3 class="mp-serif text-lg" style="color:var(--text)">{f.title}</h3>
-            <div class="mp-rule my-2 max-w-[40px]"></div>
+          <div class="mobile-prestige-card p-4 flex-shrink-0" style="min-width:200px">
+            <div class="w-10 h-10 rounded-lg mobile-prestige-grad mb-3"></div>
+            <h3 class="font-bold text-sm mb-1" style="color:var(--text)">{f.title}</h3>
             <p class="text-xs leading-relaxed" style="color:var(--muted)">{f.description}</p>
           </div>
         ))}
       </div>
-    </section>
+    </div>
   )}
 
+  <!-- Programs -->
   {programs.length > 0 && (
-    <section>
-      <div class="flex items-center justify-between mb-3 px-1"><p class="mp-kicker">Programs</p><a href={`/${school.slug}/programs`} class="text-[11px] tracking-wide mp-gold mp-tap">View all</a></div>
+    <div>
+      <h2 class="text-sm font-bold uppercase tracking-wider mb-3 px-1" style="color:var(--muted)">Programs</h2>
       <div class="space-y-3">
-        {programs.slice(0,3).map(p => (
-          <a href={`/${school.slug}/programs/${p.slug}`} class="mp-card p-4 block">
-            <div class="flex items-center justify-between gap-2"><h3 class="mp-serif text-lg" style="color:var(--text)">{p.name}</h3>{p.level && <span class="mp-gold text-[10px] uppercase tracking-widest flex-shrink-0">{p.level}</span>}</div>
-            {p.description && <p class="text-xs line-clamp-2 mt-1.5" style="color:var(--muted)">{p.description}</p>}
-          </a>
-        ))}
-      </div>
-    </section>
-  )}
-
-  {posts.length > 0 && (
-    <section>
-      <div class="flex items-center justify-between mb-3 px-1"><p class="mp-kicker">Journal</p><a href={`/${school.slug}/blog`} class="text-[11px] tracking-wide mp-gold mp-tap">View all</a></div>
-      <div class="space-y-3">
-        {posts.slice(0,3).map(post => (
-          <a href={`/${school.slug}/blog/${post.slug}`} class="mp-card overflow-hidden block">
-            {post.coverImageUrl && <img src={post.coverImageUrl} alt={post.title} class="w-full h-36 object-cover" loading="lazy" />}
-            <div class="p-4">
-              <p class="text-[10px] uppercase tracking-widest mb-1 mp-gold">{formatDate(post.publishedAt || post.createdAt)}</p>
-              <h3 class="mp-serif text-lg leading-snug" style="color:var(--text)">{post.title}</h3>
-              <p class="text-xs line-clamp-2 mt-1" style="color:var(--muted)">{post.excerpt || post.content}</p>
+        {programs.slice(0, 3).map(p2 => (
+          <a href={`${prefix}/programs/${p2.slug || p2.id}`} class="mobile-prestige-card p-4 flex items-center gap-3 block">
+            {p2.imageUrl && <img src={p2.imageUrl} alt={p2.name} class="w-16 h-16 rounded-lg object-cover flex-shrink-0" />}
+            <div class="flex-1 min-w-0">
+              <h3 class="font-bold text-sm" style="color:var(--text)">{p2.name}</h3>
+              {p2.description && <p class="text-xs line-clamp-2" style="color:var(--muted)">{p2.description}</p>}
             </div>
+            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color:var(--muted)"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
           </a>
         ))}
       </div>
-    </section>
+    </div>
   )}
 
-  <a href={`${prefix}/admissions`} class="mp-card-gold p-5 flex items-center gap-3 block">
-    <div class="flex-1"><p class="mp-serif text-lg" style="color:var(--text)">Ready to join us?</p><p class="text-xs mt-0.5" style="color:var(--muted)">Begin your application today.</p></div>
-    <span class="mp-gold-bg px-4 py-2.5 text-[11px] font-semibold tracking-widest uppercase mp-tap" style="border-radius:2px">Apply</span>
-  </a>
+  <!-- Latest News -->
+  {announcements.length > 0 && (
+    <div>
+      <h2 class="text-sm font-bold uppercase tracking-wider mb-3 px-1" style="color:var(--muted)">Latest News</h2>
+      <div class="space-y-3">
+        {announcements.map(a => (
+          <a href={`${prefix}/announcements/${a.slug || a.id}`} class="mobile-prestige-card p-4 block">
+            <div class="flex items-center gap-2 mb-1">
+              {a.isPinned && <span class="mobile-prestige-pill" style="padding:2px 6px;font-size:9px">PINNED</span>}
+              <span class="text-xs" style="color:var(--muted)">{formatDate(a.publishedAt || a.createdAt)}</span>
+            </div>
+            <h3 class="font-bold text-sm" style="color:var(--text)">{a.title}</h3>
+          </a>
+        ))}
+      </div>
+    </div>
+  )}
+
+  <!-- CTA -->
+  <div class="mobile-prestige-card p-6 text-center" style="background:var(--primary)">
+    <h2 class="text-base font-bold text-white mb-2">Ready to Apply?</h2>
+    <p class="text-xs text-white/80 mb-4">Join our community of learners today.</p>
+    <a href={`${prefix}/admissions`} class="mobile-prestige-btn bg-white w-full" style="color:var(--primary)">Apply Now</a>
+  </div>
 </div>

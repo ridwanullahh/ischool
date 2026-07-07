@@ -475,6 +475,57 @@ import verdantGalleryPage from './verdant/GalleryPage.astro';
 import verdantFaqsPage from './verdant/FaqsPage.astro';
 import verdantContactPage from './verdant/ContactPage.astro';
 
+import mobileAuralisConfig from './mobile-auralis/theme.config';
+import mobileAuralisLayout from './mobile-auralis/Layout.astro';
+import mobileAuralisHomePage from './mobile-auralis/HomePage.astro';
+import mobileAuralisAboutPage from './mobile-auralis/AboutPage.astro';
+import mobileAuralisAdmissionsPage from './mobile-auralis/AdmissionsPage.astro';
+import mobileAuralisProgramsPage from './mobile-auralis/ProgramsPage.astro';
+import mobileAuralisProgramDetailPage from './mobile-auralis/ProgramDetailPage.astro';
+import mobileAuralisClassesPage from './mobile-auralis/ClassesPage.astro';
+import mobileAuralisClassDetailPage from './mobile-auralis/ClassDetailPage.astro';
+import mobileAuralisBlogIndexPage from './mobile-auralis/BlogIndexPage.astro';
+import mobileAuralisBlogPostPage from './mobile-auralis/BlogPostPage.astro';
+import mobileAuralisAnnouncementsIndexPage from './mobile-auralis/AnnouncementsIndexPage.astro';
+import mobileAuralisAnnouncementDetailPage from './mobile-auralis/AnnouncementDetailPage.astro';
+import mobileAuralisGalleryPage from './mobile-auralis/GalleryPage.astro';
+import mobileAuralisFaqsPage from './mobile-auralis/FaqsPage.astro';
+import mobileAuralisContactPage from './mobile-auralis/ContactPage.astro';
+
+import mobileVerdantConfig from './mobile-verdant/theme.config';
+import mobileVerdantLayout from './mobile-verdant/Layout.astro';
+import mobileVerdantHomePage from './mobile-verdant/HomePage.astro';
+import mobileVerdantAboutPage from './mobile-verdant/AboutPage.astro';
+import mobileVerdantAdmissionsPage from './mobile-verdant/AdmissionsPage.astro';
+import mobileVerdantProgramsPage from './mobile-verdant/ProgramsPage.astro';
+import mobileVerdantProgramDetailPage from './mobile-verdant/ProgramDetailPage.astro';
+import mobileVerdantClassesPage from './mobile-verdant/ClassesPage.astro';
+import mobileVerdantClassDetailPage from './mobile-verdant/ClassDetailPage.astro';
+import mobileVerdantBlogIndexPage from './mobile-verdant/BlogIndexPage.astro';
+import mobileVerdantBlogPostPage from './mobile-verdant/BlogPostPage.astro';
+import mobileVerdantAnnouncementsIndexPage from './mobile-verdant/AnnouncementsIndexPage.astro';
+import mobileVerdantAnnouncementDetailPage from './mobile-verdant/AnnouncementDetailPage.astro';
+import mobileVerdantGalleryPage from './mobile-verdant/GalleryPage.astro';
+import mobileVerdantFaqsPage from './mobile-verdant/FaqsPage.astro';
+import mobileVerdantContactPage from './mobile-verdant/ContactPage.astro';
+
+import mobilePrestigeConfig from './mobile-prestige/theme.config';
+import mobilePrestigeLayout from './mobile-prestige/Layout.astro';
+import mobilePrestigeHomePage from './mobile-prestige/HomePage.astro';
+import mobilePrestigeAboutPage from './mobile-prestige/AboutPage.astro';
+import mobilePrestigeAdmissionsPage from './mobile-prestige/AdmissionsPage.astro';
+import mobilePrestigeProgramsPage from './mobile-prestige/ProgramsPage.astro';
+import mobilePrestigeProgramDetailPage from './mobile-prestige/ProgramDetailPage.astro';
+import mobilePrestigeClassesPage from './mobile-prestige/ClassesPage.astro';
+import mobilePrestigeClassDetailPage from './mobile-prestige/ClassDetailPage.astro';
+import mobilePrestigeBlogIndexPage from './mobile-prestige/BlogIndexPage.astro';
+import mobilePrestigeBlogPostPage from './mobile-prestige/BlogPostPage.astro';
+import mobilePrestigeAnnouncementsIndexPage from './mobile-prestige/AnnouncementsIndexPage.astro';
+import mobilePrestigeAnnouncementDetailPage from './mobile-prestige/AnnouncementDetailPage.astro';
+import mobilePrestigeGalleryPage from './mobile-prestige/GalleryPage.astro';
+import mobilePrestigeFaqsPage from './mobile-prestige/FaqsPage.astro';
+import mobilePrestigeContactPage from './mobile-prestige/ContactPage.astro';
+
 import cascadeConfig from './cascade/theme.config';
 import cascadeLayout from './cascade/Layout.astro';
 import cascadeHomePage from './cascade/HomePage.astro';
@@ -913,6 +964,9 @@ const registry: Record<string, RegisteredTheme> = {
   'mobile-vivid': { config: mobileVividConfig, Layout: mobileVividLayout, HomePage: mobileVividHomePage, AboutPage: mobileVividAboutPage, AdmissionsPage: mobileVividAdmissionsPage, ProgramsPage: mobileVividProgramsPage, ProgramDetailPage: mobileVividProgramDetailPage, ClassesPage: mobileVividClassesPage, BlogIndexPage: mobileVividBlogIndexPage, BlogPostPage: mobileVividBlogPostPage, AnnouncementsIndexPage: mobileVividAnnouncementsIndexPage, AnnouncementDetailPage: mobileVividAnnouncementDetailPage, GalleryPage: mobileVividGalleryPage, FaqsPage: mobileVividFaqsPage, ContactPage: mobileVividContactPage },
   'auralis': { config: auralisConfig, Layout: auralisLayout, HomePage: auralisHomePage, AboutPage: auralisAboutPage, AdmissionsPage: auralisAdmissionsPage, ProgramsPage: auralisProgramsPage, ProgramDetailPage: auralisProgramDetailPage, ClassesPage: auralisClassesPage, ClassDetailPage: auralisClassDetailPage, BlogIndexPage: auralisBlogIndexPage, BlogPostPage: auralisBlogPostPage, AnnouncementsIndexPage: auralisAnnouncementsIndexPage, AnnouncementDetailPage: auralisAnnouncementDetailPage, GalleryPage: auralisGalleryPage, FaqsPage: auralisFaqsPage, ContactPage: auralisContactPage },
   'verdant': { config: verdantConfig, Layout: verdantLayout, HomePage: verdantHomePage, AboutPage: verdantAboutPage, AdmissionsPage: verdantAdmissionsPage, ProgramsPage: verdantProgramsPage, ProgramDetailPage: verdantProgramDetailPage, ClassesPage: verdantClassesPage, ClassDetailPage: verdantClassDetailPage, BlogIndexPage: verdantBlogIndexPage, BlogPostPage: verdantBlogPostPage, AnnouncementsIndexPage: verdantAnnouncementsIndexPage, AnnouncementDetailPage: verdantAnnouncementDetailPage, GalleryPage: verdantGalleryPage, FaqsPage: verdantFaqsPage, ContactPage: verdantContactPage },
+  'mobile-auralis': { config: mobileAuralisConfig, Layout: mobileAuralisLayout, HomePage: mobileAuralisHomePage, AboutPage: mobileAuralisAboutPage, AdmissionsPage: mobileAuralisAdmissionsPage, ProgramsPage: mobileAuralisProgramsPage, ProgramDetailPage: mobileAuralisProgramDetailPage, ClassesPage: mobileAuralisClassesPage, ClassDetailPage: mobileAuralisClassDetailPage, BlogIndexPage: mobileAuralisBlogIndexPage, BlogPostPage: mobileAuralisBlogPostPage, AnnouncementsIndexPage: mobileAuralisAnnouncementsIndexPage, AnnouncementDetailPage: mobileAuralisAnnouncementDetailPage, GalleryPage: mobileAuralisGalleryPage, FaqsPage: mobileAuralisFaqsPage, ContactPage: mobileAuralisContactPage },
+  'mobile-verdant': { config: mobileVerdantConfig, Layout: mobileVerdantLayout, HomePage: mobileVerdantHomePage, AboutPage: mobileVerdantAboutPage, AdmissionsPage: mobileVerdantAdmissionsPage, ProgramsPage: mobileVerdantProgramsPage, ProgramDetailPage: mobileVerdantProgramDetailPage, ClassesPage: mobileVerdantClassesPage, ClassDetailPage: mobileVerdantClassDetailPage, BlogIndexPage: mobileVerdantBlogIndexPage, BlogPostPage: mobileVerdantBlogPostPage, AnnouncementsIndexPage: mobileVerdantAnnouncementsIndexPage, AnnouncementDetailPage: mobileVerdantAnnouncementDetailPage, GalleryPage: mobileVerdantGalleryPage, FaqsPage: mobileVerdantFaqsPage, ContactPage: mobileVerdantContactPage },
+  'mobile-prestige': { config: mobilePrestigeConfig, Layout: mobilePrestigeLayout, HomePage: mobilePrestigeHomePage, AboutPage: mobilePrestigeAboutPage, AdmissionsPage: mobilePrestigeAdmissionsPage, ProgramsPage: mobilePrestigeProgramsPage, ProgramDetailPage: mobilePrestigeProgramDetailPage, ClassesPage: mobilePrestigeClassesPage, ClassDetailPage: mobilePrestigeClassDetailPage, BlogIndexPage: mobilePrestigeBlogIndexPage, BlogPostPage: mobilePrestigeBlogPostPage, AnnouncementsIndexPage: mobilePrestigeAnnouncementsIndexPage, AnnouncementDetailPage: mobilePrestigeAnnouncementDetailPage, GalleryPage: mobilePrestigeGalleryPage, FaqsPage: mobilePrestigeFaqsPage, ContactPage: mobilePrestigeContactPage },
 };
 
 export function getTheme(name: string): RegisteredTheme | null {

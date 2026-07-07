@@ -1,59 +1,78 @@
 ---
+import { getSchoolNav, getSchoolContacts } from '../../../lib/school.ts';
+
 interface Props { school: any; items?: any[]; search?: string; sort?: string; total?: number; [key: string]: any; }
-const { school, items = [], search = '', sort = 'newest', total = 0 } = Astro.props;
+const { school, items = [], search = '', sort = 'newest', total = 0, ...rest } = Astro.props;
+const nav = getSchoolNav(school.id);
 const prefix = '/' + school.slug;
+const formatDate = (d: string | Date | null) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
 const classes = Array.isArray(items) ? items : [];
 const getVal = (obj: any, camel: string, snake: string) => obj?.[camel] ?? obj?.[snake] ?? null;
 ---
-<div class="ma-feed space-y-4">
-  <section class="ma-glass ma-glow rounded-[28px] p-6">
-    <span class="ma-chip inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] rounded-full"><span class="w-1.5 h-1.5 rounded-full ma-grad"></span> Classrooms</span>
-    <h1 class="text-2xl font-bold mt-3 leading-tight" style="color:var(--text)">Classes</h1>
-  </section>
+<div class="px-4 py-16">
+  <div class="max-w-6xl mx-auto">
+    <h1 class="text-4xl font-extrabold mb-4" style="color:var(--text)">Classes</h1>
+    <p class="text-sm mb-8" style="color:var(--muted)">Explore our classes and learning groups.</p>
 
-  <div class="ma-glass p-3 flex gap-2 items-center">
-    <div class="relative flex-1">
-      <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color:var(--muted)"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-      <input type="text" id="live-search-input" value={search} placeholder="Search classes... (/)" class="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm outline-none border ma-tap" style="background:var(--bg);border-color:var(--border);color:var(--text)" autocomplete="off" />
-      <div id="live-search-spinner" class="hidden absolute right-3 top-1/2 -translate-y-1/2"><svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24" style="color:var(--muted)"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg></div>
+    <!-- Search & Sort Bar -->
+    <div class="mobile-auralis-card rounded-2xl p-4 mb-8 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+      <div class="flex-1 flex gap-2">
+        <div class="relative flex-1">
+          <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color:var(--muted)"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          <input type="text" id="live-search-input" value={search} placeholder="Search classes..." class="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm outline-none border" style="background:var(--bg);border-color:var(--border);color:var(--text)" autocomplete="off" />
+          <div id="live-search-spinner" class="hidden absolute right-3 top-1/2 -translate-y-1/2">
+            <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24" style="color:var(--muted)"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+          </div>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <label for="sort-select" class="text-xs font-medium" style="color:var(--muted)">Sort:</label>
+        <select id="sort-select" class="px-3 py-2 rounded-xl text-sm outline-none border" style="background:var(--bg);border-color:var(--border);color:var(--text)">
+          <option value="newest" selected={sort === 'newest'}>Newest</option>
+          <option value="title" selected={sort === 'title'}>Title A-Z</option>
+          <option value="grade" selected={sort === 'grade'}>Grade Level</option>
+        </select>
+      </div>
     </div>
-    <select id="sort-select" class="px-3 py-2.5 rounded-xl text-xs outline-none border ma-tap" style="background:var(--bg);border-color:var(--border);color:var(--text)">
-      <option value="newest" selected={sort === 'newest'}>New</option>
-      <option value="title" selected={sort === 'title'}>A-Z</option>
-      <option value="grade" selected={sort === 'grade'}>Grade</option>
-    </select>
-  </div>
 
-  <div id="results-count" class="text-xs px-1" style="color:var(--muted)">
-    {search ? <span>Found <strong style="color:var(--text)">{total}</strong> for "<em style="color:var(--primary)">{search}</em>"</span> : <span><strong style="color:var(--text)">{total}</strong> classes</span>}
-  </div>
+    <!-- Results count -->
+    <div id="results-count" class="mb-6 text-sm" style="color:var(--muted)">
+      {search ? (
+        <span>Found <strong style="color:var(--text)">{total}</strong> class{total !== 1 ? 'es' : ''} matching "<em style="color:var(--primary)">{search}</em>"</span>
+      ) : (
+        <span><strong style="color:var(--text)">{total}</strong> class{total !== 1 ? 'es' : ''} total</span>
+      )}
+    </div>
 
-  <div id="results-grid">
-    {classes.length > 0 ? (
-      <div id="results-inner" class="space-y-3">
-        {classes.map(c => {
-          const gradeLevel = getVal(c, 'gradeLevel', 'grade_level');
-          const teacherName = getVal(c, 'teacherName', 'teacher_name');
-          const imageUrl = getVal(c, 'imageUrl', 'image_url');
-          return (
-            <a href={`/${school.slug}/classes/${c.slug || c.id}`} class="ma-glass overflow-hidden block">
-              {imageUrl && <img src={imageUrl} alt={c.name} class="w-full h-36 object-cover" loading="lazy" />}
-              <div class="p-4">
-                <div class="flex items-center justify-between gap-2"><h3 class="text-sm font-semibold" style="color:var(--text)">{c.name}{c.section ? ' - ' + c.section : ''}</h3>{gradeLevel && <span class="ma-chip px-2 py-0.5 text-[10px] font-medium rounded-full flex-shrink-0">{gradeLevel}</span>}</div>
-                {c.description && <p class="text-xs line-clamp-3 mt-1.5" style="color:var(--muted)">{c.description}</p>}
-                {teacherName && <p class="text-[10px] mt-2 font-medium uppercase tracking-wider" style="color:var(--primary)">{teacherName}</p>}
-              </div>
-            </a>
-          );
-        })}
-      </div>
-    ) : (
-      <div id="results-inner" class="ma-glass p-8 text-center">
-        <svg class="w-10 h-10 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color:var(--muted)"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-        <p class="text-sm font-semibold" style="color:var(--text)">No classes found</p>
-        <p class="text-xs mt-1" style="color:var(--muted)">{search ? 'Try another search.' : 'Classes will appear here once added.'}</p>
-      </div>
-    )}
+    <!-- Results grid -->
+    <div id="results-grid">
+      {classes.length > 0 ? (
+        <div id="results-inner" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {classes.map(c => {
+            const gradeLevel = getVal(c, 'gradeLevel', 'grade_level');
+            const teacherName = getVal(c, 'teacherName', 'teacher_name');
+            const imageUrl = getVal(c, 'imageUrl', 'image_url');
+            return (
+              <a href={`/${school.slug}/classes/${c.slug || c.id}`} class="mobile-auralis-card rounded-2xl overflow-hidden hover:scale-105 transition-transform block group">
+                {imageUrl && <img src={imageUrl} alt={c.name} class="w-full h-40 object-cover" loading="lazy" />}
+                <div class="p-6">
+                  <h3 class="text-lg font-bold mb-2 group-hover:text-[var(--primary)] transition-colors" style="color:var(--text)">{c.name}{c.section ? ' - ' + c.section : ''}</h3>
+                  {gradeLevel && <p class="text-sm font-medium mb-2" style="color:var(--primary)">{gradeLevel}</p>}
+                  {c.description && <p class="text-sm line-clamp-3" style="color:var(--muted)">{c.description}</p>}
+                  {teacherName && <p class="text-xs mt-3" style="color:var(--muted)">Teacher: {teacherName}</p>}
+                </div>
+              </a>
+            );
+          })}
+        </div>
+      ) : (
+        <div id="results-inner" class="mobile-auralis-card rounded-2xl p-12 text-center">
+          <svg class="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color:var(--muted)"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <p class="text-lg font-semibold mb-2" style="color:var(--text)">No classes found</p>
+          <p class="text-sm mb-4" style="color:var(--muted)">{search ? 'Try a different search term.' : 'Classes will appear here once added.'}</p>
+        </div>
+      )}
+    </div>
   </div>
 </div>
 
@@ -64,45 +83,78 @@ const getVal = (obj: any, camel: string, snake: string) => obj?.[camel] ?? obj?.
     var spinner = document.getElementById('live-search-spinner');
     var resultsGrid = document.getElementById('results-grid');
     var resultsCount = document.getElementById('results-count');
-    var debounceTimer = null; var currentRequest = null;
-    function escapeHtml(t) { var d=document.createElement('div'); d.textContent=t||''; return d.innerHTML; }
-    function getVal(o,c,s){ return o && (o[c]||o[s]) || null; }
+    var debounceTimer = null;
+    var currentRequest = null;
+
+    function escapeHtml(text) {
+      var div = document.createElement('div');
+      div.textContent = text || '';
+      return div.innerHTML;
+    }
+
+    function getVal(obj, camel, snake) { return obj && (obj[camel] || obj[snake]) || null; }
+
     function renderResults(data) {
-      var items = data.items || []; var q = data.q || ''; var total = data.total || 0;
-      resultsCount.innerHTML = q ? '<span>Found <strong style="color:var(--text)">' + total + '</strong> for "<em style="color:var(--primary)">' + escapeHtml(q) + '</em>"</span>' : '<span><strong style="color:var(--text)">' + total + '</strong> classes</span>';
+      var items = data.items || [];
+      var q = data.q || '';
+      var total = data.total || 0;
+
+      if (q) {
+        resultsCount.innerHTML = '<span>Found <strong style="color:var(--text)">' + total + '</strong> class' + (total !== 1 ? 'es' : '') + ' matching "<em style="color:var(--primary)">' + escapeHtml(q) + '</em>"</span>';
+      } else {
+        resultsCount.innerHTML = '<span><strong style="color:var(--text)">' + total + '</strong> class' + (total !== 1 ? 'es' : '') + ' total</span>';
+      }
+
       if (items.length > 0) {
-        var html = '<div id="results-inner" class="space-y-3">';
+        var html = '<div id="results-inner" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">';
         items.forEach(function(c) {
-          var gradeLevel = getVal(c,'gradeLevel','grade_level');
-          var teacherName = getVal(c,'teacherName','teacher_name');
-          var imageUrl = getVal(c,'imageUrl','image_url');
-          html += '<a href="/' + schoolSlug + '/classes/' + (c.slug||c.id) + '" class="ma-glass overflow-hidden block">';
-          if (imageUrl) html += '<img src="' + escapeHtml(imageUrl) + '" alt="' + escapeHtml(c.name) + '" class="w-full h-36 object-cover" loading="lazy" />';
-          html += '<div class="p-4"><div class="flex items-center justify-between gap-2"><h3 class="text-sm font-semibold" style="color:var(--text)">' + escapeHtml(c.name) + (c.section?' - '+escapeHtml(c.section):'') + '</h3>';
-          if (gradeLevel) html += '<span class="ma-chip px-2 py-0.5 text-[10px] font-medium rounded-full flex-shrink-0">' + escapeHtml(gradeLevel) + '</span>';
-          html += '</div>';
-          if (c.description) html += '<p class="text-xs line-clamp-3 mt-1.5" style="color:var(--muted)">' + escapeHtml(c.description) + '</p>';
-          if (teacherName) html += '<p class="text-[10px] mt-2 font-medium uppercase tracking-wider" style="color:var(--primary)">' + escapeHtml(teacherName) + '</p>';
+          var gradeLevel = getVal(c, 'gradeLevel', 'grade_level');
+          var teacherName = getVal(c, 'teacherName', 'teacher_name');
+          var imageUrl = getVal(c, 'imageUrl', 'image_url');
+          html += '<a href="/' + schoolSlug + '/classes/' + (c.slug || c.id) + '" class="mobile-auralis-card rounded-2xl overflow-hidden hover:scale-105 transition-transform block group">';
+          if (imageUrl) html += '<img src="' + escapeHtml(imageUrl) + '" alt="' + escapeHtml(c.name) + '" class="w-full h-40 object-cover" loading="lazy" />';
+          html += '<div class="p-6">';
+          html += '<h3 class="text-lg font-bold mb-2 group-hover:text-[var(--primary)] transition-colors" style="color:var(--text)">' + escapeHtml(c.name) + (c.section ? ' - ' + escapeHtml(c.section) : '') + '</h3>';
+          if (gradeLevel) html += '<p class="text-sm font-medium mb-2" style="color:var(--primary)">' + escapeHtml(gradeLevel) + '</p>';
+          if (c.description) html += '<p class="text-sm line-clamp-3" style="color:var(--muted)">' + escapeHtml(c.description) + '</p>';
+          if (teacherName) html += '<p class="text-xs mt-3" style="color:var(--muted)">Teacher: ' + escapeHtml(teacherName) + '</p>';
           html += '</div></a>';
         });
-        html += '</div>'; resultsGrid.innerHTML = html;
+        html += '</div>';
+        resultsGrid.innerHTML = html;
       } else {
-        resultsGrid.innerHTML = '<div id="results-inner" class="ma-glass p-8 text-center"><svg class="w-10 h-10 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color:var(--muted)"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><p class="text-sm font-semibold" style="color:var(--text)">No classes found</p><p class="text-xs mt-1" style="color:var(--muted)">' + (q?'Try another search.':'Classes will appear here once added.') + '</p></div>';
+        resultsGrid.innerHTML = '<div id="results-inner" class="mobile-auralis-card rounded-2xl p-12 text-center">' +
+          '<svg class="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color:var(--muted)"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>' +
+          '<p class="text-lg font-semibold mb-2" style="color:var(--text)">No classes found</p>' +
+          '<p class="text-sm mb-4" style="color:var(--muted)">' + (q ? 'Try a different search term.' : 'Classes will appear here once added.') + '</p>' +
+          '</div>';
       }
     }
+
     function performSearch() {
-      var q = searchInput.value.trim(); var sort = sortSelect.value;
+      var q = searchInput.value.trim();
+      var sort = sortSelect.value;
       var url = new URL(window.location.href);
       if (q) url.searchParams.set('q', q); else url.searchParams.delete('q');
-      url.searchParams.set('sort', sort); window.history.replaceState({}, '', url.toString());
-      spinner.classList.remove('hidden'); if (currentRequest) currentRequest.abort();
-      var xhr = new XMLHttpRequest(); currentRequest = xhr;
+      url.searchParams.set('sort', sort);
+      window.history.replaceState({}, '', url.toString());
+      spinner.classList.remove('hidden');
+      if (currentRequest) currentRequest.abort();
+      var xhr = new XMLHttpRequest();
+      currentRequest = xhr;
       xhr.open('GET', '/api/' + schoolSlug + '/search?type=classes&q=' + encodeURIComponent(q) + '&sort=' + encodeURIComponent(sort));
-      xhr.onload = function() { if (xhr.status===200) { try { renderResults(JSON.parse(xhr.responseText)); } catch(e){} } spinner.classList.add('hidden'); };
-      xhr.onerror = function() { spinner.classList.add('hidden'); }; xhr.send();
+      xhr.onload = function() {
+        if (xhr.status === 200) { try { renderResults(JSON.parse(xhr.responseText)); } catch (e) {} }
+        spinner.classList.add('hidden');
+      };
+      xhr.onerror = function() { spinner.classList.add('hidden'); };
+      xhr.send();
     }
+
     searchInput.addEventListener('input', function() { clearTimeout(debounceTimer); debounceTimer = setTimeout(performSearch, 300); });
     sortSelect.addEventListener('change', performSearch);
-    document.addEventListener('keydown', function(e) { if (e.key==='/' && document.activeElement!==searchInput) { e.preventDefault(); searchInput.focus(); } });
+    document.addEventListener('keydown', function(e) {
+      if (e.key === '/' && document.activeElement !== searchInput) { e.preventDefault(); searchInput.focus(); }
+    });
   })();
 </script>

@@ -37,13 +37,13 @@ const readingTime = Math.max(1, Math.ceil(wordCount / 200));
       Back to Classes
     </a>
 
-    <div class="mobile-auralis-card rounded-3xl overflow-hidden">
+    <div class="mobile-prestige-card rounded-3xl overflow-hidden">
       {item?.imageUrl && (
         <img src={item.imageUrl} alt={item.name} class="w-full h-64 sm:h-80 object-cover" />
       )}
       <div class="p-8 sm:p-12">
         <div class="flex flex-wrap items-center gap-3 mb-4">
-          {item?.gradeLevel && <span class="mobile-auralis-grad px-3 py-1 text-xs font-bold uppercase tracking-wider text-white rounded-full">{item.gradeLevel}</span>}
+          {item?.gradeLevel && <span class="mobile-prestige-grad px-3 py-1 text-xs font-bold uppercase tracking-wider text-white rounded-full">{item.gradeLevel}</span>}
           {item?.teacherName && <span class="text-sm" style="color:var(--muted)">Teacher: {item.teacherName}</span>}
           {item?.capacity && <span class="text-sm" style="color:var(--muted)">Capacity: {item.capacity}</span>}
         </div>
@@ -67,11 +67,11 @@ const readingTime = Math.max(1, Math.ceil(wordCount / 200));
             <span class="text-sm font-semibold" style="color:var(--text)">Share this class:</span>
             <div class="flex items-center gap-2">
               {shareLinks.map(s => (
-                <a href={s.url} target="_blank" rel="noopener noreferrer" aria-label={`Share on ${s.label}`} class="mobile-auralis-card p-2.5 rounded-lg hover:scale-110 transition-transform">
+                <a href={s.url} target="_blank" rel="noopener noreferrer" aria-label={`Share on ${s.label}`} class="mobile-prestige-card p-2.5 rounded-lg hover:scale-110 transition-transform">
                   <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" style="color:var(--text)"><path d={s.icon} /></svg>
                 </a>
               ))}
-              <button type="button" data-copy-url={currentUrl} aria-label="Copy link" class="mobile-auralis-card p-2.5 rounded-lg hover:scale-110 transition-transform">
+              <button type="button" data-copy-url={currentUrl} aria-label="Copy link" class="mobile-prestige-card p-2.5 rounded-lg hover:scale-110 transition-transform">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color:var(--text)"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
               </button>
             </div>
@@ -86,7 +86,7 @@ const readingTime = Math.max(1, Math.ceil(wordCount / 200));
         <h2 class="text-2xl font-bold mb-6" style="color:var(--text)">Explore Other Classes</h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           {relatedClasses.map((c: any) => (
-            <a href={`${prefix}/classes/${c.slug || c.id}`} class="mobile-auralis-card rounded-2xl p-6 hover:scale-105 transition-transform block group">
+            <a href={`${prefix}/classes/${c.slug || c.id}`} class="mobile-prestige-card rounded-2xl p-6 hover:scale-105 transition-transform block group">
               <h3 class="font-bold mb-2 group-hover:text-[var(--primary)] transition-colors" style="color:var(--text)">{c.name}</h3>
               {c.description && <p class="text-sm line-clamp-2" style="color:var(--muted)">{c.description}</p>}
               {c.gradeLevel && <span class="inline-block mt-3 text-xs font-semibold px-3 py-1 rounded-full" style="background:color-mix(in srgb, var(--primary) 10%, transparent);color:var(--primary)">{c.gradeLevel}</span>}

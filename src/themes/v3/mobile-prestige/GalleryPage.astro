@@ -25,12 +25,12 @@ const getVal = (obj: any, camel: string, snake: string) => obj?.[camel] ?? obj?.
             const cover = getVal(album, 'coverImageUrl', 'cover_image_url');
             const itemCount = gallery.filter(g => getVal(g, 'albumId', 'album_id') === album.id).length;
             return (
-              <div class="mobile-verdant-card rounded-2xl overflow-hidden cursor-pointer group" data-album-filter={album.id}>
+              <div class="mobile-prestige-card rounded-2xl overflow-hidden cursor-pointer group" data-album-filter={album.id}>
                 <div class="relative h-40 overflow-hidden">
                   {cover ? (
                     <img src={cover} alt={album.name} class="w-full h-full object-cover group-hover:scale-110 transition-transform" loading="lazy" />
                   ) : (
-                    <div class="w-full h-full mobile-verdant-grad flex items-center justify-center">
+                    <div class="w-full h-full mobile-prestige-grad flex items-center justify-center">
                       <svg class="w-12 h-12 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                     </div>
                   )}
@@ -51,9 +51,9 @@ const getVal = (obj: any, camel: string, snake: string) => obj?.[camel] ?? obj?.
     <!-- Category Filter -->
     {categoryList.length > 1 && (
       <div class="flex flex-wrap gap-2 mb-8">
-        <button type="button" class="gallery-filter-btn mobile-verdant-grad px-4 py-2 text-sm font-semibold text-white rounded-full" data-category="all">All</button>
+        <button type="button" class="gallery-filter-btn mobile-prestige-grad px-4 py-2 text-sm font-semibold text-white rounded-full" data-category="all">All</button>
         {categoryList.map(cat => (
-          <button type="button" class="gallery-filter-btn mobile-verdant-card px-4 py-2 text-sm font-medium rounded-full" style="color:var(--text)" data-category={cat}>{cat}</button>
+          <button type="button" class="gallery-filter-btn mobile-prestige-card px-4 py-2 text-sm font-medium rounded-full" style="color:var(--text)" data-category={cat}>{cat}</button>
         ))}
       </div>
     )}
@@ -68,7 +68,7 @@ const getVal = (obj: any, camel: string, snake: string) => obj?.[camel] ?? obj?.
           const category = item.category || 'General';
           const albumId = getVal(item, 'albumId', 'album_id');
           return (
-            <div class="gallery-item mobile-verdant-card rounded-2xl overflow-hidden cursor-pointer group" data-category={category} data-album={albumId || ''} data-index={i}>
+            <div class="gallery-item mobile-prestige-card rounded-2xl overflow-hidden cursor-pointer group" data-category={category} data-album={albumId || ''} data-index={i}>
               <div class="relative h-48 overflow-hidden">
                 <img src={imageUrl} alt={title} class="w-full h-full object-cover group-hover:scale-110 transition-transform" loading="lazy" />
                 <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
@@ -77,7 +77,7 @@ const getVal = (obj: any, camel: string, snake: string) => obj?.[camel] ?? obj?.
                     {caption && <p class="text-white/80 text-xs line-clamp-2">{caption}</p>}
                   </div>
                 </div>
-                <div class="absolute top-2 right-2 mobile-verdant-grad rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div class="absolute top-2 right-2 mobile-prestige-grad rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                   <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                 </div>
               </div>
@@ -86,7 +86,7 @@ const getVal = (obj: any, camel: string, snake: string) => obj?.[camel] ?? obj?.
         })}
       </div>
     ) : (
-      <div class="mobile-verdant-card rounded-2xl p-12 text-center">
+      <div class="mobile-prestige-card rounded-2xl p-12 text-center">
         <svg class="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color:var(--muted)"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
         <p class="text-lg font-semibold mb-2" style="color:var(--text)">No photos yet</p>
         <p class="text-sm" style="color:var(--muted)">Gallery images will appear here once added.</p>
@@ -102,11 +102,11 @@ const getVal = (obj: any, camel: string, snake: string) => obj?.[camel] ?? obj?.
             const thumb = getVal(tour, 'thumbnailUrl', 'thumbnail_url');
             const embed = getVal(tour, 'embedUrl', 'embed_url');
             return (
-              <div class="mobile-verdant-card rounded-2xl overflow-hidden">
+              <div class="mobile-prestige-card rounded-2xl overflow-hidden">
                 <div class="relative h-56 overflow-hidden cursor-pointer" data-tour-embed={embed}>
                   {thumb && <img src={thumb} alt={tour.title} class="w-full h-full object-cover" loading="lazy" />}
                   <div class="absolute inset-0 bg-black/40 flex items-center justify-center">
-                    <div class="mobile-verdant-grad rounded-full p-5 shadow-2xl">
+                    <div class="mobile-prestige-grad rounded-full p-5 shadow-2xl">
                       <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                     </div>
                   </div>
@@ -218,13 +218,13 @@ const getVal = (obj: any, camel: string, snake: string) => obj?.[camel] ?? obj?.
     btn.addEventListener('click', function() {
       var cat = btn.getAttribute('data-category');
       filterBtns.forEach(function(b) {
-        b.classList.remove('mobile-verdant-grad');
-        b.classList.add('mobile-verdant-card');
+        b.classList.remove('mobile-prestige-grad');
+        b.classList.add('mobile-prestige-card');
         b.style.color = 'var(--text)';
         b.classList.remove('text-white');
       });
-      btn.classList.add('mobile-verdant-grad');
-      btn.classList.remove('mobile-verdant-card');
+      btn.classList.add('mobile-prestige-grad');
+      btn.classList.remove('mobile-prestige-card');
       btn.classList.add('text-white');
       btn.style.color = '';
 
@@ -258,7 +258,7 @@ const getVal = (obj: any, camel: string, snake: string) => obj?.[camel] ?? obj?.
   document.querySelectorAll('[data-tour-embed]')?.forEach(function(el) {
     el.addEventListener('click', function() {
       var embedUrl = el.getAttribute('data-tour-embed');
-      var tourSection = el.closest('.mobile-verdant-card');
+      var tourSection = el.closest('.mobile-prestige-card');
       if (tourSection && embedUrl) {
         var imgContainer = el;
         imgContainer.innerHTML = '<iframe src="' + embedUrl + '" class="w-full h-full" frameborder="0" allowfullscreen></iframe>';

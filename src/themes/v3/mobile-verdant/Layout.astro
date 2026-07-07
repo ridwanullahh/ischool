@@ -4,103 +4,108 @@ import PaletteStyles from '../_shared/PaletteStyles.astro';
 import FoucScript from '../_shared/FoucScript.astro';
 import ThemeToggleScript from '../_shared/ThemeToggleScript.astro';
 import { getSchoolNav, getSchoolContacts } from '../../../lib/school.ts';
+import { normalizeSocialUrl } from '../../../lib/social.ts';
+import { getSocialIconPath } from '../_shared/social-icons';
 import LanguageSelector from '../../../components/LanguageSelector.astro';
 import SchoolBannerPopup from '../../../components/SchoolBannerPopup.astro';
 interface Props { school: any; title?: string; }
 const { school, title } = Astro.props;
 const nav = getSchoolNav(school.id);
 const contacts = getSchoolContacts(school.id);
-const pageTitle = title ? `${title} — ${school.name}` : school.name;
+const pageTitle = title ? `${title} - ${school.name}` : school.name;
 const prefix = `/${school.slug}`;
 const { pathname } = Astro.url;
+const social = (school.socialHandles as Record<string, string>) || {};
+const socialEntries = Object.entries(social).filter(([, v]) => v && v !== '#');
 const locale = school.locale || 'en';
 const rtl = ['ar','he','fa','ur'].includes(locale);
-const year = new Date().getFullYear();
-const tabs = [
-  { label: 'Home', url: '/', icon: 'M3 12l9-9 9 9M5 10v10h14V10' },
-  { label: 'Programs', url: '/programs', icon: 'M12 14l9-5-9-5-9 5 9 5zm0 0v6m0-6l-9-5' },
-  { label: 'News', url: '/blog', icon: 'M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 0a2 2 0 012 2v9a2 2 0 01-2 2zm-2-9h.01M14 16h.01' },
-  { label: 'Gallery', url: '/gallery', icon: 'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z' },
-  { label: 'Contact', url: '/contact', icon: 'M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z' },
-];
-const isActiveTab = (url: string) => url === '/' ? pathname === `${prefix}/` : pathname.startsWith(`${prefix}${url}`);
 ---
 <!doctype html>
 <html lang={locale} dir={rtl ? 'rtl' : 'ltr'} class="light scroll-smooth">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
   <meta name="description" content={school.tagline || school.name} />
   {school.faviconUrl && <link rel="icon" href={school.faviconUrl} />}
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <title>{pageTitle}</title>
   <FoucScript defaultMode="light" />
   <PaletteStyles school={school} />
   <style is:inline set:html={`
-    html, body { background: var(--bg); }
+    * { -webkit-tap-highlight-color: transparent; }
+    html, body { background: var(--bg); overscroll-behavior: none; }
     body { font-family: 'DM Sans', system-ui, sans-serif; color: var(--text); min-height: 100vh; }
-    .mv-phone { max-width: 448px; margin: 0 auto; min-height: 100vh; background: var(--bg); position: relative; box-shadow: 0 0 60px -10px rgba(0,0,0,0.15); }
-    html.dark .mv-phone { box-shadow: 0 0 60px -10px rgba(0,0,0,0.5); }
-    .mv-card { background: var(--surface); border: 1px solid color-mix(in srgb, var(--border) 70%, transparent); border-radius: 20px; }
-    .mv-soft { background: color-mix(in srgb, var(--primary) 7%, var(--surface)); border: 1px solid color-mix(in srgb, var(--primary) 16%, transparent); border-radius: 20px; }
-    .mv-grad { background: linear-gradient(135deg, var(--primary), #34d399); }
-    .mv-grad-text { background: linear-gradient(135deg, var(--primary), #34d399); -webkit-background-clip: text; background-clip: text; color: transparent; }
-    .mv-pill { background: color-mix(in srgb, var(--primary) 12%, transparent); color: var(--primary); }
-    .mv-header { position: sticky; top: 0; z-index: 40; }
-    .mv-tabbar { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 448px; z-index: 50; }
-    .mv-feed { padding: 84px 14px 96px; }
-    .mv-tap { min-height: 44px; min-width: 44px; }
-    .mv-tab-active { color: var(--primary); }
-    .mv-tab-active .mv-tab-dot { opacity: 1; }
+    .app-container { max-width: 448px; margin: 0 auto; min-height: 100vh; position: relative; box-shadow: 0 0 40px rgba(0,0,0,0.08); background: var(--bg); }
+    .app-header { position: sticky; top: 0; z-index: 40; background: color-mix(in srgb, var(--surface) 90%, transparent); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; }
+    .app-header-logo { display: flex; align-items: center; gap: 8px; }
+    .app-header-logo img { height: 32px; width: auto; border-radius: 8px; }
+    .app-header-logo .logo-fallback { width: 32px; height: 32px; border-radius: 8px; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; }
+    .app-header-name { font-size: 14px; font-weight: 700; color: var(--text); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .app-main { padding: 16px; padding-bottom: 90px; }
+    .tab-bar { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 448px; background: color-mix(in srgb, var(--surface) 95%, transparent); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 1px solid var(--border); display: flex; justify-content: space-around; padding: 8px 0 max(8px, env(safe-area-inset-bottom)); z-index: 50; }
+    .tab-item { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 12px; min-width: 44px; min-height: 44px; cursor: pointer; color: var(--muted); transition: color 0.2s; }
+    .tab-item.active { color: var(--primary); }
+    .tab-item svg { width: 22px; height: 22px; }
+    .tab-item span { font-size: 10px; font-weight: 500; }
+    .mobile-verdant-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; transition: transform 0.2s; }
+    .mobile-verdant-card:active { transform: scale(0.98); }
+    .mobile-verdant-grad { background: linear-gradient(135deg, var(--primary), var(--accent)); }
+    .mobile-verdant-pill { display: inline-flex; align-items: center; gap: 4px; padding: 4px 12px; border-radius: 999px; font-size: 11px; font-weight: 600; background: color-mix(in srgb, var(--primary) 10%, transparent); color: var(--primary); }
+    .mobile-verdant-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 12px 20px; border-radius: 12px; font-size: 14px; font-weight: 600; min-height: 44px; }
+    .mobile-verdant-btn-primary { background: var(--primary); color: #fff; }
+    .mobile-verdant-btn-outline { border: 1px solid var(--primary); color: var(--primary); background: transparent; }
+    .copyright { text-align: center; padding: 16px; font-size: 11px; color: var(--muted); }
   `} />
 </head>
 <body>
-  <div class="mv-phone">
-    <!-- Sticky app header -->
-    <header class="mv-header px-3 pt-3 pb-2" style="background:color-mix(in srgb, var(--bg) 85%, transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid color-mix(in srgb, var(--border) 50%, transparent)">
-      <div class="flex items-center justify-between gap-2">
-        <a href={`${prefix}/`} class="flex items-center gap-2.5 min-w-0">
-          {school.logoUrl ? <img src={school.logoUrl} alt={school.name} class="h-9 w-9 rounded-xl object-cover" /> : <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl text-white mv-grad"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C7 6 4 10 4 14a8 8 0 0016 0c0-4-3-8-8-12z"/></svg></span>}
-          <span class="text-[15px] font-bold tracking-tight truncate" style="color:var(--text)">{school.name}</span>
-        </a>
-        <div class="flex items-center gap-1.5">
-          <LanguageSelector />
-          <button id="mv-bell" type="button" class="mv-soft p-2.5 rounded-full mv-tap" style="color:var(--primary)" aria-label="Notifications"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg></button>
-          <button id="theme-toggle" type="button" class="mv-soft p-2.5 rounded-full mv-tap" style="color:var(--primary)" aria-label="Toggle theme"><svg class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg><svg class="w-5 h-5 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg></button>
-        </div>
+  <div class="app-container">
+    <SchoolBannerPopup school={school} currentPage={Astro.url.pathname} />
+
+    <header class="app-header">
+      <a href={`${prefix}/`} class="app-header-logo">
+        {school.logoUrl ? <img src={school.logoUrl} alt={school.name} /> : <span class="logo-fallback">{school.name.charAt(0)}</span>}
+        <span class="app-header-name">{school.name}</span>
+      </a>
+      <div class="flex items-center gap-2">
+        <button id="theme-toggle" type="button" class="p-2 rounded-lg" style="color:var(--muted)" aria-label="Toggle theme"><svg class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg><svg class="w-5 h-5 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg></button>
       </div>
     </header>
 
-    <main><slot /></main>
+    <main class="app-main"><slot /></main>
 
-    <!-- Compact footer credit (tab bar replaces traditional footer) -->
-    <div class="px-4 pb-4 pt-2 text-center">
-      <p class="text-[11px]" style="color:var(--muted)">&copy; {year} {school.name}</p>
-      <a href="/" class="text-[11px] font-medium" style="color:var(--primary)">Powered by iSchool</a>
-    </div>
+    <div class="copyright">&copy; {new Date().getFullYear()} {school.name}</div>
 
-    <!-- Bottom tab bar -->
-    <nav class="mv-tabbar px-3 pb-3 pt-2" style="background:color-mix(in srgb, var(--surface) 92%, transparent);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid color-mix(in srgb, var(--border) 60%, transparent)">
-      <div class="grid grid-cols-5 gap-1">
-        {tabs.map(tab => (
-          <a href={`${prefix}${tab.url}`} class:list={["flex flex-col items-center justify-center gap-1 py-1.5 rounded-2xl mv-tap transition-colors", isActiveTab(tab.url) ? "mv-tab-active" : ""]} style={isActiveTab(tab.url) ? '' : 'color:var(--muted)'}>
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d={tab.icon}/></svg>
-            <span class="text-[10px] font-semibold">{tab.label}</span>
-            <span class="mv-tab-dot w-1 h-1 rounded-full mv-grad opacity-0"></span>
-          </a>
-        ))}
-      </div>
+    <nav class="tab-bar">
+      <a href={`${prefix}/`} class="tab-item" data-active={pathname === `${prefix}/` || pathname === `${prefix}`}>
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+        <span>Home</span>
+      </a>
+      <a href={`${prefix}/programs`} class="tab-item" data-active={pathname.startsWith(`${prefix}/programs`)}>
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+        <span>Programs</span>
+      </a>
+      <a href={`${prefix}/announcements`} class="tab-item" data-active={pathname.startsWith(`${prefix}/announcements`)}>
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+        <span>News</span>
+      </a>
+      <a href={`${prefix}/gallery`} class="tab-item" data-active={pathname.startsWith(`${prefix}/gallery`)}>
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        <span>Gallery</span>
+      </a>
+      <a href={`${prefix}/contact`} class="tab-item" data-active={pathname.startsWith(`${prefix}/contact`)}>
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+        <span>Contact</span>
+      </a>
     </nav>
-
-    <SchoolBannerPopup school={school} currentPage={Astro.url.pathname} />
   </div>
 
-  <ThemeToggleScript defaultMode="light" selector="#theme-toggle" />
   <script is:inline set:html={`(function(){
-    var b=document.getElementById('mv-bell');
-    if(b){b.addEventListener('click',function(){window.location.href='${prefix}/announcements';});}
+    document.querySelectorAll('.tab-item').forEach(function(item) {
+      if (item.getAttribute('data-active') === 'true') item.classList.add('active');
+    });
   })();`} />
+  <ThemeToggleScript defaultMode="light" selector="#theme-toggle" />
 </body>
 </html>
