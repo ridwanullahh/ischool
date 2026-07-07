@@ -119,7 +119,21 @@ export function getSchoolFaqs(schoolId: number): any[] {
 export function getSchoolGallery(schoolId: number): any[] {
   try {
     const db = rawDb();
-    return db.prepare('SELECT * FROM gallery_items WHERE school_id = ?').all(schoolId);
+    return db.prepare('SELECT * FROM gallery_items WHERE school_id = ? ORDER BY sort_order, created_at DESC').all(schoolId);
+  } catch { return []; }
+}
+
+export function getSchoolGalleryAlbums(schoolId: number): any[] {
+  try {
+    const db = rawDb();
+    return db.prepare('SELECT * FROM gallery_albums WHERE school_id = ? AND is_published = 1 ORDER BY sort_order').all(schoolId);
+  } catch { return []; }
+}
+
+export function getSchoolVirtualTours(schoolId: number): any[] {
+  try {
+    const db = rawDb();
+    return db.prepare('SELECT * FROM virtual_tours WHERE school_id = ? AND is_published = 1 ORDER BY sort_order').all(schoolId);
   } catch { return []; }
 }
 

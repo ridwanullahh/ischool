@@ -1,7 +1,6 @@
 ---
 import { getV3Theme, getThemeLayout, themeList } from '../../themes/index.js';
-import { getSchoolBySlug, getSchoolAbout, getSchoolGallery, getSchoolPrograms, getSchoolClasses, getSchoolFaqs, getSchoolAnnouncements, getSchoolPosts } from '../../lib/school-safe.ts';
-import { eq, desc, and } from 'drizzle-orm';
+import { getSchoolBySlug, getSchoolGallery, getSchoolGalleryAlbums, getSchoolVirtualTours } from '../../lib/school-safe.ts';
 
 const slug = Astro.params.slug!;
 
@@ -16,8 +15,15 @@ const activeTheme = isPreviewing ? previewTheme : (school.theme || 'aurora');
 const v3Theme = getV3Theme(activeTheme);
 const Layout = v3Theme?.Layout || getThemeLayout(activeTheme);
 const PageComponent = v3Theme?.GalleryPage;
-const galleryImages = getSchoolGallery(school.id);
-const pageData = { items: galleryImages };
+
+const galleryItems = getSchoolGallery(school.id);
+const galleryAlbums = getSchoolGalleryAlbums(school.id);
+const virtualTours = getSchoolVirtualTours(school.id);
+
+// Extract unique categories for filtering
+const categories = [...new Set(galleryItems.map((g: any) => g.category || 'General').filter(Boolean))];
+
+const pageData = { items: galleryItems, albums: galleryAlbums, virtualTours, categories };
 ---
 <Layout school={school} title={PageComponent ? "" : "Gallery"}>
   {isPreviewing && (
