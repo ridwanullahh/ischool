@@ -1108,16 +1108,26 @@ function autoMigrate(sqlite: Database.Database) {
     CREATE TABLE IF NOT EXISTS subscription_plans (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL, slug TEXT NOT NULL UNIQUE, description TEXT,
-      price_monthly INTEGER DEFAULT 0, price_yearly INTEGER DEFAULT 0,
-      features TEXT DEFAULT '[]', is_active INTEGER DEFAULT 1,
-      sort_order INTEGER DEFAULT 0, created_at INTEGER, updated_at INTEGER
+      monthly_price INTEGER NOT NULL DEFAULT 0, annual_price INTEGER NOT NULL DEFAULT 0,
+      currency TEXT NOT NULL DEFAULT 'USD', billing_cycle TEXT NOT NULL DEFAULT 'both',
+      max_schools INTEGER DEFAULT 1, max_students INTEGER DEFAULT 100, max_staff INTEGER DEFAULT 10,
+      max_storage INTEGER DEFAULT 500,
+      features TEXT DEFAULT '[]', module_access TEXT DEFAULT '[]',
+      is_popular INTEGER DEFAULT 0, is_free INTEGER DEFAULT 0, trial_days INTEGER DEFAULT 14,
+      sort_order INTEGER DEFAULT 0, is_active INTEGER DEFAULT 1,
+      custom_domain INTEGER DEFAULT 0, api_access INTEGER DEFAULT 0,
+      priority_support INTEGER DEFAULT 0, white_label INTEGER DEFAULT 0,
+      created_at INTEGER, updated_at INTEGER
     );
     CREATE TABLE IF NOT EXISTS school_subscriptions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
       plan_id INTEGER REFERENCES subscription_plans(id),
-      status TEXT DEFAULT 'trial', current_period_start INTEGER,
-      current_period_end INTEGER, trial_ends_at INTEGER,
+      status TEXT DEFAULT 'trial', billing_cycle TEXT DEFAULT 'monthly',
+      current_period_start TEXT, current_period_end TEXT,
+      trial_ends_at TEXT, cancelled_at TEXT, cancel_reason TEXT,
+      auto_renew INTEGER DEFAULT 1, payment_method TEXT,
+      external_id TEXT, coupon_id INTEGER,
       created_at INTEGER, updated_at INTEGER
     );
     CREATE TABLE IF NOT EXISTS coupons (
@@ -1153,7 +1163,9 @@ function autoMigrate(sqlite: Database.Database) {
     );
     CREATE TABLE IF NOT EXISTS platform_settings (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      key TEXT NOT NULL UNIQUE, value TEXT, created_at INTEGER, updated_at INTEGER
+      key TEXT NOT NULL UNIQUE, value TEXT NOT NULL,
+      type TEXT NOT NULL DEFAULT 'string', category TEXT DEFAULT 'general',
+      description TEXT, created_at INTEGER, updated_at INTEGER
     );
     CREATE TABLE IF NOT EXISTS ai_providers (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1185,7 +1197,8 @@ function autoMigrate(sqlite: Database.Database) {
     );
     CREATE TABLE IF NOT EXISTS ai_settings (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER, provider_id INTEGER, model_id INTEGER,
+      school_id INTEGER, key TEXT NOT NULL, value TEXT,
+      provider_id INTEGER, model_id INTEGER,
       system_prompt TEXT, temperature REAL DEFAULT 0.7,
       max_tokens INTEGER DEFAULT 1000, is_active INTEGER DEFAULT 1,
       created_at INTEGER, updated_at INTEGER
@@ -1205,6 +1218,7 @@ function autoMigrate(sqlite: Database.Database) {
     CREATE TABLE IF NOT EXISTS school_ticket_categories (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       school_id INTEGER, name TEXT NOT NULL, description TEXT,
+      icon TEXT, is_public INTEGER DEFAULT 1, sort_order INTEGER DEFAULT 0,
       created_at INTEGER, updated_at INTEGER
     );
     CREATE TABLE IF NOT EXISTS subscriber_accounts (
