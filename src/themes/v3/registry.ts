@@ -441,6 +441,40 @@ import zenithGalleryPage from './zenith/GalleryPage.astro';
 import zenithFaqsPage from './zenith/FaqsPage.astro';
 import zenithContactPage from './zenith/ContactPage.astro';
 
+import auralisConfig from './auralis/theme.config';
+import auralisLayout from './auralis/Layout.astro';
+import auralisHomePage from './auralis/HomePage.astro';
+import auralisAboutPage from './auralis/AboutPage.astro';
+import auralisAdmissionsPage from './auralis/AdmissionsPage.astro';
+import auralisProgramsPage from './auralis/ProgramsPage.astro';
+import auralisProgramDetailPage from './auralis/ProgramDetailPage.astro';
+import auralisClassesPage from './auralis/ClassesPage.astro';
+import auralisClassDetailPage from './auralis/ClassDetailPage.astro';
+import auralisBlogIndexPage from './auralis/BlogIndexPage.astro';
+import auralisBlogPostPage from './auralis/BlogPostPage.astro';
+import auralisAnnouncementsIndexPage from './auralis/AnnouncementsIndexPage.astro';
+import auralisAnnouncementDetailPage from './auralis/AnnouncementDetailPage.astro';
+import auralisGalleryPage from './auralis/GalleryPage.astro';
+import auralisFaqsPage from './auralis/FaqsPage.astro';
+import auralisContactPage from './auralis/ContactPage.astro';
+
+import verdantConfig from './verdant/theme.config';
+import verdantLayout from './verdant/Layout.astro';
+import verdantHomePage from './verdant/HomePage.astro';
+import verdantAboutPage from './verdant/AboutPage.astro';
+import verdantAdmissionsPage from './verdant/AdmissionsPage.astro';
+import verdantProgramsPage from './verdant/ProgramsPage.astro';
+import verdantProgramDetailPage from './verdant/ProgramDetailPage.astro';
+import verdantClassesPage from './verdant/ClassesPage.astro';
+import verdantClassDetailPage from './verdant/ClassDetailPage.astro';
+import verdantBlogIndexPage from './verdant/BlogIndexPage.astro';
+import verdantBlogPostPage from './verdant/BlogPostPage.astro';
+import verdantAnnouncementsIndexPage from './verdant/AnnouncementsIndexPage.astro';
+import verdantAnnouncementDetailPage from './verdant/AnnouncementDetailPage.astro';
+import verdantGalleryPage from './verdant/GalleryPage.astro';
+import verdantFaqsPage from './verdant/FaqsPage.astro';
+import verdantContactPage from './verdant/ContactPage.astro';
+
 import cascadeConfig from './cascade/theme.config';
 import cascadeLayout from './cascade/Layout.astro';
 import cascadeHomePage from './cascade/HomePage.astro';
@@ -877,6 +911,8 @@ const registry: Record<string, RegisteredTheme> = {
   'mobile-forge': { config: mobileForgeConfig, Layout: mobileForgeLayout, HomePage: mobileForgeHomePage, AboutPage: mobileForgeAboutPage, AdmissionsPage: mobileForgeAdmissionsPage, ProgramsPage: mobileForgeProgramsPage, ProgramDetailPage: mobileForgeProgramDetailPage, ClassesPage: mobileForgeClassesPage, BlogIndexPage: mobileForgeBlogIndexPage, BlogPostPage: mobileForgeBlogPostPage, AnnouncementsIndexPage: mobileForgeAnnouncementsIndexPage, AnnouncementDetailPage: mobileForgeAnnouncementDetailPage, GalleryPage: mobileForgeGalleryPage, FaqsPage: mobileForgeFaqsPage, ContactPage: mobileForgeContactPage },
   'mobile-tide': { config: mobileTideConfig, Layout: mobileTideLayout, HomePage: mobileTideHomePage, AboutPage: mobileTideAboutPage, AdmissionsPage: mobileTideAdmissionsPage, ProgramsPage: mobileTideProgramsPage, ProgramDetailPage: mobileTideProgramDetailPage, ClassesPage: mobileTideClassesPage, BlogIndexPage: mobileTideBlogIndexPage, BlogPostPage: mobileTideBlogPostPage, AnnouncementsIndexPage: mobileTideAnnouncementsIndexPage, AnnouncementDetailPage: mobileTideAnnouncementDetailPage, GalleryPage: mobileTideGalleryPage, FaqsPage: mobileTideFaqsPage, ContactPage: mobileTideContactPage },
   'mobile-vivid': { config: mobileVividConfig, Layout: mobileVividLayout, HomePage: mobileVividHomePage, AboutPage: mobileVividAboutPage, AdmissionsPage: mobileVividAdmissionsPage, ProgramsPage: mobileVividProgramsPage, ProgramDetailPage: mobileVividProgramDetailPage, ClassesPage: mobileVividClassesPage, BlogIndexPage: mobileVividBlogIndexPage, BlogPostPage: mobileVividBlogPostPage, AnnouncementsIndexPage: mobileVividAnnouncementsIndexPage, AnnouncementDetailPage: mobileVividAnnouncementDetailPage, GalleryPage: mobileVividGalleryPage, FaqsPage: mobileVividFaqsPage, ContactPage: mobileVividContactPage },
+  'auralis': { config: auralisConfig, Layout: auralisLayout, HomePage: auralisHomePage, AboutPage: auralisAboutPage, AdmissionsPage: auralisAdmissionsPage, ProgramsPage: auralisProgramsPage, ProgramDetailPage: auralisProgramDetailPage, ClassesPage: auralisClassesPage, ClassDetailPage: auralisClassDetailPage, BlogIndexPage: auralisBlogIndexPage, BlogPostPage: auralisBlogPostPage, AnnouncementsIndexPage: auralisAnnouncementsIndexPage, AnnouncementDetailPage: auralisAnnouncementDetailPage, GalleryPage: auralisGalleryPage, FaqsPage: auralisFaqsPage, ContactPage: auralisContactPage },
+  'verdant': { config: verdantConfig, Layout: verdantLayout, HomePage: verdantHomePage, AboutPage: verdantAboutPage, AdmissionsPage: verdantAdmissionsPage, ProgramsPage: verdantProgramsPage, ProgramDetailPage: verdantProgramDetailPage, ClassesPage: verdantClassesPage, ClassDetailPage: verdantClassDetailPage, BlogIndexPage: verdantBlogIndexPage, BlogPostPage: verdantBlogPostPage, AnnouncementsIndexPage: verdantAnnouncementsIndexPage, AnnouncementDetailPage: verdantAnnouncementDetailPage, GalleryPage: verdantGalleryPage, FaqsPage: verdantFaqsPage, ContactPage: verdantContactPage },
 };
 
 export function getTheme(name: string): RegisteredTheme | null {
