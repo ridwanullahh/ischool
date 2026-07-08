@@ -1961,3 +1961,201 @@ export const admissionApplications = sqliteTable('admission_applications', {
   decidedBy: integer('decided_by'),
   ...timestamps,
 });
+
+// ═══════════════════════════════════════════════════════
+// GMB (GOOGLE MY BUSINESS) INTEGRATION
+// ═══════════════════════════════════════════════════════
+
+export const gmbConnections = sqliteTable('gmb_connections', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
+  googleAccountId: text('google_account_id'),
+  businessId: text('business_id'),
+  businessName: text('business_name'),
+  accessToken: text('access_token'),
+  refreshToken: text('refresh_token'),
+  tokenExpiry: text('token_expiry'),
+  verificationStatus: text('verification_status').default('unverified'),
+  isConnected: integer('is_connected', { mode: 'boolean' }).default(false),
+  autoSync: integer('auto_sync', { mode: 'boolean' }).default(true),
+  ...timestamps,
+});
+
+export const gmbPosts = sqliteTable('gmb_posts', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
+  gmbPostId: text('gmb_post_id'),
+  title: text('title'),
+  content: text('content'),
+  imageUrl: text('image_url'),
+  postType: text('post_type').default('what_new'),
+  startDate: text('start_date'),
+  endDate: text('end_date'),
+  status: text('status').default('draft'),
+  cmsPostType: text('cms_post_type'),
+  cmsPostId: integer('cms_post_id'),
+  syncedAt: text('synced_at'),
+  ...timestamps,
+});
+
+export const gmbReviews = sqliteTable('gmb_reviews', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
+  reviewId: text('review_id').notNull(),
+  author: text('author'),
+  rating: integer('rating'),
+  comment: text('comment'),
+  response: text('response'),
+  responseAt: text('response_at'),
+  reviewDate: text('review_date'),
+  syncedAt: text('synced_at'),
+  ...timestamps,
+});
+
+// ═══════════════════════════════════════════════════════
+// SOCIAL MEDIA MANAGEMENT
+// ═══════════════════════════════════════════════════════
+
+export const socialAccounts = sqliteTable('social_accounts', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
+  platform: text('platform').notNull(),
+  accountId: text('account_id'),
+  accountName: text('account_name'),
+  accessToken: text('access_token'),
+  refreshToken: text('refresh_token'),
+  tokenExpiry: text('token_expiry'),
+  profileUrl: text('profile_url'),
+  followersCount: integer('followers_count').default(0),
+  isConnected: integer('is_connected', { mode: 'boolean' }).default(true),
+  autoPostSettings: text('auto_post_settings', { mode: 'json' }).default('{}'),
+  ...timestamps,
+});
+
+export const socialPosts = sqliteTable('social_posts', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
+  platformPostId: text('platform_post_id'),
+  platform: text('platform').notNull(),
+  content: text('content'),
+  mediaUrls: text('media_urls', { mode: 'json' }).default('[]'),
+  scheduledAt: text('scheduled_at'),
+  publishedAt: text('published_at'),
+  status: text('status').default('draft'),
+  postType: text('post_type').default('manual'),
+  cmsPostId: integer('cms_post_id'),
+  analytics: text('analytics', { mode: 'json' }).default('{}'),
+  ...timestamps,
+});
+
+export const socialAnalytics = sqliteTable('social_analytics', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
+  accountId: integer('account_id'),
+  date: text('date'),
+  followers: integer('followers'),
+  impressions: integer('impressions'),
+  engagement: integer('engagement'),
+  clicks: integer('clicks'),
+  ...timestamps,
+});
+
+export const socialComments = sqliteTable('social_comments', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
+  postId: integer('post_id'),
+  platform: text('platform'),
+  commentId: text('comment_id'),
+  author: text('author'),
+  text: text('text'),
+  timestamp: text('timestamp'),
+  isResolved: integer('is_resolved', { mode: 'boolean' }).default(false),
+  response: text('response'),
+  responseAt: text('response_at'),
+  ...timestamps,
+});
+
+// ═══════════════════════════════════════════════════════
+// EMAIL MARKETING
+// ═══════════════════════════════════════════════════════
+
+export const emailLists = sqliteTable('email_lists', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  description: text('description'),
+  subscriberCount: integer('subscriber_count').default(0),
+  ...timestamps,
+});
+
+export const emailSubscribers = sqliteTable('email_subscribers', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
+  listId: integer('list_id'),
+  email: text('email').notNull(),
+  firstName: text('first_name'),
+  lastName: text('last_name'),
+  customFields: text('custom_fields', { mode: 'json' }).default('{}'),
+  status: text('status').default('active'),
+  source: text('source'),
+  engagementScore: integer('engagement_score').default(0),
+  subscribedAt: text('subscribed_at'),
+  unsubscribedAt: text('unsubscribed_at'),
+  ...timestamps,
+});
+
+export const emailCampaigns = sqliteTable('email_campaigns', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  subject: text('subject'),
+  fromName: text('from_name'),
+  fromEmail: text('from_email'),
+  replyTo: text('reply_to'),
+  htmlContent: text('html_content'),
+  plainText: text('plain_text'),
+  templateId: integer('template_id'),
+  listId: integer('list_id'),
+  type: text('type').default('regular'),
+  status: text('status').default('draft'),
+  scheduledAt: text('scheduled_at'),
+  sentAt: text('sent_at'),
+  abVariants: text('ab_variants', { mode: 'json' }),
+  ...timestamps,
+});
+
+export const emailCampaignStats = sqliteTable('email_campaign_stats', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  campaignId: integer('campaign_id').notNull(),
+  sent: integer('sent').default(0),
+  delivered: integer('delivered').default(0),
+  opens: integer('opens').default(0),
+  uniqueOpens: integer('unique_opens').default(0),
+  clicks: integer('clicks').default(0),
+  uniqueClicks: integer('unique_clicks').default(0),
+  bounces: integer('bounces').default(0),
+  unsubscribes: integer('unsubscribes').default(0),
+  complaints: integer('complaints').default(0),
+  date: text('date'),
+  ...timestamps,
+});
+
+export const emailAutomations = sqliteTable('email_automations', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  trigger: text('trigger', { mode: 'json' }),
+  steps: text('steps', { mode: 'json' }),
+  status: text('status').default('active'),
+  ...timestamps,
+});
+
+export const emailTemplates = sqliteTable('email_templates', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  htmlContent: text('html_content'),
+  category: text('category'),
+  isDefault: integer('is_default', { mode: 'boolean' }).default(false),
+  ...timestamps,
+});

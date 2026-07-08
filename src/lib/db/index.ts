@@ -1613,6 +1613,121 @@ function autoMigrate(sqlite: Database.Database) {
       created_at INTEGER,
       updated_at INTEGER
     );
+
+    CREATE TABLE IF NOT EXISTS gmb_connections (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      google_account_id TEXT, business_id TEXT, business_name TEXT,
+      access_token TEXT, refresh_token TEXT, token_expiry TEXT,
+      verification_status TEXT DEFAULT 'unverified',
+      is_connected INTEGER DEFAULT 0, auto_sync INTEGER DEFAULT 1,
+      created_at INTEGER, updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS gmb_posts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      gmb_post_id TEXT, title TEXT, content TEXT, image_url TEXT,
+      post_type TEXT DEFAULT 'what_new', start_date TEXT, end_date TEXT,
+      status TEXT DEFAULT 'draft', cms_post_type TEXT, cms_post_id INTEGER,
+      synced_at TEXT, created_at INTEGER, updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS gmb_reviews (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      review_id TEXT NOT NULL, author TEXT, rating INTEGER, comment TEXT,
+      response TEXT, response_at TEXT, review_date TEXT, synced_at TEXT,
+      created_at INTEGER, updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS social_accounts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      platform TEXT NOT NULL, account_id TEXT, account_name TEXT,
+      access_token TEXT, refresh_token TEXT, token_expiry TEXT,
+      profile_url TEXT, followers_count INTEGER DEFAULT 0,
+      is_connected INTEGER DEFAULT 1, auto_post_settings TEXT DEFAULT '{}',
+      created_at INTEGER, updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS social_posts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      platform_post_id TEXT, platform TEXT NOT NULL, content TEXT,
+      media_urls TEXT DEFAULT '[]', scheduled_at TEXT, published_at TEXT,
+      status TEXT DEFAULT 'draft', post_type TEXT DEFAULT 'manual',
+      cms_post_id INTEGER, analytics TEXT DEFAULT '{}',
+      created_at INTEGER, updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS social_analytics (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      account_id INTEGER, date TEXT, followers INTEGER,
+      impressions INTEGER, engagement INTEGER, clicks INTEGER,
+      created_at INTEGER, updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS social_comments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      post_id INTEGER, platform TEXT, comment_id TEXT, author TEXT,
+      text TEXT, timestamp TEXT, is_resolved INTEGER DEFAULT 0,
+      response TEXT, response_at TEXT, created_at INTEGER, updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS email_lists (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      name TEXT NOT NULL, description TEXT, subscriber_count INTEGER DEFAULT 0,
+      created_at INTEGER, updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS email_subscribers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      list_id INTEGER, email TEXT NOT NULL, first_name TEXT, last_name TEXT,
+      custom_fields TEXT DEFAULT '{}', status TEXT DEFAULT 'active',
+      source TEXT, engagement_score INTEGER DEFAULT 0,
+      subscribed_at TEXT, unsubscribed_at TEXT,
+      created_at INTEGER, updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS email_campaigns (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      name TEXT NOT NULL, subject TEXT, from_name TEXT, from_email TEXT,
+      reply_to TEXT, html_content TEXT, plain_text TEXT,
+      template_id INTEGER, list_id INTEGER, type TEXT DEFAULT 'regular',
+      status TEXT DEFAULT 'draft', scheduled_at TEXT, sent_at TEXT,
+      ab_variants TEXT, created_at INTEGER, updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS email_campaign_stats (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      campaign_id INTEGER NOT NULL,
+      sent INTEGER DEFAULT 0, delivered INTEGER DEFAULT 0,
+      opens INTEGER DEFAULT 0, unique_opens INTEGER DEFAULT 0,
+      clicks INTEGER DEFAULT 0, unique_clicks INTEGER DEFAULT 0,
+      bounces INTEGER DEFAULT 0, unsubscribes INTEGER DEFAULT 0,
+      complaints INTEGER DEFAULT 0, date TEXT,
+      created_at INTEGER, updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS email_automations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      name TEXT NOT NULL, trigger TEXT, steps TEXT,
+      status TEXT DEFAULT 'active', created_at INTEGER, updated_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS email_templates (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      name TEXT NOT NULL, html_content TEXT, category TEXT,
+      is_default INTEGER DEFAULT 0, created_at INTEGER, updated_at INTEGER
+    );
   `);
 
   // Add missing columns to existing tables (ALTER TABLE IF NOT EXISTS workaround)
