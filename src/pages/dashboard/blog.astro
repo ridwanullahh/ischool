@@ -2,6 +2,7 @@
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
 import Input from '../../components/ui/Input.astro';
 import Button from '../../components/ui/Button.astro';
+import RichTextEditor from '../../components/RichTextEditor.astro';
 import { getUserSchoolId } from '../../lib/school.js';
 import { getDb } from '../../lib/db/index.js';
 import { blogPosts } from '../../lib/db/schema.js';
@@ -32,7 +33,10 @@ const editing = editId ? posts.find(p => p.id === Number(editId)) : null;
           <Input label="Slug" name="slug" value={editing?.slug || ''} placeholder="post-url-slug" />
           <Input label="Excerpt" name="excerpt" value={editing?.excerpt || ''} placeholder="Brief summary..." rows={2} />
           <Input label="Cover Image URL" name="coverImageUrl" value={editing?.coverImageUrl || ''} placeholder="https://..." />
-          <Input label="Content" name="content" value={editing?.content || ''} placeholder="Full post content..." rows={8} required />
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">Content</label>
+            <RichTextEditor name="content" value={editing?.content || ''} id="blog-content-editor" placeholder="Write your blog post..." schoolSlug={school?.slug || ''} />
+          </div>
           <div class="flex items-center gap-2">
             <input type="checkbox" id="isPublished" name="isPublished" checked={editing?.isPublished || false} class="rounded border-gray-300" />
             <label for="isPublished" class="text-sm text-gray-700">Publish now</label>
