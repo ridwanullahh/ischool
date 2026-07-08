@@ -7,6 +7,7 @@ import { getSocialIconPath } from '../_shared/social-icons';
 import { getSchoolNav, getSchoolContacts } from '../../../lib/school.ts';
 import { getEnabledModules } from '../../../lib/school-safe.ts';
 import { normalizeSocialUrl } from '../../../lib/social.ts';
+import { generateMetaTags, generateSchoolSchema } from '../../../lib/seo.ts';
 import LanguageSelector from '../../../components/LanguageSelector.astro';
 import SchoolBannerPopup from '../../../components/SchoolBannerPopup.astro';
 interface Props { school: any; title?: string; }
@@ -18,7 +19,6 @@ const enabledModules = getEnabledModules(school.id);
 const filteredNav = nav.filter((item: any) => {
   const url = item.url.replace(/^\//, '');
   if (!url) return true; // Home is always shown
-  // Map URL to module key
   const moduleMap: Record<string, string> = { 'about': 'about', 'announcements': 'announcements', 'programs': 'programs', 'classes': 'classes', 'blog': 'blog', 'gallery': 'gallery', 'faqs': 'faqs', 'contact': 'contact', 'admissions': 'admissions', 'support': 'contact' };
   const moduleKey = moduleMap[url.split('/')[0]];
   if (moduleKey && enabledModules[moduleKey] === false) return false;
@@ -26,23 +26,35 @@ const filteredNav = nav.filter((item: any) => {
 });
 const pageTitle = title ? `${title} — ${school.name}` : school.name;
 const prefix = `/${school.slug}`;
-const { pathname } = Astro.url;
+const { pathname, origin } = Astro.url;
 const social = (school.socialHandles as Record<string, string>) || {};
 const socialEntries = Object.entries(social).filter(([, v]) => v && v !== '#');
 const locale = school.locale || 'en';
 const rtl = ['ar','he','fa','ur'].includes(locale);
+
+// SEO
+const canonicalUrl = `${origin}${pathname}`;
+const seoDescription = school.tagline || `${school.name} - School website powered by iSchool`;
+const schoolSchema = generateSchoolSchema(school, origin);
+const seoMeta = generateMetaTags({
+  title: pageTitle,
+  description: seoDescription,
+  canonical: canonicalUrl,
+  ogType: 'website',
+  ogImage: school.logoUrl || undefined,
+  jsonLd: schoolSchema,
+});
 ---
 <!doctype html>
 <html lang={locale} dir={rtl ? 'rtl' : 'ltr'} class="light scroll-smooth">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <meta name="description" content={school.tagline || school.name} />
   {school.faviconUrl && <link rel="icon" href={school.faviconUrl} />}
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  <title>{pageTitle}</title>
+  <Fragment set:html={seoMeta} />
   <FoucScript defaultMode="light" />
   <PaletteStyles school={school} />
   <style is:inline set:html={`
