@@ -1,0 +1,172 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { getUserSchool } from '../../lib/school.js';
+
+const user = Astro.locals.user!;
+if (!user) return Astro.redirect('/auth/login');
+const school = getUserSchool(user.id);
+---
+
+<DashboardLayout title="AI Content Setup - iSchool">
+  <div class="max-w-3xl mx-auto space-y-6">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">AI Content Setup</h1>
+      <p class="text-sm text-gray-500 mt-1">Let AI generate initial content for your school website. This creates at least 1 post for each content type.</p>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <h2 class="text-base font-semibold text-gray-900 mb-4">Step 1: Review School Info</h2>
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1">School Name</label>
+          <input id="schoolName" type="text" value={school?.name || ''} class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1">School Description / Tagline (AI will enhance this)</label>
+          <textarea id="schoolDescription" rows="2" placeholder="e.g. An Islamic school focused on academic excellence and spiritual growth" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">{school?.tagline || ''}</textarea>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1">School Type</label>
+          <select id="schoolType" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+            <option value="islamic">Islamic School</option>
+            <option value="private">Private School</option>
+            <option value="public">Public School</option>
+            <option value="international">International School</option>
+            <option value="montessori">Montessori</option>
+            <option value="boarding">Boarding School</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <h2 class="text-base font-semibold text-gray-900 mb-4">Step 2: Generate Content</h2>
+      <p class="text-sm text-gray-500 mb-4">Click the button below to let AI generate content suggestions for your school. You can review them before publishing.</p>
+      <button id="generateBtn" class="w-full px-4 py-3 text-sm font-semibold text-white bg-primary-600 rounded-lg hover:bg-primary-700 flex items-center justify-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        Generate Content Suggestions
+      </button>
+      <div id="generateStatus" class="hidden mt-4"></div>
+    </div>
+
+    <div id="suggestionsSection" class="hidden bg-white rounded-xl border border-gray-200 p-6">
+      <h2 class="text-base font-semibold text-gray-900 mb-4">Step 3: Review & Publish</h2>
+      <p class="text-sm text-gray-500 mb-4">Review the AI-generated content below. Click "Publish All" to create all content on your site.</p>
+      <div id="suggestionsPreview" class="space-y-4 mb-6"></div>
+      <button id="publishBtn" class="w-full px-4 py-3 text-sm font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700 flex items-center justify-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+        Publish All Content
+      </button>
+      <div id="publishStatus" class="hidden mt-4"></div>
+    </div>
+  </div>
+
+  <script is:inline set:html={`(function(){
+    var suggestions = null;
+    var generateBtn = document.getElementById('generateBtn');
+    var publishBtn = document.getElementById('publishBtn');
+
+    generateBtn?.addEventListener('click', async function() {
+      var schoolName = document.getElementById('schoolName').value;
+      var schoolDescription = document.getElementById('schoolDescription').value;
+      var schoolType = document.getElementById('schoolType').value;
+      var status = document.getElementById('generateStatus');
+
+      generateBtn.disabled = true;
+      generateBtn.innerHTML = '<svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Generating...';
+
+      status.className = 'mt-4 p-3 rounded-lg text-sm bg-blue-50 text-blue-700';
+      status.textContent = 'AI is generating content for your school. This may take 15-30 seconds...';
+      status.classList.remove('hidden');
+
+      try {
+        var res = await fetch('/api/dashboard/ai-setup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'suggest', schoolName, schoolDescription, schoolType })
+        });
+        var data = await res.json();
+        if (data.suggestions) {
+          suggestions = data.suggestions;
+          status.className = 'mt-4 p-3 rounded-lg text-sm bg-green-50 text-green-700';
+          status.textContent = 'Content generated successfully! Review below.';
+          showSuggestions(data.suggestions);
+          document.getElementById('suggestionsSection').classList.remove('hidden');
+        } else {
+          throw new Error(data.error || 'Failed');
+        }
+      } catch (err) {
+        status.className = 'mt-4 p-3 rounded-lg text-sm bg-red-50 text-red-700';
+        status.textContent = 'Error: ' + (err.message || 'Failed to generate. AI may not be configured.');
+      }
+      generateBtn.disabled = false;
+      generateBtn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg> Generate Content Suggestions';
+    });
+
+    function esc(text) { var d = document.createElement('div'); d.textContent = text || ''; return d.innerHTML; }
+
+    function showSuggestions(s) {
+      var html = '';
+      if (s.about) {
+        html += '<div class="border rounded-lg p-4"><h3 class="font-semibold text-sm text-gray-900 mb-2">About Page</h3>';
+        html += '<p class="text-xs text-gray-600 mb-1"><strong>Mission:</strong> ' + esc(s.about.mission) + '</p>';
+        html += '<p class="text-xs text-gray-600 mb-1"><strong>Vision:</strong> ' + esc(s.about.vision) + '</p>';
+        html += '<p class="text-xs text-gray-600"><strong>Value Prop:</strong> ' + esc(s.about.valueProposition) + '</p>';
+        if (s.about.features) html += '<p class="text-xs text-gray-600 mt-1"><strong>Features:</strong> ' + s.about.features.length + ' items</p>';
+        if (s.about.stats) html += '<p class="text-xs text-gray-600"><strong>Stats:</strong> ' + s.about.stats.length + ' items</p>';
+        html += '</div>';
+      }
+      if (s.announcements) {
+        html += '<div class="border rounded-lg p-4"><h3 class="font-semibold text-sm text-gray-900 mb-2">Announcements (' + s.announcements.length + ')</h3>';
+        s.announcements.forEach(function(a) { html += '<p class="text-xs text-gray-600 mb-1">- ' + esc(a.title) + '</p>'; });
+        html += '</div>';
+      }
+      if (s.programs) {
+        html += '<div class="border rounded-lg p-4"><h3 class="font-semibold text-sm text-gray-900 mb-2">Programs (' + s.programs.length + ')</h3>';
+        s.programs.forEach(function(p) { html += '<p class="text-xs text-gray-600 mb-1">- ' + esc(p.name) + '</p>'; });
+        html += '</div>';
+      }
+      if (s.blogPosts) {
+        html += '<div class="border rounded-lg p-4"><h3 class="font-semibold text-sm text-gray-900 mb-2">Blog Posts (' + s.blogPosts.length + ')</h3>';
+        s.blogPosts.forEach(function(p) { html += '<p class="text-xs text-gray-600 mb-1">- ' + esc(p.title) + '</p>'; });
+        html += '</div>';
+      }
+      if (s.faqs) {
+        html += '<div class="border rounded-lg p-4"><h3 class="font-semibold text-sm text-gray-900 mb-2">FAQs (' + s.faqs.length + ')</h3>';
+        s.faqs.forEach(function(f) { html += '<p class="text-xs text-gray-600 mb-1">- ' + esc(f.question) + '</p>'; });
+        html += '</div>';
+      }
+      document.getElementById('suggestionsPreview').innerHTML = html;
+    }
+
+    publishBtn?.addEventListener('click', async function() {
+      if (!suggestions) return;
+      publishBtn.disabled = true;
+      publishBtn.innerHTML = '<svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Publishing...';
+
+      try {
+        var res = await fetch('/api/dashboard/ai-setup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'generate', suggestions })
+        });
+        var data = await res.json();
+        var status = document.getElementById('publishStatus');
+        if (data.success) {
+          status.className = 'mt-4 p-3 rounded-lg text-sm bg-green-50 text-green-700';
+          status.innerHTML = '<strong>Content published!</strong><br>' + data.results.join('<br>');
+          status.classList.remove('hidden');
+          publishBtn.textContent = 'Done!';
+        } else {
+          throw new Error(data.error || 'Failed');
+        }
+      } catch (err) {
+        var status2 = document.getElementById('publishStatus');
+        status2.className = 'mt-4 p-3 rounded-lg text-sm bg-red-50 text-red-700';
+        status2.textContent = 'Error: ' + (err.message || 'Failed to publish');
+        status2.classList.remove('hidden');
+      }
+      publishBtn.disabled = false;
+    });
+  })();`} />
+</DashboardLayout>
