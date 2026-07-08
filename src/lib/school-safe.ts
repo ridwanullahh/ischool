@@ -327,3 +327,17 @@ export function getEnabledModules(schoolId: number): Record<string, boolean> {
   } catch {}
   return defaults;
 }
+
+// --- Platform Module Control ---
+
+export function getPlatformModuleStatus(module: string): string {
+  try {
+    const db = rawDb();
+    const row = db.prepare('SELECT value FROM platform_settings WHERE key = ?').get('module_status_' + module) as any;
+    return row?.value || 'active';
+  } catch { return 'active'; }
+}
+
+export function isPlatformModuleActive(module: string): boolean {
+  return getPlatformModuleStatus(module) === 'active';
+}
