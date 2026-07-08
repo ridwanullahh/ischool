@@ -1821,6 +1821,14 @@ function autoMigrate(sqlite: Database.Database) {
   addColumnIfMissing('live_class_rooms', 'class_id', 'INTEGER');
   addColumnIfMissing('live_class_rooms', 'teacher_id', 'INTEGER');
   addColumnIfMissing('live_class_rooms', 'duration', 'INTEGER');
+  addColumnIfMissing('live_class_rooms', 'title', 'TEXT');
+  addColumnIfMissing('live_class_rooms', 'course_id', 'INTEGER');
+  addColumnIfMissing('live_class_rooms', 'scheduled_start', 'TEXT');
+  addColumnIfMissing('live_class_rooms', 'scheduled_end', 'TEXT');
+  addColumnIfMissing('live_class_rooms', 'meeting_provider', "TEXT DEFAULT 'builtin'");
+  addColumnIfMissing('live_class_rooms', 'meeting_id', 'TEXT');
+  addColumnIfMissing('live_class_rooms', 'meeting_url', 'TEXT');
+  addColumnIfMissing('live_class_rooms', 'meeting_password', 'TEXT');
 
   // Fix password_reset_tokens — add 'used' column
   addColumnIfMissing('password_reset_tokens', 'used', 'INTEGER DEFAULT 0');
@@ -1839,6 +1847,8 @@ function autoMigrate(sqlite: Database.Database) {
 
   // Fix contact_submissions — add status if missing
   addColumnIfMissing('contact_submissions', 'status', "TEXT DEFAULT 'new'");
+  addColumnIfMissing('contact_submissions', 'form_type', "TEXT DEFAULT 'general'");
+  addColumnIfMissing('contact_submissions', 'data', "TEXT DEFAULT '{}'");
 
   // Fix navigation_items — add parent_id and is_external if missing
   addColumnIfMissing('navigation_items', 'parent_id', 'INTEGER');

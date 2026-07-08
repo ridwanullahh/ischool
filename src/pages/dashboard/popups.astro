@@ -51,7 +51,7 @@ const frequencies = ['every_visit', 'once_per_session', 'once_per_day', 'once'];
             </div>
           </div>
           <Input label="Delay (seconds)" name="triggerDelay" type="number" value={editing?.triggerDelay?.toString() || '0'} placeholder="0" />
-          <Input label="Display Pages" name="displayPages" value={editing?.displayPages ? JSON.parse(editing.displayPages as string).join(', ') : 'all'} placeholder="all, /, /about" />
+          <Input label="Display Pages" name="displayPages" value={(() => { try { return JSON.parse(editing?.displayPages as string).join(', '); } catch { return editing?.displayPages || 'all'; } })()} placeholder="all, /, /about" />
           <div class="grid grid-cols-2 gap-3">
             <Input label="Start Date" name="startDate" type="date" value={editing?.startDate || ''} />
             <Input label="End Date" name="endDate" type="date" value={editing?.endDate || ''} />

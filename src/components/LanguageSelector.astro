@@ -110,10 +110,19 @@ const languages = translationService.getSupportedLanguages();
 
   function updateUI() {
     var currentLang = getCurrentLang();
+    // Use the original (untranslated) language name for the indicator
+    var langNames = {
+      'en': 'English', 'ar': 'العربية', 'fr': 'Français', 'es': 'Español',
+      'de': 'Deutsch', 'it': 'Italiano', 'pt': 'Português', 'ru': 'Русский',
+      'zh': '中文', 'ja': '日本語', 'ko': '한국어', 'hi': 'हिन्दी',
+      'ur': 'اردو', 'tr': 'Türkçe', 'fa': 'فارسی', 'id': 'Bahasa Indonesia',
+      'ms': 'Bahasa Melayu', 'th': 'ไทย', 'vi': 'Tiếng Việt', 'sw': 'Kiswahili',
+      'ha': 'Hausa'
+    };
+    if (currentLangEl) currentLangEl.textContent = langNames[currentLang] || 'English';
+    
     var currentOption = document.querySelector('[data-lang="' + currentLang + '"]');
     if (currentOption) {
-      var nativeName = currentOption.querySelector('.text-sm.font-medium');
-      if (nativeName && currentLangEl) currentLangEl.textContent = nativeName.textContent;
       document.querySelectorAll('.check-icon').forEach(function(icon) { icon.classList.add('hidden'); });
       var checkIcon = currentOption.querySelector('.check-icon');
       if (checkIcon) checkIcon.classList.remove('hidden');
@@ -167,6 +176,10 @@ const languages = translationService.getSupportedLanguages();
           if (['SCRIPT', 'STYLE', 'CODE', 'PRE', 'SVG', 'INPUT', 'TEXTAREA', 'NOSCRIPT'].includes(tag)) return NodeFilter.FILTER_REJECT;
           // Skip already translated nodes
           if (parent.getAttribute('data-translated') === 'true') return NodeFilter.FILTER_REJECT;
+          // Skip language selector (prevents indicator from being translated)
+          if (parent.closest('#language-selector')) return NodeFilter.FILTER_REJECT;
+          // Skip elements marked as no-translate
+          if (parent.closest('[data-no-translate]')) return NodeFilter.FILTER_REJECT;
           // Skip links that are just URLs
           if (parent.tagName === 'A' && /^https?:\\/\\//.test(text)) return NodeFilter.FILTER_REJECT;
           return NodeFilter.FILTER_ACCEPT;
