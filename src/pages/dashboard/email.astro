@@ -1,0 +1,175 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { getUserSchoolId, getUserSchool } from '../../lib/school.js';
+import { getDb } from '../../lib/db/index.js';
+import { emailLists, emailSubscribers, emailCampaigns } from '../../lib/db/schema.js';
+import { eq, desc, sql } from 'drizzle-orm';
+
+const user = Astro.locals.user!;
+if (!user) return Astro.redirect('/auth/login');
+const schoolId = getUserSchoolId(user.id);
+if (!schoolId) return Astro.redirect('/dashboard');
+const school = getUserSchool(user.id);
+const db = getDb();
+
+const lists = db.select().from(emailLists).where(eq(emailLists.schoolId, schoolId)).all();
+const campaigns = db.select().from(emailCampaigns).where(eq(emailCampaigns.schoolId, schoolId)).orderBy(desc(emailCampaigns.createdAt)).all();
+const totalSubs = db.select({ c: sql<number>`count(*)` }).from(emailSubscribers).where(eq(emailSubscribers.schoolId, schoolId)).get()?.c || 0;
+const formatDate = (d: any) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+---
+
+<DashboardLayout title="Email Marketing - iSchool">
+  <div class="space-y-6">
+    <div class="flex items-center justify-between">
+      <div>
+        <h2 class="text-2xl font-bold text-gray-900">Email Marketing</h2>
+        <p class="text-sm text-gray-500 mt-1">Create and send email campaigns to your subscribers.</p>
+      </div>
+      <button onclick="document.getElementById('campaignModal').classList.remove('hidden')" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">New Campaign</button>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-3 gap-4">
+      <div class="bg-white rounded-xl border border-gray-200 p-4">
+        <p class="text-xs text-gray-500 uppercase tracking-wider">Total Subscribers</p>
+        <p class="text-2xl font-bold text-gray-900 mt-1">{totalSubs}</p>
+      </div>
+      <div class="bg-white rounded-xl border border-gray-200 p-4">
+        <p class="text-xs text-gray-500 uppercase tracking-wider">Campaigns</p>
+        <p class="text-2xl font-bold text-gray-900 mt-1">{campaigns.length}</p>
+      </div>
+      <div class="bg-white rounded-xl border border-gray-200 p-4">
+        <p class="text-xs text-gray-500 uppercase tracking-wider">Lists</p>
+        <p class="text-2xl font-bold text-gray-900 mt-1">{lists.length}</p>
+      </div>
+    </div>
+
+    <!-- Campaigns -->
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <h3 class="text-base font-semibold text-gray-900 mb-4">Campaigns</h3>
+      {campaigns.length > 0 ? (
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead><tr class="border-b text-left text-xs text-gray-500 uppercase"><th class="pb-2 pr-4">Name</th><th class="pb-2 pr-4">Subject</th><th class="pb-2 pr-4">Status</th><th class="pb-2 pr-4">Date</th><th class="pb-2">Actions</th></tr></thead>
+            <tbody>
+              {campaigns.map(c => (
+                <tr class="border-b">
+                  <td class="py-3 pr-4 font-medium text-gray-900">{c.name}</td>
+                  <td class="py-3 pr-4 text-gray-600">{c.subject || '—'}</td>
+                  <td class="py-3 pr-4"><span class={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${c.status === 'sent' ? 'bg-green-100 text-green-700' : c.status === 'scheduled' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>{c.status}</span></td>
+                  <td class="py-3 pr-4 text-xs text-gray-500">{formatDate(c.sentAt || c.createdAt)}</td>
+                  <td class="py-3">
+                    {c.status === 'draft' && <button onclick={`sendCampaign(${c.id})`} class="text-xs text-green-600 hover:text-green-700 font-medium">Send</button>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p class="text-sm text-gray-500 text-center py-8">No campaigns yet. Create your first campaign.</p>
+      )}
+    </div>
+
+    <!-- Lists -->
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-base font-semibold text-gray-900">Subscriber Lists</h3>
+        <button onclick="document.getElementById('listModal').classList.remove('hidden')" class="text-xs text-primary-600 font-medium">+ New List</button>
+      </div>
+      {lists.length > 0 ? (
+        <div class="space-y-2">
+          {lists.map(l => (
+            <div class="flex items-center justify-between p-3 border rounded-lg">
+              <div><p class="text-sm font-medium text-gray-900">{l.name}</p><p class="text-xs text-gray-500">{l.subscriberCount || 0} subscribers</p></div>
+              <button onclick={`document.getElementById('subModal-${l.id}').classList.remove('hidden')`} class="text-xs text-primary-600 font-medium">Add Subscribers</button>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p class="text-sm text-gray-500 text-center py-4">No lists yet.</p>
+      )}
+    </div>
+  </div>
+
+  <!-- New Campaign Modal -->
+  <div id="campaignModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+      <h3 class="text-lg font-bold text-gray-900 mb-4">New Email Campaign</h3>
+      <div class="space-y-3">
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">Campaign Name</label><input id="cName" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /></div>
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">Subject Line</label><input id="cSubject" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /></div>
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">Send to List</label><select id="cList" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"><option value="">All subscribers</option>{lists.map(l => <option value={l.id}>{l.name} ({l.subscriberCount || 0})</option>)}</select></div>
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">Email Content (HTML)</label><textarea id="cContent" rows="6" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono" placeholder="<h1>Hello {first_name}</h1><p>Your email content here...</p>"></textarea></div>
+        <div class="flex gap-2">
+          <button onclick="aiGenerate()" class="px-3 py-2 text-xs font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700">AI Generate</button>
+        </div>
+        <div id="aiStatus" class="hidden text-xs"></div>
+        <div class="flex gap-3 pt-2">
+          <button onclick="document.getElementById('campaignModal').classList.add('hidden')" class="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg">Cancel</button>
+          <button onclick="createCampaign()" class="flex-1 px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg">Create & Save Draft</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- New List Modal -->
+  <div id="listModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-6 max-w-md w-full">
+      <h3 class="text-lg font-bold text-gray-900 mb-4">New Subscriber List</h3>
+      <div class="space-y-3">
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">List Name</label><input id="lName" type="text" placeholder="e.g. Parents" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /></div>
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">Description (optional)</label><input id="lDesc" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /></div>
+        <div class="flex gap-3 pt-2">
+          <button onclick="document.getElementById('listModal').classList.add('hidden')" class="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg">Cancel</button>
+          <button onclick="createList()" class="flex-1 px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg">Create</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script is:inline set:html={`(function(){
+    window.createList = async function() {
+      var name = document.getElementById('lName').value;
+      if (!name) return alert('Name required');
+      var res = await fetch('/api/dashboard/email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'create_list', name, description: document.getElementById('lDesc').value }) });
+      if (res.ok) window.location.reload();
+    };
+
+    window.createCampaign = async function() {
+      var name = document.getElementById('cName').value;
+      var subject = document.getElementById('cSubject').value;
+      var listId = document.getElementById('cList').value;
+      var htmlContent = document.getElementById('cContent').value;
+      if (!name || !subject) return alert('Name and subject required');
+      var res = await fetch('/api/dashboard/email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'create_campaign', name, subject, listId: listId ? Number(listId) : null, htmlContent }) });
+      if (res.ok) window.location.reload();
+    };
+
+    window.sendCampaign = async function(id) {
+      if (!confirm('Send this campaign to all subscribers? This cannot be undone.')) return;
+      var res = await fetch('/api/dashboard/email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'send_campaign', campaignId: id }) });
+      var data = await res.json();
+      if (data.success) { alert('Sent: ' + data.sent + ' emails, ' + data.failed + ' failed'); window.location.reload(); }
+      else alert('Error: ' + (data.error || 'Failed'));
+    };
+
+    window.aiGenerate = async function() {
+      var status = document.getElementById('aiStatus');
+      var name = document.getElementById('cName').value || 'school newsletter';
+      status.className = 'text-xs text-blue-600';
+      status.textContent = 'AI is generating email content...';
+      status.classList.remove('hidden');
+      try {
+        var res = await fetch('/api/dashboard/email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'ai_generate', prompt: name }) });
+        var data = await res.json();
+        if (data.success) {
+          document.getElementById('cContent').value = data.content;
+          if (data.subject && !document.getElementById('cSubject').value) document.getElementById('cSubject').value = data.subject;
+          status.className = 'text-xs text-green-600';
+          status.textContent = 'AI content generated successfully!';
+        } else { throw new Error(data.error); }
+      } catch (e) { status.className = 'text-xs text-red-600'; status.textContent = 'Error: ' + (e.message || 'AI not configured'); }
+    };
+  })();`} />
+</DashboardLayout>
