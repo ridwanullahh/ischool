@@ -2,8 +2,8 @@ import type { APIRoute } from 'astro';
 import { getSessionIdFromCookie, validateSession } from '../../../lib/auth.js';
 import { getUserSchoolId } from '../../../lib/school.js';
 import { getDb } from '../../../lib/db/index.js';
-import { socialAccounts, socialPosts } from '../../../lib/db/schema.js';
-import { eq, desc, sql } from 'drizzle-orm';
+import { socialAccounts, socialPosts, socialComments } from '../../../lib/db/schema.js';
+import { eq, desc, sql, and } from 'drizzle-orm';
 
 export const GET: APIRoute = async ({ request, locals }) => {
   const user = locals.user;
@@ -92,6 +92,21 @@ export const POST: APIRoute = async ({ request, locals }) => {
     } catch (e: any) {
       return new Response(JSON.stringify({ error: 'AI failed: ' + e.message }), { status: 500, headers: { 'Content-Type': 'application/json' } });
     }
+  }
+
+  if (action === 'respond_comment') {
+    db.update(socialComments).set({ response: data.response, responseAt: new Date().toISOString() }).where(eq(socialComments.id, Number(data.commentId))).run();
+    return new Response(JSON.stringify({ success: true }), { headers: { 'Content-Type': 'application/json' } });
+  }
+
+  if (action === 'resolve_comment') {
+    db.update(socialComments).set({ isResolved: true, updatedAt: new Date() }).where(eq(socialComments.id, Number(data.commentId))).run();
+    return new Response(JSON.stringify({ success: true }), { headers: { 'Content-Type': 'application/json' } });
+  }
+
+  if (action === 'disconnect') {
+    db.update(socialAccounts).set({ isConnected: false }).where(and(eq(socialAccounts.schoolId, schoolId), eq(socialAccounts.platform, data.platform))).run();
+    return new Response(JSON.stringify({ success: true }), { headers: { 'Content-Type': 'application/json' } });
   }
 
   return new Response(JSON.stringify({ error: 'Unknown action' }), { status: 400, headers: { 'Content-Type': 'application/json' } });

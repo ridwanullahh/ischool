@@ -1,8 +1,8 @@
 ---
-import DashboardLayout from '../../layouts/DashboardLayout.astro';
-import { getUserSchoolId, getUserSchool } from '../../lib/school.js';
-import { getDb } from '../../lib/db/index.js';
-import { gmbConnections, gmbPosts, gmbReviews } from '../../lib/db/schema.js';
+import DashboardLayout from '../../../layouts/DashboardLayout.astro';
+import { getUserSchoolId, getUserSchool } from '../../../lib/school.js';
+import { getDb } from '../../../lib/db/index.js';
+import { gmbConnections, gmbPosts, gmbReviews } from '../../../lib/db/schema.js';
 import { eq, desc } from 'drizzle-orm';
 
 const user = Astro.locals.user!;

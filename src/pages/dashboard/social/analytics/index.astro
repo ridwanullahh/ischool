@@ -1,0 +1,87 @@
+---
+import DashboardLayout from '../../../../layouts/DashboardLayout.astro';
+import { getUserSchoolId } from '../../../../lib/school.js';
+import { getDb } from '../../../../lib/db/index.js';
+import { socialPosts, socialAccounts } from '../../../../lib/db/schema.js';
+import { eq, desc, sql } from 'drizzle-orm';
+
+const user = Astro.locals.user!;
+if (!user) return Astro.redirect('/auth/login');
+const schoolId = getUserSchoolId(user.id);
+if (!schoolId) return Astro.redirect('/dashboard');
+const db = getDb();
+
+const posts = db.select().from(socialPosts).where(eq(socialPosts.schoolId, schoolId)).orderBy(desc(socialPosts.createdAt)).all();
+const accounts = db.select().from(socialAccounts).where(eq(socialAccounts.schoolId, schoolId)).all();
+const published = posts.filter(p => p.status === 'published');
+const totalEngagement = published.reduce((sum, p) => {
+  try { const a = typeof p.analytics === 'string' ? JSON.parse(p.analytics) : p.analytics; return sum + (a?.engagement || 0); } catch { return sum; }
+}, 0);
+const totalImpressions = published.reduce((sum, p) => {
+  try { const a = typeof p.analytics === 'string' ? JSON.parse(p.analytics) : p.analytics; return sum + (a?.impressions || 0); } catch { return sum; }
+}, 0);
+const totalClicks = published.reduce((sum, p) => {
+  try { const a = typeof p.analytics === 'string' ? JSON.parse(p.analytics) : p.analytics; return sum + (a?.clicks || 0); } catch { return sum; }
+}, 0);
+const totalFollowers = accounts.reduce((sum, a) => sum + (a.followersCount || 0), 0);
+---
+
+<DashboardLayout title="Analytics - Social Media">
+  <div class="space-y-6">
+    <div><h2 class="text-2xl font-bold text-gray-900">Social Analytics</h2><p class="text-sm text-gray-500 mt-1">Track your social media performance.</p></div>
+
+    <!-- Overview Stats -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="bg-white rounded-xl border border-gray-200 p-4"><p class="text-xs text-gray-500 uppercase">Total Posts</p><p class="text-2xl font-bold text-gray-900 mt-1">{posts.length}</p></div>
+      <div class="bg-white rounded-xl border border-gray-200 p-4"><p class="text-xs text-gray-500 uppercase">Followers</p><p class="text-2xl font-bold text-blue-600 mt-1">{totalFollowers}</p></div>
+      <div class="bg-white rounded-xl border border-gray-200 p-4"><p class="text-xs text-gray-500 uppercase">Impressions</p><p class="text-2xl font-bold text-purple-600 mt-1">{totalImpressions}</p></div>
+      <div class="bg-white rounded-xl border border-gray-200 p-4"><p class="text-xs text-gray-500 uppercase">Engagement</p><p class="text-2xl font-bold text-green-600 mt-1">{totalEngagement}</p></div>
+    </div>
+
+    <!-- Platform Breakdown -->
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <h3 class="text-base font-semibold text-gray-900 mb-4">Platform Breakdown</h3>
+      <div class="space-y-3">
+        {accounts.map(a => (
+          <div class="flex items-center justify-between p-3 border rounded-lg">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center"><span class="text-xs font-bold text-gray-600 uppercase">{a.platform.slice(0, 2)}</span></div>
+              <div><p class="text-sm font-medium text-gray-900 capitalize">{a.platform}</p><p class="text-xs text-gray-500">{a.accountName || 'Connected'}</p></div>
+            </div>
+            <div class="flex gap-6 text-sm">
+              <div class="text-center"><p class="font-bold text-gray-900">{a.followersCount || 0}</p><p class="text-xs text-gray-400">Followers</p></div>
+              <div class="text-center"><p class="font-bold text-blue-600">{posts.filter(p => p.platform.includes(a.platform)).length}</p><p class="text-xs text-gray-400">Posts</p></div>
+            </div>
+          </div>
+        ))}
+        {accounts.length === 0 && <p class="text-sm text-gray-500 text-center py-4">No connected accounts. <a href="/dashboard/social/accounts" class="text-primary-600 font-medium">Connect an account</a>.</p>}
+      </div>
+    </div>
+
+    <!-- Top Performing Posts -->
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <h3 class="text-base font-semibold text-gray-900 mb-4">Post Performance</h3>
+      {published.length > 0 ? (
+        <div class="space-y-2">
+          {published.slice(0, 10).map(p => {
+            let analytics: any = {};
+            try { analytics = typeof p.analytics === 'string' ? JSON.parse(p.analytics) : p.analytics; } catch {}
+            return (
+              <div class="flex items-center justify-between border rounded-lg p-3">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 mb-1"><span class="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">{p.platform}</span></div>
+                  <p class="text-sm text-gray-700 truncate">{p.content}</p>
+                </div>
+                <div class="flex gap-4 text-xs text-center ml-3">
+                  <div><p class="font-bold text-purple-600">{analytics.impressions || 0}</p><p class="text-gray-400">Imp.</p></div>
+                  <div><p class="font-bold text-green-600">{analytics.engagement || 0}</p><p class="text-gray-400">Eng.</p></div>
+                  <div><p class="font-bold text-blue-600">{analytics.clicks || 0}</p><p class="text-gray-400">Clicks</p></div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (<p class="text-sm text-gray-500 text-center py-4">No published posts to analyze yet.</p>)}
+    </div>
+  </div>
+</DashboardLayout>

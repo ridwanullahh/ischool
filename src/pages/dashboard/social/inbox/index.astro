@@ -1,0 +1,79 @@
+---
+import DashboardLayout from '../../../../layouts/DashboardLayout.astro';
+import { getUserSchoolId } from '../../../../lib/school.js';
+import { getDb } from '../../../../lib/db/index.js';
+import { socialComments } from '../../../../lib/db/schema.js';
+import { eq, desc } from 'drizzle-orm';
+
+const user = Astro.locals.user!;
+if (!user) return Astro.redirect('/auth/login');
+const schoolId = getUserSchoolId(user.id);
+if (!schoolId) return Astro.redirect('/dashboard');
+const db = getDb();
+const comments = db.select().from(socialComments).where(eq(socialComments.schoolId, schoolId)).orderBy(desc(socialComments.createdAt)).all();
+const unresolved = comments.filter(c => !c.isResolved);
+const resolved = comments.filter(c => c.isResolved);
+---
+
+<DashboardLayout title="Unified Inbox - Social Media">
+  <div class="space-y-6">
+    <div><h2 class="text-2xl font-bold text-gray-900">Unified Inbox</h2><p class="text-sm text-gray-500 mt-1">Manage comments and messages from all platforms.</p></div>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-3 gap-4">
+      <div class="bg-white rounded-xl border border-gray-200 p-4"><p class="text-xs text-gray-500 uppercase">Unresolved</p><p class="text-2xl font-bold text-amber-600 mt-1">{unresolved.length}</p></div>
+      <div class="bg-white rounded-xl border border-gray-200 p-4"><p class="text-xs text-gray-500 uppercase">Resolved</p><p class="text-2xl font-bold text-green-600 mt-1">{resolved.length}</p></div>
+      <div class="bg-white rounded-xl border border-gray-200 p-4"><p class="text-xs text-gray-500 uppercase">Total</p><p class="text-2xl font-bold text-gray-900 mt-1">{comments.length}</p></div>
+    </div>
+
+    <!-- Comments List -->
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <h3 class="text-base font-semibold text-gray-900 mb-4">Recent Comments</h3>
+      {comments.length > 0 ? (
+        <div class="space-y-3">
+          {comments.map(c => (
+            <div class={`border rounded-lg p-4 ${c.isResolved ? 'bg-green-50/30 border-green-200' : 'border-gray-200'}`}>
+              <div class="flex items-start justify-between mb-2">
+                <div class="flex items-center gap-2">
+                  <span class="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">{c.platform}</span>
+                  <span class="text-sm font-medium text-gray-900">{c.author || 'Unknown'}</span>
+                </div>
+                <span class="text-xs text-gray-400">{c.timestamp || ''}</span>
+              </div>
+              <p class="text-sm text-gray-600 mb-2">{c.text}</p>
+              {c.response ? (
+                <div class="bg-blue-50 p-2 rounded text-xs text-gray-600"><strong>Response:</strong> {c.response}</div>
+              ) : (
+                <div class="flex gap-2 mt-2">
+                  <input type="text" placeholder="Type a response..." class="flex-1 px-3 py-1.5 border border-gray-300 rounded-lg text-xs" id={`reply-${c.id}`} />
+                  <button onclick={`respond(${c.id})`} class="px-3 py-1.5 text-xs font-medium text-white bg-primary-600 rounded-lg">Reply</button>
+                  <button onclick={`resolve(${c.id})`} class="px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-300 rounded-lg">Resolve</button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div class="text-center py-8">
+          <svg class="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+          <p class="text-lg font-semibold text-gray-900 mb-2">No comments yet</p>
+          <p class="text-sm text-gray-500">Comments from connected social accounts will appear here.</p>
+        </div>
+      )}
+    </div>
+  </div>
+
+  <script is:inline set:html={`(function(){
+    window.respond = async function(id) {
+      var input = document.getElementById('reply-' + id);
+      var response = input.value;
+      if (!response) return;
+      var res = await fetch('/api/dashboard/social', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'respond_comment', commentId: id, response: response }) });
+      if (res.ok) window.location.reload();
+    };
+    window.resolve = async function(id) {
+      await fetch('/api/dashboard/social', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'resolve_comment', commentId: id }) });
+      window.location.reload();
+    };
+  })();`} />
+</DashboardLayout>

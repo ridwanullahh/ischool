@@ -1,0 +1,57 @@
+---
+import DashboardLayout from '../../../../layouts/DashboardLayout.astro';
+import { getUserSchoolId, getUserSchool } from '../../../../lib/school.js';
+import { getDb } from '../../../../lib/db/index.js';
+import { gmbConnections, gmbPosts } from '../../../../lib/db/schema.js';
+import { eq, desc } from 'drizzle-orm';
+
+const user = Astro.locals.user!;
+if (!user) return Astro.redirect('/auth/login');
+const schoolId = getUserSchoolId(user.id);
+if (!schoolId) return Astro.redirect('/dashboard');
+const school = getUserSchool(user.id);
+const db = getDb();
+const connection = db.select().from(gmbConnections).where(eq(gmbConnections.schoolId, schoolId)).get();
+const posts = db.select().from(gmbPosts).where(eq(gmbPosts.schoolId, schoolId)).orderBy(desc(gmbPosts.createdAt)).all();
+---
+
+<DashboardLayout title="GMB Profile - iSchool">
+  <div class="space-y-6 max-w-3xl">
+    <div class="flex items-center gap-3">
+      <a href="/dashboard/gmb" class="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>Back</a>
+      <h2 class="text-2xl font-bold text-gray-900">Business Profile</h2>
+    </div>
+
+    {connection?.isConnected ? (
+      <form class="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div><label class="block text-xs font-medium text-gray-700 mb-1">Business Name</label><input value={connection.businessName || school?.name || ''} class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /></div>
+          <div><label class="block text-xs font-medium text-gray-700 mb-1">Category</label><input value="Primary/Secondary School" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /></div>
+        </div>
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">Description</label><textarea rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">{school?.tagline || ''}</textarea></div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div><label class="block text-xs font-medium text-gray-700 mb-1">Phone</label><input class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="+1 (555) 123-4567" /></div>
+          <div><label class="block text-xs font-medium text-gray-700 mb-1">Website</label><input class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="https://school.edu" /></div>
+        </div>
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">Address</label><input class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="123 School St, City, State 12345" /></div>
+        <div class="grid grid-cols-7 gap-2">
+          <div class="text-xs text-center font-medium text-gray-500">Day</div>
+          {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => <div class="text-xs text-center">{d}</div>)}
+          <div class="text-xs text-center font-medium text-gray-500">Hours</div>
+          {['8am-3pm', '8am-3pm', '8am-3pm', '8am-3pm', '8am-3pm', 'Closed'].map(h => <input class="px-1 py-1 border border-gray-300 rounded text-xs text-center" value={h} />)}
+        </div>
+        <div class="flex items-center gap-2 pt-2">
+          <label class="flex items-center gap-2"><input type="checkbox" checked={connection.autoSync} class="rounded" /><span class="text-sm text-gray-700">Auto-sync with website CMS</span></label>
+        </div>
+        <button type="submit" class="px-6 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">Save Profile</button>
+      </form>
+    ) : (
+      <div class="bg-white rounded-xl border border-gray-200 p-8 text-center">
+        <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"/></svg>
+        <h3 class="font-semibold text-gray-900 mb-1">Not Connected</h3>
+        <p class="text-sm text-gray-500 mb-4">Connect your Google My Business account to manage your profile.</p>
+        <a href="/dashboard/gmb" class="inline-block px-5 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg">Go to GMB Overview</a>
+      </div>
+    )}
+  </div>
+</DashboardLayout>
