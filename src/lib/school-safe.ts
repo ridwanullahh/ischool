@@ -298,3 +298,32 @@ export function getAdmissionPeriodBySlug(schoolId: number, slug: string): any | 
     }
   } catch { return null; }
 }
+
+// --- CMS Module Control ---
+
+export function isModuleEnabled(schoolId: number, module: string): boolean {
+  try {
+    const db = rawDb();
+    const row = db.prepare('SELECT enabled FROM module_settings WHERE school_id = ? AND module = ?').get(schoolId, module) as any;
+    if (row) return row.enabled === 1 || row.enabled === true;
+    // Banners are disabled by default
+    if (module === 'banners') return false;
+    return true; // All other modules enabled by default
+  } catch { return module !== 'banners'; }
+}
+
+export function getEnabledModules(schoolId: number): Record<string, boolean> {
+  const defaults: Record<string, boolean> = {
+    about: true, announcements: true, programs: true, classes: true,
+    blog: true, gallery: true, faqs: true, contact: true, admissions: true,
+    banners: false, popups: true, forms: true,
+  };
+  try {
+    const db = rawDb();
+    const rows = db.prepare('SELECT module, enabled FROM module_settings WHERE school_id = ?').all(schoolId) as any[];
+    for (const r of rows) {
+      defaults[r.module] = r.enabled === 1 || r.enabled === true;
+    }
+  } catch {}
+  return defaults;
+}

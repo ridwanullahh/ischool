@@ -5,6 +5,7 @@ import FoucScript from '../_shared/FoucScript.astro';
 import ThemeToggleScript from '../_shared/ThemeToggleScript.astro';
 import { getSocialIconPath } from '../_shared/social-icons';
 import { getSchoolNav, getSchoolContacts } from '../../../lib/school.ts';
+import { getEnabledModules } from '../../../lib/school-safe.ts';
 import { normalizeSocialUrl } from '../../../lib/social.ts';
 import LanguageSelector from '../../../components/LanguageSelector.astro';
 import SchoolBannerPopup from '../../../components/SchoolBannerPopup.astro';
@@ -12,6 +13,17 @@ interface Props { school: any; title?: string; }
 const { school, title } = Astro.props;
 const nav = getSchoolNav(school.id);
 const contacts = getSchoolContacts(school.id);
+const enabledModules = getEnabledModules(school.id);
+// Filter nav items based on enabled modules
+const filteredNav = nav.filter((item: any) => {
+  const url = item.url.replace(/^\//, '');
+  if (!url) return true; // Home is always shown
+  // Map URL to module key
+  const moduleMap: Record<string, string> = { 'about': 'about', 'announcements': 'announcements', 'programs': 'programs', 'classes': 'classes', 'blog': 'blog', 'gallery': 'gallery', 'faqs': 'faqs', 'contact': 'contact', 'admissions': 'admissions', 'support': 'contact' };
+  const moduleKey = moduleMap[url.split('/')[0]];
+  if (moduleKey && enabledModules[moduleKey] === false) return false;
+  return true;
+});
 const pageTitle = title ? `${title} — ${school.name}` : school.name;
 const prefix = `/${school.slug}`;
 const { pathname } = Astro.url;
@@ -60,7 +72,7 @@ const rtl = ['ar','he','fa','ur'].includes(locale);
           <span class="text-base font-bold" style="color:var(--text)">{school.name}</span>
         </a>
         <div class="hidden lg:flex items-center gap-1">
-          {nav.map(item => { const active = pathname === `${prefix}${item.url}`; return <a href={`${prefix}${item.url}`} class:list={["px-3.5 py-2 text-sm font-medium rounded-lg transition-all", active ? "text-white" : "hover:bg-[color-mix(in_srgb,var(--primary)_8%,transparent)]"]} style={active ? "background:var(--primary);color:#fff" : "color:var(--muted)"}>{item.label}</a>; })}
+          {filteredNav.map(item => { const active = pathname === `${prefix}${item.url}`; return <a href={`${prefix}${item.url}`} class:list={["px-3.5 py-2 text-sm font-medium rounded-lg transition-all", active ? "text-white" : "hover:bg-[color-mix(in_srgb,var(--primary)_8%,transparent)]"]} style={active ? "background:var(--primary);color:#fff" : "color:var(--muted)"}>{item.label}</a>; })}
         </div>
         <div class="flex items-center gap-2">
           <LanguageSelector />
@@ -70,7 +82,7 @@ const rtl = ['ar','he','fa','ur'].includes(locale);
         </div>
       </div>
       <div id="aurora-mobile-nav" class="lg:hidden hidden border-t px-5 pb-4 space-y-1" style="border-color:color-mix(in srgb, var(--border) 40%, transparent)">
-        {nav.map(item => { const active = pathname === `${prefix}${item.url}`; return <a href={`${prefix}${item.url}`} class:list={["block px-3 py-2.5 text-sm font-medium rounded-lg", active ? "text-white" : ""]} style={active ? "background:var(--primary);color:#fff" : "color:var(--text)"}>{item.label}</a>; })}
+        {filteredNav.map(item => { const active = pathname === `${prefix}${item.url}`; return <a href={`${prefix}${item.url}`} class:list={["block px-3 py-2.5 text-sm font-medium rounded-lg", active ? "text-white" : ""]} style={active ? "background:var(--primary);color:#fff" : "color:var(--text)"}>{item.label}</a>; })}
       </div>
     </nav>
   </header>
@@ -88,7 +100,7 @@ const rtl = ['ar','he','fa','ur'].includes(locale);
           {school.tagline && <p class="text-sm max-w-md" style="color:var(--muted)">{school.tagline}</p>}
           {socialEntries.length > 0 && <div class="flex items-center gap-2 mt-5">{socialEntries.map(([p,h]) => { const path = getSocialIconPath(p); if (!path) return null; return <a href={normalizeSocialUrl(h,p)} target="_blank" rel="noopener noreferrer" aria-label={`Visit our ${p} page`} class="aurora-glass p-2.5 rounded-lg hover:scale-110 transition-transform"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" style="color:var(--text)" aria-hidden="true"><path d={path} /></svg></a>; })}</div>}
         </div>
-        <div><h3 class="text-xs font-bold uppercase tracking-wider mb-4" style="color:var(--muted)">Explore</h3><ul class="space-y-2.5">{nav.slice(0,6).map(item => <li><a href={`${prefix}${item.url}`} class="text-sm hover:opacity-70" style="color:var(--text)">{item.label}</a></li>)}</ul></div>
+        <div><h3 class="text-xs font-bold uppercase tracking-wider mb-4" style="color:var(--muted)">Explore</h3><ul class="space-y-2.5">{filteredNav.slice(0,6).map(item => <li><a href={`${prefix}${item.url}`} class="text-sm hover:opacity-70" style="color:var(--text)">{item.label}</a></li>)}</ul></div>
         <div><h3 class="text-xs font-bold uppercase tracking-wider mb-4" style="color:var(--muted)">Contact</h3><ul class="space-y-2.5">{contacts.slice(0,5).map(c => <li class="text-sm" style="color:var(--text)">{c.label && <span class="block text-xs" style="color:var(--muted)">{c.label}</span>}{c.value}</li>)}{contacts.length === 0 && <li class="text-sm" style="color:var(--muted)">No contact info yet.</li>}</ul></div>
       </div>
       <div class="mt-8 pt-6 border-t flex flex-col sm:flex-row items-center justify-between gap-3" style="border-color:color-mix(in srgb, var(--border) 40%, transparent)">

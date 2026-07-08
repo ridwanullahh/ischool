@@ -98,9 +98,19 @@ function normalizePopup(p: any): any {
 
 const banners = activeBanners.map(normalizeBanner);
 const popups = activePopups.map(normalizePopup);
-const topBanners = banners.filter(b => b.position === 'top');
-const heroBanners = banners.filter(b => b.position === 'hero');
-const sidebarBanners = banners.filter(b => b.position === 'sidebar');
+
+// Check if banners module is enabled (banners disabled by default - coming soon)
+let bannersEnabled = false;
+try {
+  const drizzleDb2 = getDb() as any;
+  const db2 = drizzleDb2.$client || drizzleDb2.session?.client || drizzleDb2;
+  const bannerSetting = db2.prepare('SELECT enabled FROM module_settings WHERE school_id = ? AND module = ?').get(schoolId, 'banners') as any;
+  bannersEnabled = bannerSetting ? (bannerSetting.enabled === 1 || bannerSetting.enabled === true) : false;
+} catch {}
+
+const topBanners = bannersEnabled ? banners.filter(b => b.position === 'top') : [];
+const heroBanners = bannersEnabled ? banners.filter(b => b.position === 'hero') : [];
+const sidebarBanners = bannersEnabled ? banners.filter(b => b.position === 'sidebar') : [];
 ---
 
 {topBanners.map(b => (
