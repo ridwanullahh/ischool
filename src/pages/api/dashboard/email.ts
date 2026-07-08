@@ -217,5 +217,81 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
   }
 
+
+
+  if (action === 'save_campaign') {
+    const campaignId = data.campaignId;
+    const values = {
+      name: data.name, subject: data.subject,
+      fromName: data.fromName || null, fromEmail: data.fromEmail || null,
+      htmlContent: data.htmlContent || '', listId: data.listId || null,
+      type: data.type || 'regular', status: data.scheduledAt ? 'scheduled' : 'draft',
+      scheduledAt: data.scheduledAt || null, updatedAt: new Date(),
+    };
+    if (campaignId) {
+      db.update(emailCampaigns).set(values).where(eq(emailCampaigns.id, Number(campaignId))).run();
+      return new Response(JSON.stringify({ success: true, campaignId }), { headers: { 'Content-Type': 'application/json' } });
+    } else {
+      const [c] = db.insert(emailCampaigns).values({ schoolId, ...values } as any).returning().all();
+      return new Response(JSON.stringify({ success: true, campaignId: c.id }), { headers: { 'Content-Type': 'application/json' } });
+    }
+  }
+
+  if (action === 'delete_campaign') {
+    db.delete(emailCampaigns).where(eq(emailCampaigns.id, Number(data.campaignId))).run();
+    return new Response(JSON.stringify({ success: true }), { headers: { 'Content-Type': 'application/json' } });
+  }
+
+  if (action === 'add_subscriber') {
+    try {
+      db.insert(emailSubscribers).values({
+        schoolId, listId: data.listId || null, email: data.email,
+        firstName: data.firstName || null, lastName: data.lastName || null,
+        status: 'active', source: 'manual', subscribedAt: new Date().toISOString(),
+      } as any).run();
+      return new Response(JSON.stringify({ success: true }), { headers: { 'Content-Type': 'application/json' } });
+    } catch { return new Response(JSON.stringify({ error: 'Already exists' }), { status: 400, headers: { 'Content-Type': 'application/json' } }); }
+  }
+
+  if (action === 'delete_list') {
+    db.delete(emailLists).where(eq(emailLists.id, Number(data.listId))).run();
+    return new Response(JSON.stringify({ success: true }), { headers: { 'Content-Type': 'application/json' } });
+  }
+
+  if (action === 'create_automation') {
+    db.insert(emailAutomations).values({
+      schoolId, name: data.name, trigger: { type: data.trigger }, steps: [],
+      status: 'active',
+    } as any).run();
+    return new Response(JSON.stringify({ success: true }), { headers: { 'Content-Type': 'application/json' } });
+  }
+
+  if (action === 'toggle_automation') {
+    db.update(emailAutomations).set({ status: data.status, updatedAt: new Date() }).where(eq(emailAutomations.id, Number(data.automationId))).run();
+    return new Response(JSON.stringify({ success: true }), { headers: { 'Content-Type': 'application/json' } });
+  }
+
+  if (action === 'delete_template') {
+    db.delete(emailTemplates).where(eq(emailTemplates.id, Number(data.templateId))).run();
+    return new Response(JSON.stringify({ success: true }), { headers: { 'Content-Type': 'application/json' } });
+  }
+
+  if (action === 'ai_subject') {
+    try {
+      const { aiApiKeys, aiModels, aiProviders } = await import('../../../lib/db/schema.js');
+      const keyRow = db.select().from(aiApiKeys).where(eq(aiApiKeys.isActive, true)).get();
+      const modelRow = db.select().from(aiModels).where(eq(aiModels.isActive, true)).get();
+      const providerRow = keyRow ? db.select().from(aiProviders).where(eq(aiProviders.id, keyRow.providerId)).get() : null;
+      if (!keyRow || !providerRow) return new Response(JSON.stringify({ error: 'AI not configured' }), { status: 503, headers: { 'Content-Type': 'application/json' } });
+      const { decrypt } = await import('../../../lib/security.js');
+      const aiResponse = await fetch(`${providerRow.apiUrl || 'https://api.openai.com/v1'}/chat/completions`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${decrypt(keyRow.encryptedKey)}` },
+        body: JSON.stringify({ model: modelRow?.modelId || 'gpt-4o-mini', messages: [{ role: 'system', content: 'Write a compelling email subject line for a school email. Return ONLY the subject line.' }, { role: 'user', content: data.prompt || 'school newsletter' }], max_tokens: 100, temperature: 0.8 }),
+      });
+      const result = await aiResponse.json();
+      return new Response(JSON.stringify({ subject: result.choices?.[0]?.message?.content?.trim() || 'School Update' }), { headers: { 'Content-Type': 'application/json' } });
+    } catch (e: any) { return new Response(JSON.stringify({ error: 'AI failed' }), { status: 500, headers: { 'Content-Type': 'application/json' } }); }
+  }
+
   return new Response(JSON.stringify({ error: 'Unknown action' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
 };

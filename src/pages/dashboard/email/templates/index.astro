@@ -1,0 +1,67 @@
+---
+import DashboardLayout from '../../../../layouts/DashboardLayout.astro';
+import { getUserSchoolId } from '../../../../lib/school.js';
+import { getDb } from '../../../../lib/db/index.js';
+import { emailTemplates } from '../../../../lib/db/schema.js';
+import { eq } from 'drizzle-orm';
+
+const user = Astro.locals.user!;
+if (!user) return Astro.redirect('/auth/login');
+const schoolId = getUserSchoolId(user.id);
+if (!schoolId) return Astro.redirect('/dashboard');
+const db = getDb();
+const templates = db.select().from(emailTemplates).where(eq(emailTemplates.schoolId, schoolId)).all();
+---
+
+<DashboardLayout title="Templates - Email Marketing">
+  <div class="space-y-6">
+    <div class="flex items-center justify-between">
+      <div><h2 class="text-2xl font-bold text-gray-900">Email Templates</h2><p class="text-sm text-gray-500 mt-1">{templates.length} templates</p></div>
+      <button onclick="document.getElementById('tplModal').classList.remove('hidden')" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">New Template</button>
+    </div>
+
+    {templates.length > 0 ? (
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {templates.map(t => (
+          <div class="bg-white rounded-xl border border-gray-200 p-5">
+            <div class="flex items-center justify-between mb-2"><h3 class="font-semibold text-gray-900 text-sm">{t.name}</h3>{t.isDefault && <span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-primary-100 text-primary-700">Default</span>}</div>
+            <p class="text-xs text-gray-500 mb-3">{t.category || 'custom'}</p>
+            <div class="flex gap-2"><button class="text-xs text-primary-600 font-medium">Use</button><button onclick={`deleteTpl(${t.id})`} class="text-xs text-red-600 font-medium">Delete</button></div>
+          </div>
+        ))}
+      </div>
+    ) : (
+      <div class="bg-white rounded-xl border border-gray-200 p-12 text-center">
+        <svg class="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6h16M4 10h16M4 14h16M4 18h12"/></svg>
+        <p class="text-lg font-semibold text-gray-900 mb-2">No templates yet</p>
+        <p class="text-sm text-gray-500 mb-4">Save reusable email templates for future campaigns.</p>
+      </div>
+    )}
+  </div>
+
+  <div id="tplModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+      <h3 class="text-lg font-bold text-gray-900 mb-4">New Template</h3>
+      <form id="tplForm" class="space-y-3">
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">Template Name *</label><input name="name" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /></div>
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">Category</label><select name="category" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"><option value="newsletter">Newsletter</option><option value="announcement">Announcement</option><option value="event">Event</option><option value="admission">Admission</option><option value="custom">Custom</option></select></div>
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">HTML Content</label><textarea name="htmlContent" rows="8" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono" placeholder="<h1>Hello {first_name}</h1><p>...</p>"></textarea></div>
+        <div class="flex gap-3 pt-2"><button type="button" onclick="document.getElementById('tplModal').classList.add('hidden')" class="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg">Cancel</button><button type="submit" class="flex-1 px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg">Save</button></div>
+      </form>
+    </div>
+  </div>
+
+  <script is:inline set:html={`(function(){
+    document.getElementById('tplForm')?.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      var fd = new FormData(this);
+      var res = await fetch('/api/dashboard/email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'save_template', name: fd.get('name'), category: fd.get('category'), htmlContent: fd.get('htmlContent') }) });
+      if (res.ok) window.location.reload();
+    });
+    window.deleteTpl = async function(id) {
+      if (!confirm('Delete this template?')) return;
+      await fetch('/api/dashboard/email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'delete_template', templateId: id }) });
+      window.location.reload();
+    };
+  })();`} />
+</DashboardLayout>
