@@ -8,6 +8,7 @@ import { getDb } from '../../../../lib/db/index.js';
 import { forms } from '../../../../lib/db/schema.js';
 import { eq, and } from 'drizzle-orm';
 import { guardPermission } from '../../../../lib/rbac.js';
+import { getUserSchoolId } from '../../../../lib/school.js';
 
 export const POST: APIRoute = async ({ request, locals }) => {
   const user = locals.user;
@@ -21,7 +22,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (!schoolId || !title || !slug) {
     return new Response(JSON.stringify({ error: 'Missing required fields' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
   }
-  if (schoolId !== (user as any).schoolId) {
+  if (schoolId !== getUserSchoolId(user.id)) {
     return new Response(JSON.stringify({ error: 'School mismatch' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
   }
 
@@ -50,7 +51,7 @@ export const PUT: APIRoute = async ({ request, locals }) => {
   if (!formId || !schoolId) {
     return new Response(JSON.stringify({ error: 'Missing formId or schoolId' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
   }
-  if (schoolId !== (user as any).schoolId) {
+  if (schoolId !== getUserSchoolId(user.id)) {
     return new Response(JSON.stringify({ error: 'School mismatch' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
   }
 

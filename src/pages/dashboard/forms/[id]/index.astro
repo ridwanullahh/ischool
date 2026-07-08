@@ -15,7 +15,12 @@ const formId = parseInt(Astro.params.id);
 const db = getDb();
 const form = schoolId ? db.select().from(forms).where(and(eq(forms.id, formId), eq(forms.schoolId, schoolId))).get() : null;
 if (!form) return Astro.redirect('/dashboard/forms');
-const fields = (form.fields as any[]) || [];
+let fields: any[] = [];
+try {
+  if (Array.isArray(form.fields)) fields = form.fields;
+  else if (typeof form.fields === 'string') fields = JSON.parse(form.fields);
+  else fields = [];
+} catch { fields = []; }
 ---
 
 <DashboardLayout title={`Edit: ${form.title} - iSchool`}>
