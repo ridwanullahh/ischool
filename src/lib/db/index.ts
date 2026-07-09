@@ -1825,6 +1825,67 @@ function autoMigrate(sqlite: Database.Database) {
     }
   };
 
+  // Add indexes for performance (Phase 4.1) — idempotent
+  const createIndexIfNotExists = (name: string, sql: string) => {
+    try {
+      sqlite.exec(`CREATE INDEX IF NOT EXISTS ${name} ON ${sql};`);
+    } catch (e) {
+      // Index might already exist or table missing, skip
+    }
+  };
+
+  // Foreign key indexes (most critical for JOIN performance)
+  createIndexIfNotExists('idx_students_school', 'students(school_id)');
+  createIndexIfNotExists('idx_students_user', 'students(user_id)');
+  createIndexIfNotExists('idx_students_parent', 'students(parent_id)');
+  createIndexIfNotExists('idx_students_family', 'students(family_group_id)');
+  createIndexIfNotExists('idx_students_status', 'students(status)');
+  createIndexIfNotExists('idx_enrollments_student', 'enrollments(student_id)');
+  createIndexIfNotExists('idx_enrollments_class', 'enrollments(class_id)');
+  createIndexIfNotExists('idx_enrollments_status', 'enrollments(status)');
+  createIndexIfNotExists('idx_attendance_student', 'attendance(student_id)');
+  createIndexIfNotExists('idx_attendance_school', 'attendance(school_id)');
+  createIndexIfNotExists('idx_attendance_date', 'attendance(date)');
+  createIndexIfNotExists('idx_invoices_student', 'invoices(student_id)');
+  createIndexIfNotExists('idx_invoices_status', 'invoices(status)');
+  createIndexIfNotExists('idx_invoices_school', 'invoices(school_id)');
+  createIndexIfNotExists('idx_invoices_due', 'invoices(due_date)');
+  createIndexIfNotExists('idx_payments_invoice', 'payments(invoice_id)');
+  createIndexIfNotExists('idx_payments_school', 'payments(school_id)');
+  createIndexIfNotExists('idx_payments_status', 'payments(status)');
+  createIndexIfNotExists('idx_grades_student', 'grades(student_id)');
+  createIndexIfNotExists('idx_grades_course', 'grades(course_id)');
+  createIndexIfNotExists('idx_grades_assignment', 'grades(assignment_id)');
+  createIndexIfNotExists('idx_grades_school', 'grades(school_id)');
+  createIndexIfNotExists('idx_exam_results_exam', 'exam_results(exam_id)');
+  createIndexIfNotExists('idx_exam_results_student', 'exam_results(student_id)');
+  createIndexIfNotExists('idx_library_loans_book', 'library_loans(book_id)');
+  createIndexIfNotExists('idx_library_loans_borrower', 'library_loans(borrower_id)');
+  createIndexIfNotExists('idx_library_loans_status', 'library_loans(status)');
+  createIndexIfNotExists('idx_hostel_alloc_student', 'hostel_allocations(student_id)');
+  createIndexIfNotExists('idx_hostel_alloc_room', 'hostel_allocations(room_id)');
+  createIndexIfNotExists('idx_transport_assign_student', 'transport_assignments(student_id)');
+  createIndexIfNotExists('idx_transport_assign_route', 'transport_assignments(route_id)');
+  createIndexIfNotExists('idx_cbt_attempts_exam', 'cbt_attempts(exam_id)');
+  createIndexIfNotExists('idx_cbt_attempts_candidate', 'cbt_attempts(candidate_id)');
+  createIndexIfNotExists('idx_messages_sender', 'messages(sender_id)');
+  createIndexIfNotExists('idx_messages_recipient', 'messages(recipient_id)');
+  createIndexIfNotExists('idx_messages_school', 'messages(school_id)');
+  createIndexIfNotExists('idx_notifications_user', 'notifications(user_id)');
+  createIndexIfNotExists('idx_notifications_school', 'notifications(school_id)');
+  createIndexIfNotExists('idx_notifications_read', 'notifications(is_read)');
+  createIndexIfNotExists('idx_audit_logs_school', 'audit_logs(school_id)');
+  createIndexIfNotExists('idx_audit_logs_user', 'audit_logs(user_id)');
+  createIndexIfNotExists('idx_audit_logs_created', 'audit_logs(created_at)');
+
+  // Composite indexes for common query patterns
+  createIndexIfNotExists('idx_students_school_status', 'students(school_id, status)');
+  createIndexIfNotExists('idx_invoices_school_status', 'invoices(school_id, status)');
+  createIndexIfNotExists('idx_enrollments_school_status', 'enrollments(school_id, status)');
+  createIndexIfNotExists('idx_attendance_school_date', 'attendance(school_id, date)');
+  createIndexIfNotExists('idx_audit_logs_school_created', 'audit_logs(school_id, created_at)');
+  createIndexIfNotExists('idx_messages_school_created', 'messages(school_id, created_at)');
+
   addColumnIfMissing('students', 'family_group_id', 'INTEGER');
   addColumnIfMissing('students', 'blood_group', 'TEXT');
   addColumnIfMissing('students', 'nationality', 'TEXT');

@@ -138,7 +138,15 @@ export const onRequest = defineMiddleware(async (context, next) => {
     response.headers.set('X-Content-Type-Options', 'nosniff');
     response.headers.set('X-Frame-Options', 'DENY');
     response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-    response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+    // Allow camera/mic only for CBT proctoring pages
+    const isCbtPage = pathname.startsWith('/dashboard/cbt') || pathname.startsWith('/dashboard/proctoring');
+    response.headers.set('Permissions-Policy', isCbtPage ? 'camera=(self), microphone=(self)' : 'camera=(), microphone=(), geolocation=()');
+    // Content Security Policy — allows inline styles/scripts (Astro requirement) and Cloudinary
+    response.headers.set('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https: blob:; media-src 'self' https: blob:; font-src 'self' https://fonts.gstatic.com data:; connect-src 'self' https:; frame-src 'self' https:; object-src 'none'; base-uri 'self'");
+    // HSTS — only in production (requires HTTPS)
+    if (process.env.NODE_ENV === 'production') {
+      response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+    }
 
     return response;
   } catch (error: any) {

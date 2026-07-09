@@ -76,37 +76,37 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const data = await request.json();
   const db = getDb();
 
-  // Grade submission
+  // Grade submission (transactional — Phase 2.2)
   if (data.action === 'grade_submission') {
     if (!data.submissionId) return new Response(JSON.stringify({ error: 'submissionId required' }), { status: 400 });
-    db.update(submissions).set({
-      grade: data.grade, feedback: data.feedback || null,
-      status: 'graded', gradedAt: new Date(), gradedBy: user.id, updatedAt: new Date(),
-    }).where(and(eq(submissions.id, data.submissionId), eq(submissions.schoolId, schoolId))).run();
-    // Sync to gradebook
-    const sub = db.select().from(submissions).where(eq(submissions.id, data.submissionId)).get();
-    if (sub && sub.grade !== null) {
-      const assignment = db.select().from(assignments).where(eq(assignments.id, sub.assignmentId)).get();
-      if (assignment) {
-        // Insert or update grade
-        const existingGrade = db.select().from(grades).where(and(
-          eq(grades.studentId, sub.studentId),
-          eq(grades.assignmentId, assignment.id),
-        )).get();
-        if (existingGrade) {
-          db.update(grades).set({
-            score: sub.grade, maxScore: assignment.maxPoints,
-            category: 'assignment', comments: data.feedback || null, updatedAt: new Date(),
-          }).where(eq(grades.id, existingGrade.id)).run();
-        } else {
-          db.insert(grades).values({
-            schoolId, studentId: sub.studentId, assignmentId: assignment.id,
-            courseId: assignment.courseId, score: sub.grade, maxScore: assignment.maxPoints,
-            category: 'assignment', comments: data.feedback || null, createdAt: new Date(),
-          } as any).run();
+    db.transaction(() => {
+      db.update(submissions).set({
+        grade: data.grade, feedback: data.feedback || null,
+        status: 'graded', gradedAt: new Date(), gradedBy: user.id, updatedAt: new Date(),
+      }).where(and(eq(submissions.id, data.submissionId), eq(submissions.schoolId, schoolId))).run();
+      const sub = db.select().from(submissions).where(eq(submissions.id, data.submissionId)).get();
+      if (sub && sub.grade !== null) {
+        const assignment = db.select().from(assignments).where(eq(assignments.id, sub.assignmentId)).get();
+        if (assignment) {
+          const existingGrade = db.select().from(grades).where(and(
+            eq(grades.studentId, sub.studentId),
+            eq(grades.assignmentId, assignment.id),
+          )).get();
+          if (existingGrade) {
+            db.update(grades).set({
+              score: sub.grade, maxScore: assignment.maxPoints,
+              category: 'assignment', comments: data.feedback || null, updatedAt: new Date(),
+            }).where(eq(grades.id, existingGrade.id)).run();
+          } else {
+            db.insert(grades).values({
+              schoolId, studentId: sub.studentId, assignmentId: assignment.id,
+              courseId: assignment.courseId, score: sub.grade, maxScore: assignment.maxPoints,
+              category: 'assignment', comments: data.feedback || null, createdAt: new Date(),
+            } as any).run();
+          }
         }
       }
-    }
+    });
     return new Response(JSON.stringify({ success: true }), { headers: { 'Content-Type': 'application/json' } });
   }
 

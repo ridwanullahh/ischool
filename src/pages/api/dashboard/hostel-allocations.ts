@@ -42,16 +42,17 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   if (data.action === 'deallocate') {
     if (!data.id) return new Response(JSON.stringify({ error: 'id required' }), { status: 400 });
-    const alloc = db.select().from(hostelAllocations).where(and(eq(hostelAllocations.id, data.id), eq(hostelAllocations.schoolId, schoolId))).get();
-    if (!alloc) return new Response(JSON.stringify({ error: 'Allocation not found' }), { status: 404 });
-    db.update(hostelAllocations).set({ status: 'checked_out', updatedAt: new Date() }).where(eq(hostelAllocations.id, data.id)).run();
-    // Decrement room occupants
-    const room = db.select().from(hostelRooms).where(eq(hostelRooms.id, alloc.roomId)).get();
-    if (room) {
-      const newOcc = Math.max(0, (room.occupants || 0) - 1);
-      const newStatus = newOcc === 0 ? 'available' : (newOcc >= (room.capacity || 0) ? 'full' : 'available');
-      db.update(hostelRooms).set({ occupants: newOcc, status: newStatus, updatedAt: new Date() }).where(eq(hostelRooms.id, room.id)).run();
-    }
+    db.transaction(() => {
+      const alloc = db.select().from(hostelAllocations).where(and(eq(hostelAllocations.id, data.id), eq(hostelAllocations.schoolId, schoolId))).get();
+      if (!alloc) throw new Error('Allocation not found');
+      db.update(hostelAllocations).set({ status: 'checked_out', updatedAt: new Date() }).where(eq(hostelAllocations.id, data.id)).run();
+      const room = db.select().from(hostelRooms).where(eq(hostelRooms.id, alloc.roomId)).get();
+      if (room) {
+        const newOcc = Math.max(0, (room.occupants || 0) - 1);
+        const newStatus = newOcc === 0 ? 'available' : (newOcc >= (room.capacity || 0) ? 'full' : 'available');
+        db.update(hostelRooms).set({ occupants: newOcc, status: newStatus, updatedAt: new Date() }).where(eq(hostelRooms.id, room.id)).run();
+      }
+    });
     return new Response(JSON.stringify({ success: true }), { headers: { 'Content-Type': 'application/json' } });
   }
 
@@ -59,30 +60,26 @@ export const POST: APIRoute = async ({ request, locals }) => {
     return new Response(JSON.stringify({ error: 'studentId, roomId, academicYear required' }), { status: 400 });
   }
 
-  // Check room availability
-  const room = db.select().from(hostelRooms).where(eq(hostelRooms.id, data.roomId)).get();
-  if (!room) return new Response(JSON.stringify({ error: 'Room not found' }), { status: 404 });
-  if ((room.occupants || 0) >= (room.capacity || 0)) {
-    return new Response(JSON.stringify({ error: 'Room is full' }), { status: 400 });
-  }
-  // Check student not already allocated
-  const existing = db.select().from(hostelAllocations).where(and(
-    eq(hostelAllocations.studentId, data.studentId),
-    eq(hostelAllocations.status, 'active'),
-    eq(hostelAllocations.schoolId, schoolId),
-  )).get();
-  if (existing) return new Response(JSON.stringify({ error: 'Student already has an active allocation' }), { status: 400 });
-
-  const result = db.insert(hostelAllocations).values({
-    schoolId, studentId: data.studentId, roomId: data.roomId,
-    academicYear: data.academicYear, status: 'active', createdAt: new Date(),
-  }).returning().get();
-
-  // Increment room occupants
-  const newOcc = (room.occupants || 0) + 1;
-  const newStatus = newOcc >= (room.capacity || 0) ? 'full' : 'available';
-  db.update(hostelRooms).set({ occupants: newOcc, status: newStatus, updatedAt: new Date() }).where(eq(hostelRooms.id, room.id)).run();
-
+  // Transactional allocation (Phase 2.2)
+  const result = db.transaction(() => {
+    const room = db.select().from(hostelRooms).where(eq(hostelRooms.id, data.roomId)).get();
+    if (!room) throw new Error('Room not found');
+    if ((room.occupants || 0) >= (room.capacity || 0)) throw new Error('Room is full');
+    const existing = db.select().from(hostelAllocations).where(and(
+      eq(hostelAllocations.studentId, data.studentId),
+      eq(hostelAllocations.status, 'active'),
+      eq(hostelAllocations.schoolId, schoolId),
+    )).get();
+    if (existing) throw new Error('Student already has an active allocation');
+    const alloc = db.insert(hostelAllocations).values({
+      schoolId, studentId: data.studentId, roomId: data.roomId,
+      academicYear: data.academicYear, status: 'active', createdAt: new Date(),
+    }).returning().get();
+    const newOcc = (room.occupants || 0) + 1;
+    const newStatus = newOcc >= (room.capacity || 0) ? 'full' : 'available';
+    db.update(hostelRooms).set({ occupants: newOcc, status: newStatus, updatedAt: new Date() }).where(eq(hostelRooms.id, room.id)).run();
+    return alloc;
+  });
   return new Response(JSON.stringify({ success: true, id: result.id }), { status: 201, headers: { 'Content-Type': 'application/json' } });
 };
 

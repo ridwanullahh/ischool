@@ -144,33 +144,26 @@ async function recordManualPayment(body: any, user: any) {
   }
 
   const db = getDb();
-  const invoice = db.select().from(invoices).where(eq(invoices.id, invoiceId)).get();
-  if (!invoice || invoice.schoolId !== schoolId) {
-    return new Response(JSON.stringify({ error: 'Invoice not found' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
-  }
-
-  // Create completed payment record
-  const payment = db.insert(payments).values({
-    invoiceId,
-    schoolId,
-    amount,
-    method,
-    reference: reference || generatePaymentReference('MAN'),
-    status: 'completed',
-    paidBy: user.id,
-    notes: notes || null,
-    paidAt: new Date(),
-  }).returning().get();
-
-  // Update invoice
-  const newPaid = (invoice.amountPaid || 0) + amount;
-  const newBalance = invoice.amount - newPaid;
-  db.update(invoices).set({
-    amountPaid: newPaid,
-    balance: newBalance,
-    status: newBalance <= 0 ? 'paid' : 'partial',
-    updatedAt: new Date(),
-  }).where(eq(invoices.id, invoice.id)).run();
-
+  // Transactional payment recording (Phase 2.2)
+  const payment = db.transaction(() => {
+    const invoice = db.select().from(invoices).where(eq(invoices.id, invoiceId)).get();
+    if (!invoice || invoice.schoolId !== schoolId) throw new Error('Invoice not found');
+    const pay = db.insert(payments).values({
+      invoiceId, schoolId, amount, method,
+      reference: reference || generatePaymentReference('MAN'),
+      status: 'completed', paidBy: user.id,
+      notes: notes || null, paidAt: new Date(),
+    }).returning().get();
+    const newPaid = (invoice.paidAmount || 0) + amount;
+    const total = (invoice.amount || 0) - (invoice.discount || 0) + (invoice.fine || 0);
+    const newBalance = total - newPaid;
+    db.update(invoices).set({
+      paidAmount: newPaid,
+      balance: Math.max(0, newBalance),
+      status: newBalance <= 0 ? 'paid' : (newPaid > 0 ? 'partial' : invoice.status),
+      updatedAt: new Date(),
+    }).where(eq(invoices.id, invoice.id)).run();
+    return pay;
+  });
   return new Response(JSON.stringify({ ok: true, paymentId: payment.id }), { status: 201, headers: { 'Content-Type': 'application/json' } });
 }

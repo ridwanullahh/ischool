@@ -1,0 +1,63 @@
+# iSchool Docker Compose
+# Production deployment configuration
+
+version: '3.8'
+
+services:
+  ischool:
+    build: .
+    container_name: ischool-app
+    restart: unless-stopped
+    ports:
+      - "4321:4321"
+    volumes:
+      # Persistent database
+      - ischool-db:/app/data
+      # Uploaded files
+      - ischool-uploads:/app/uploads
+      # Logs
+      - ischool-logs:/app/logs
+    environment:
+      - NODE_ENV=production
+      - DATABASE_PATH=/app/data/ischool.db
+      - SESSION_SECRET=${SESSION_SECRET}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
+      - GMAIL_USER=${GMAIL_USER}
+      - GMAIL_APP_PASSWORD=${GMAIL_APP_PASSWORD}
+      - AI_API_KEY=${AI_API_KEY}
+      - AI_BASE_URL=${AI_BASE_URL:-https://api.z.ai/api/paas/v4}
+      - AI_MODEL=${AI_MODEL:-glm-4.6}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:4321/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 60s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+
+  # Optional: Nginx reverse proxy for SSL termination
+  nginx:
+    image: nginx:alpine
+    container_name: ischool-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - nginx-certs:/etc/nginx/certs
+      - nginx-html:/usr/share/nginx/html
+    depends_on:
+      - ischool
+
+volumes:
+  ischool-db:
+  ischool-uploads:
+  ischool-logs:
+  nginx-certs:
+  nginx-html:

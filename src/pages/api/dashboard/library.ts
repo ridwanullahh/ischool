@@ -96,42 +96,46 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const data = await request.json();
   const db = getDb();
 
-  // Issue a book
+  // Issue a book (transactional — Phase 2.2)
   if (data.action === 'issue') {
     if (!data.bookId || !data.borrowerId || !data.dueDate) {
       return new Response(JSON.stringify({ error: 'bookId, borrowerId, dueDate required' }), { status: 400 });
     }
-    const book = db.select().from(libraryBooks).where(and(eq(libraryBooks.id, data.bookId), eq(libraryBooks.schoolId, schoolId))).get();
-    if (!book) return new Response(JSON.stringify({ error: 'Book not found' }), { status: 404 });
-    if ((book.availableCopies || 0) <= 0) return new Response(JSON.stringify({ error: 'No copies available' }), { status: 400 });
-    const result = db.insert(libraryLoans).values({
-      schoolId, bookId: data.bookId, borrowerId: data.borrowerId, issuedBy: user.id,
-      issueDate: new Date().toISOString().split('T')[0], dueDate: data.dueDate,
-      renewals: 0, fine: 0, finePaid: false, status: 'active', createdAt: new Date(),
-    }).returning().get();
-    db.update(libraryBooks).set({ availableCopies: (book.availableCopies || 0) - 1, updatedAt: new Date() }).where(eq(libraryBooks.id, data.bookId)).run();
+    const result = db.transaction(() => {
+      const book = db.select().from(libraryBooks).where(and(eq(libraryBooks.id, data.bookId), eq(libraryBooks.schoolId, schoolId))).get();
+      if (!book) throw new Error('Book not found');
+      if ((book.availableCopies || 0) <= 0) throw new Error('No copies available');
+      const loan = db.insert(libraryLoans).values({
+        schoolId, bookId: data.bookId, borrowerId: data.borrowerId, issuedBy: user.id,
+        issueDate: new Date().toISOString().split('T')[0], dueDate: data.dueDate,
+        renewals: 0, fine: 0, finePaid: false, status: 'active', createdAt: new Date(),
+      }).returning().get();
+      db.update(libraryBooks).set({ availableCopies: (book.availableCopies || 0) - 1, updatedAt: new Date() }).where(eq(libraryBooks.id, data.bookId)).run();
+      return loan;
+    });
     return new Response(JSON.stringify({ success: true, id: result.id }), { status: 201, headers: { 'Content-Type': 'application/json' } });
   }
-  // Return a book
+  // Return a book (transactional — Phase 2.2)
   if (data.action === 'return') {
     if (!data.loanId) return new Response(JSON.stringify({ error: 'loanId required' }), { status: 400 });
-    const loan = db.select().from(libraryLoans).where(and(eq(libraryLoans.id, data.loanId), eq(libraryLoans.schoolId, schoolId))).get();
-    if (!loan) return new Response(JSON.stringify({ error: 'Loan not found' }), { status: 404 });
-    const today = new Date().toISOString().split('T')[0];
-    // Calculate fine if overdue (₦50/day)
-    let fine = 0;
-    if (new Date(loan.dueDate) < new Date(today) && loan.status !== 'returned') {
-      const days = Math.floor((Date.now() - new Date(loan.dueDate).getTime()) / (1000 * 60 * 60 * 24));
-      fine = days * 50;
-    }
-    db.update(libraryLoans).set({
-      returnDate: today, status: 'returned', fine: fine, updatedAt: new Date(),
-    }).where(eq(libraryLoans.id, data.loanId)).run();
-    // Increment available copies
-    const book = db.select().from(libraryBooks).where(eq(libraryBooks.id, loan.bookId)).get();
-    if (book) {
-      db.update(libraryBooks).set({ availableCopies: (book.availableCopies || 0) + 1, updatedAt: new Date() }).where(eq(libraryBooks.id, book.id)).run();
-    }
+    const fine = db.transaction(() => {
+      const loan = db.select().from(libraryLoans).where(and(eq(libraryLoans.id, data.loanId), eq(libraryLoans.schoolId, schoolId))).get();
+      if (!loan) throw new Error('Loan not found');
+      const today = new Date().toISOString().split('T')[0];
+      let computedFine = 0;
+      if (new Date(loan.dueDate) < new Date(today) && loan.status !== 'returned') {
+        const days = Math.floor((Date.now() - new Date(loan.dueDate).getTime()) / (1000 * 60 * 60 * 24));
+        computedFine = days * 50;
+      }
+      db.update(libraryLoans).set({
+        returnDate: today, status: 'returned', fine: computedFine, updatedAt: new Date(),
+      }).where(eq(libraryLoans.id, data.loanId)).run();
+      const book = db.select().from(libraryBooks).where(eq(libraryBooks.id, loan.bookId)).get();
+      if (book) {
+        db.update(libraryBooks).set({ availableCopies: (book.availableCopies || 0) + 1, updatedAt: new Date() }).where(eq(libraryBooks.id, book.id)).run();
+      }
+      return computedFine;
+    });
     return new Response(JSON.stringify({ success: true, fine }), { headers: { 'Content-Type': 'application/json' } });
   }
   // Renew a book (extend due date by 14 days)
