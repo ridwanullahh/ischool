@@ -760,6 +760,20 @@ function autoMigrate(sqlite: Database.Database) {
       created_at INTEGER,
       updated_at INTEGER
     );
+    CREATE TABLE IF NOT EXISTS event_rsvps (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      event_id INTEGER NOT NULL, user_id INTEGER NOT NULL,
+      response TEXT NOT NULL, number_of_guests INTEGER DEFAULT 0,
+      notes TEXT, created_at INTEGER, updated_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS venues (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+      name TEXT NOT NULL, type TEXT DEFAULT 'other',
+      capacity INTEGER, location TEXT, facilities TEXT DEFAULT '[]',
+      status TEXT DEFAULT 'available', notes TEXT,
+      created_at INTEGER, updated_at INTEGER
+    );
 
     CREATE TABLE IF NOT EXISTS behavior_logs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,

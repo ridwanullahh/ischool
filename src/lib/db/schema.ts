@@ -1236,6 +1236,20 @@ export const eventRsvps = sqliteTable('event_rsvps', {
   ...timestamps,
 });
 
+// Venue / room booking
+export const venues = sqliteTable('venues', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  type: text('type', { enum: ['hall', 'classroom', 'lab', 'sports_field', 'auditorium', 'meeting_room', 'outdoor', 'other'] }).notNull().default('other'),
+  capacity: integer('capacity'),
+  location: text('location'),
+  facilities: text('facilities', { mode: 'json' }).default('[]'), // e.g. ['projector', 'ac', 'sound_system']
+  status: text('status', { enum: ['available', 'maintenance', 'retired'] }).notNull().default('available'),
+  notes: text('notes'),
+  ...timestamps,
+});
+
 // ═══════════════════════════════════════════════════════
 // MODULE 13: CLASSROOM TOOLS & TEACHING AIDS
 // ═══════════════════════════════════════════════════════

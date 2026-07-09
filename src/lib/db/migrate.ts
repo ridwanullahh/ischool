@@ -557,6 +557,19 @@ export function migrate() {
       is_recurring INTEGER DEFAULT 0, recurrence_rule TEXT, audience TEXT DEFAULT '[]',
       rsvp_required INTEGER DEFAULT 0, image_url TEXT, created_at INTEGER, updated_at INTEGER
     );
+    CREATE TABLE IF NOT EXISTS event_rsvps (
+      id INTEGER PRIMARY KEY AUTOINCREMENT, event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      response TEXT NOT NULL, number_of_guests INTEGER DEFAULT 0, notes TEXT,
+      created_at INTEGER, updated_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS venues (
+      id INTEGER PRIMARY KEY AUTOINCREMENT, school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      name TEXT NOT NULL, type TEXT NOT NULL DEFAULT 'other',
+      capacity INTEGER, location TEXT, facilities TEXT DEFAULT '[]',
+      status TEXT NOT NULL DEFAULT 'available', notes TEXT,
+      created_at INTEGER, updated_at INTEGER
+    );
     CREATE TABLE IF NOT EXISTS behavior_logs (
       id INTEGER PRIMARY KEY AUTOINCREMENT, school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
       student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
