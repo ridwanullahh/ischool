@@ -1,8 +1,20 @@
 ---
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { getUserSchoolId } from '../../lib/school.js';
+import { getDb } from '../../lib/db/index.js';
+import { academicPeriods, bellSchedules } from '../../lib/db/schema.js';
+import { eq, desc } from 'drizzle-orm';
 
-const user = Astro.locals.user;
+const user = Astro.locals.user!;
 if (!user) return Astro.redirect('/auth/login');
+const schoolId = getUserSchoolId(user.id);
+if (!schoolId) return Astro.redirect('/dashboard');
+const db = getDb();
+
+const periods = schoolId ? db.select().from(academicPeriods).where(eq(academicPeriods.schoolId, schoolId)).orderBy(desc(academicPeriods.createdAt)).all() : [];
+const bellScheds = schoolId ? db.select().from(bellSchedules).where(eq(bellSchedules.schoolId, schoolId)).all() : [];
+const formatDate = (d: any) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+const statusColors: Record<string, string> = { draft: 'bg-gray-100 text-gray-600', active: 'bg-green-100 text-green-700', completed: 'bg-blue-100 text-blue-700', scheduled: 'bg-amber-100 text-amber-700' };
 ---
 
 <DashboardLayout title="Academic Periods - iSchool">
@@ -10,58 +22,145 @@ if (!user) return Astro.redirect('/auth/login');
     <div class="flex items-center justify-between">
       <div>
         <h2 class="text-2xl font-bold text-gray-900">Academic Periods</h2>
-        <p class="text-sm text-gray-500 mt-1">Define class periods, break times, and the daily academic schedule structure.</p>
+        <p class="text-sm text-gray-500 mt-1">Define academic years, terms, and semesters.</p>
       </div>
-      <div class="flex items-center gap-2">
-        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-          <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-          Module Active
-        </span>
-      </div>
+      <button onclick="document.getElementById('periodModal').classList.remove('hidden')" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">New Period</button>
     </div>
 
-    <div class="bg-white rounded-2xl border border-gray-200 p-12 text-center">
-      <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-primary-50 to-primary-100 mb-6">
-        <svg class="w-10 h-10 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-        </svg>
-      </div>
-      <h3 class="text-xl font-bold text-gray-900 mb-2">Academic Periods Module</h3>
-      <p class="text-sm text-gray-500 max-w-md mx-auto mb-6">Define class periods, break times, and the daily academic schedule structure. This module is being prepared. You can configure settings now — full functionality will be available soon.</p>
-      <div class="flex items-center justify-center gap-3">
-        <button onclick="window.history.back()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Go Back</button>
-        <a href="/dashboard" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">Dashboard Home</a>
-      </div>
+    <!-- Academic Periods -->
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <h3 class="text-base font-semibold text-gray-900 mb-4">Academic Years & Terms</h3>
+      {periods.length > 0 ? (
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50"><tr class="text-left text-xs text-gray-500 uppercase"><th class="px-4 py-3">Name</th><th class="px-4 py-3">Type</th><th class="px-4 py-3">Start Date</th><th class="px-4 py-3">End Date</th><th class="px-4 py-3">Status</th><th class="px-4 py-3">Actions</th></tr></thead>
+            <tbody class="divide-y divide-gray-200">
+              {periods.map(p => (
+                <tr class="hover:bg-gray-50">
+                  <td class="px-4 py-3 font-medium text-gray-900">{p.name}</td>
+                  <td class="px-4 py-3 text-gray-600 capitalize">{p.type || 'term'}</td>
+                  <td class="px-4 py-3 text-gray-600">{formatDate(p.startDate)}</td>
+                  <td class="px-4 py-3 text-gray-600">{formatDate(p.endDate)}</td>
+                  <td class="px-4 py-3"><span class={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${statusColors[p.status] || 'bg-gray-100 text-gray-600'}`}>{p.status || 'draft'}</span></td>
+                  <td class="px-4 py-3"><button onclick={`deletePeriod(${p.id})`} class="text-xs text-red-600 font-medium">Delete</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (<p class="text-sm text-gray-500 text-center py-8">No academic periods yet. Create one to get started.</p>)}
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div class="bg-white rounded-xl border border-gray-200 p-5">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
-            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-          </div>
-          <h4 class="font-semibold text-gray-900 text-sm">Configuration Ready</h4>
-        </div>
-        <p class="text-xs text-gray-500">Module settings can be configured. Changes will be saved and applied when the module is fully activated.</p>
+    <!-- Bell Schedules -->
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-base font-semibold text-gray-900">Bell Schedules</h3>
+        <button onclick="document.getElementById('bellModal').classList.remove('hidden')" class="text-xs text-primary-600 font-medium">+ New Bell Schedule</button>
       </div>
-      <div class="bg-white rounded-xl border border-gray-200 p-5">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
-            <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          </div>
-          <h4 class="font-semibold text-gray-900 text-sm">Coming Soon</h4>
+      {bellScheds.length > 0 ? (
+        <div class="space-y-3">
+          {bellScheds.map(b => {
+            let periodsList: any[] = [];
+            try { periodsList = typeof b.periods === 'string' ? JSON.parse(b.periods) : b.periods; } catch {}
+            return (
+              <div class="border rounded-lg p-4">
+                <div class="flex items-center justify-between mb-2">
+                  <h4 class="font-semibold text-sm text-gray-900">{b.name || 'Bell Schedule'}</h4>
+                  <button onclick={`deleteBell(${b.id})`} class="text-xs text-red-600 font-medium">Delete</button>
+                </div>
+                {Array.isArray(periodsList) && periodsList.length > 0 && (
+                  <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
+                    {periodsList.map((per, i) => (
+                      <div class="text-xs bg-gray-50 rounded p-2"><span class="font-medium text-gray-700">P{i + 1}</span>: {per.start || ''} - {per.end || ''}</div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
-        <p class="text-xs text-gray-500">Full module functionality is under development. Contact support if you need this feature urgently.</p>
-      </div>
-      <div class="bg-white rounded-xl border border-gray-200 p-5">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          </div>
-          <h4 class="font-semibold text-gray-900 text-sm">Need Help?</h4>
-        </div>
-        <p class="text-xs text-gray-500">Check the documentation or contact support for guidance on using this module.</p>
-      </div>
+      ) : (<p class="text-sm text-gray-500 text-center py-4">No bell schedules yet.</p>)}
     </div>
   </div>
+
+  <!-- Period Modal -->
+  <div id="periodModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-6 max-w-md w-full">
+      <h3 class="text-lg font-bold text-gray-900 mb-4">New Academic Period</h3>
+      <form id="periodForm" class="space-y-3">
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">Name *</label><input name="name" required placeholder="e.g. Fall 2026-2027" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /></div>
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">Type</label><select name="type" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"><option value="year">Academic Year</option><option value="term">Term/Semester</option><option value="quarter">Quarter</option></select></div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="block text-xs font-medium text-gray-700 mb-1">Start Date *</label><input name="startDate" type="date" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /></div>
+          <div><label class="block text-xs font-medium text-gray-700 mb-1">End Date *</label><input name="endDate" type="date" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /></div>
+        </div>
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">Status</label><select name="status" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"><option value="draft">Draft</option><option value="active">Active</option><option value="scheduled">Scheduled</option><option value="completed">Completed</option></select></div>
+        <div class="flex gap-3 pt-2">
+          <button type="button" onclick="document.getElementById('periodModal').classList.add('hidden')" class="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg">Cancel</button>
+          <button type="submit" class="flex-1 px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg">Create</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Bell Schedule Modal -->
+  <div id="bellModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+      <h3 class="text-lg font-bold text-gray-900 mb-4">New Bell Schedule</h3>
+      <form id="bellForm" class="space-y-3">
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">Name *</label><input name="name" required placeholder="e.g. Regular Day" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /></div>
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">Periods (add start-end times)</label>
+          <div id="periodRows" class="space-y-2">
+            <div class="flex gap-2"><input type="time" name="periodStart" class="px-2 py-1.5 border border-gray-300 rounded text-sm" /><span class="self-center text-gray-400">-</span><input type="time" name="periodEnd" class="px-2 py-1.5 border border-gray-300 rounded text-sm" /></div>
+          </div>
+          <button type="button" onclick="addPeriodRow()" class="text-xs text-primary-600 font-medium mt-2">+ Add Period</button>
+        </div>
+        <div class="flex gap-3 pt-2">
+          <button type="button" onclick="document.getElementById('bellModal').classList.add('hidden')" class="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg">Cancel</button>
+          <button type="submit" class="flex-1 px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg">Create</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script is:inline set:html={`(function(){
+    var periodRowIdx = 1;
+    window.addPeriodRow = function() {
+      var container = document.getElementById('periodRows');
+      var row = document.createElement('div');
+      row.className = 'flex gap-2';
+      row.innerHTML = '<input type="time" name="periodStart" class="px-2 py-1.5 border border-gray-300 rounded text-sm" /><span class="self-center text-gray-400">-</span><input type="time" name="periodEnd" class="px-2 py-1.5 border border-gray-300 rounded text-sm" /><button type="button" onclick="this.parentElement.remove()" class="text-red-500 text-xs">x</button>';
+      container.appendChild(row);
+      periodRowIdx++;
+    };
+
+    document.getElementById('periodForm')?.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      var fd = new FormData(this);
+      var res = await fetch('/api/dashboard/timetable', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'create_period', name: fd.get('name'), type: fd.get('type'), startDate: fd.get('startDate'), endDate: fd.get('endDate'), status: fd.get('status') }) });
+      if (res.ok) window.location.reload();
+    });
+
+    document.getElementById('bellForm')?.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      var starts = this.querySelectorAll('[name="periodStart"]');
+      var ends = this.querySelectorAll('[name="periodEnd"]');
+      var periods = [];
+      for (var i = 0; i < starts.length; i++) { if (starts[i].value && ends[i].value) periods.push({ start: starts[i].value, end: ends[i].value }); }
+      var name = this.querySelector('[name="name"]').value;
+      var res = await fetch('/api/dashboard/timetable', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'create_bell', name: name, periods: periods }) });
+      if (res.ok) window.location.reload();
+    });
+
+    window.deletePeriod = async function(id) {
+      if (!confirm('Delete this academic period?')) return;
+      await fetch('/api/dashboard/timetable', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'delete_period', id: id }) });
+      window.location.reload();
+    };
+    window.deleteBell = async function(id) {
+      if (!confirm('Delete this bell schedule?')) return;
+      await fetch('/api/dashboard/timetable', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'delete_bell', id: id }) });
+      window.location.reload();
+    };
+  })();`} />
 </DashboardLayout>

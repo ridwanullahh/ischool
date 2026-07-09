@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { getDb } from '../../../lib/db/index.js';
-import { timetableEntries, classes, courses, users, schoolMembers } from '../../../lib/db/schema.js';
+import { timetableEntries, classes, courses, users, schoolMembers, academicPeriods, bellSchedules } from '../../../lib/db/schema.js';
 import { eq, and } from 'drizzle-orm';
 import { toCsv, csvResponse, type CsvColumn } from '../../../lib/export.js';
 
@@ -108,6 +108,25 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }).returning().get();
 
   return new Response(JSON.stringify(result), { status: 201, headers: { 'Content-Type': 'application/json' } });
+
+  // Academic Periods & Bell Schedules
+  if (action === 'create_period') {
+    db.insert(academicPeriods).values({ schoolId, name: data.name, type: data.type || 'term', startDate: data.startDate, endDate: data.endDate, status: data.status || 'draft' } as any).run();
+    return new Response(JSON.stringify({ success: true }), { headers: { 'Content-Type': 'application/json' } });
+  }
+  if (action === 'delete_period') {
+    db.delete(academicPeriods).where(and(eq(academicPeriods.id, data.id), eq(academicPeriods.schoolId, schoolId))).run();
+    return new Response(JSON.stringify({ success: true }), { headers: { 'Content-Type': 'application/json' } });
+  }
+  if (action === 'create_bell') {
+    db.insert(bellSchedules).values({ schoolId, name: data.name, periods: data.periods as any } as any).run();
+    return new Response(JSON.stringify({ success: true }), { headers: { 'Content-Type': 'application/json' } });
+  }
+  if (action === 'delete_bell') {
+    db.delete(bellSchedules).where(and(eq(bellSchedules.id, data.id), eq(bellSchedules.schoolId, schoolId))).run();
+    return new Response(JSON.stringify({ success: true }), { headers: { 'Content-Type': 'application/json' } });
+  }
+
 };
 
 export const PUT: APIRoute = async ({ request, locals }) => {
