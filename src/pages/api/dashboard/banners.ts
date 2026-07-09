@@ -4,6 +4,7 @@ import { getUserSchoolId } from '../../../lib/school.js';
 import { getDb } from '../../../lib/db/index.js';
 import { banners } from '../../../lib/db/schema.js';
 import { eq, and } from 'drizzle-orm';
+import { guardPermission } from '../../../lib/rbac.js';
 
 export const POST: APIRoute = async ({ request }) => {
   const sid = getSessionIdFromCookie(request);

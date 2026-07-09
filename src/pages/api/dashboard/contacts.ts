@@ -4,6 +4,7 @@ import { getDb } from '../../../lib/db/index.js';
 import { contactInfo } from '../../../lib/db/schema.js';
 import { eq } from 'drizzle-orm';
 import { getSessionIdFromCookie, validateSession } from '../../../lib/auth.js';
+import { guardPermission } from '../../../lib/rbac.js';
 
 export const POST: APIRoute = async ({ request }) => {
   const form = await request.formData();

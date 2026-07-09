@@ -3,6 +3,7 @@ import { getDb } from '../../../lib/db/index.js';
 import { hostels, hostelRooms, schoolMembers } from '../../../lib/db/schema.js';
 import { eq } from 'drizzle-orm';
 import { toCsv, csvResponse, type CsvColumn } from '../../../lib/export.js';
+import { guardPermission } from '../../../lib/rbac.js';
 
 async function getUserSchoolId(userId: number) {
   const db = getDb();
@@ -13,6 +14,8 @@ async function getUserSchoolId(userId: number) {
 export const GET: APIRoute = async ({ locals, url }) => {
   const user = (locals as any).user;
   if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+  const denied = guardPermission(user, 'hostel.view');
+  if (denied) return denied;
   const db = getDb();
   const schoolId = await getUserSchoolId(user.id);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 403 });
@@ -41,6 +44,8 @@ export const GET: APIRoute = async ({ locals, url }) => {
 export const POST: APIRoute = async ({ request, locals }) => {
   const user = (locals as any).user;
   if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+  const denied = guardPermission(user, 'hostel.create');
+  if (denied) return denied;
   const db = getDb();
   const schoolId = await getUserSchoolId(user.id);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 403 });
@@ -63,6 +68,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
 export const DELETE: APIRoute = async ({ request, locals }) => {
   const user = (locals as any).user;
   if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+  const denied = guardPermission(user, 'hostel.delete');
+  if (denied) return denied;
   const db = getDb();
   const schoolId = await getUserSchoolId(user.id);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 403 });

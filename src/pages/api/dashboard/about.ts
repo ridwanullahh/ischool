@@ -3,6 +3,7 @@ import { getUserSchoolId } from '../../../lib/school.js';
 import { getDb } from '../../../lib/db/index.js';
 import { aboutPages } from '../../../lib/db/schema.js';
 import { eq } from 'drizzle-orm';
+import { guardPermission } from '../../../lib/rbac.js';
 
 export const POST: APIRoute = async ({ request, redirect }) => {
   const user = (request as any).__user;

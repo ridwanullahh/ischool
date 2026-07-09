@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { getDb } from '../../../lib/db/index.js';
 import { examSeries, schoolMembers } from '../../../lib/db/schema.js';
 import { eq } from 'drizzle-orm';
+import { guardPermission } from '../../../lib/rbac.js';
 
 async function getUserSchoolId(userId: number) {
   const db = getDb();
@@ -12,6 +13,8 @@ async function getUserSchoolId(userId: number) {
 export const GET: APIRoute = async ({ locals }) => {
   const user = (locals as any).user;
   if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+  const denied = guardPermission(user, 'exams.view');
+  if (denied) return denied;
   const db = getDb();
   const schoolId = await getUserSchoolId(user.id);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 403 });
@@ -23,6 +26,8 @@ export const GET: APIRoute = async ({ locals }) => {
 export const POST: APIRoute = async ({ request, locals }) => {
   const user = (locals as any).user;
   if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+  const denied = guardPermission(user, 'exams.create');
+  if (denied) return denied;
   const db = getDb();
   const schoolId = await getUserSchoolId(user.id);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 403 });
@@ -43,6 +48,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
 export const PUT: APIRoute = async ({ request, locals }) => {
   const user = (locals as any).user;
   if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+  const denied = guardPermission(user, 'exams.edit');
+  if (denied) return denied;
   const db = getDb();
   const schoolId = await getUserSchoolId(user.id);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 403 });
@@ -63,6 +70,8 @@ export const PUT: APIRoute = async ({ request, locals }) => {
 export const DELETE: APIRoute = async ({ request, locals }) => {
   const user = (locals as any).user;
   if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+  const denied = guardPermission(user, 'exams.delete');
+  if (denied) return denied;
   const db = getDb();
   const schoolId = await getUserSchoolId(user.id);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 403 });

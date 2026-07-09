@@ -4,6 +4,7 @@ import { getUserSchoolId } from '../../../lib/school.js';
 import { getDb } from '../../../lib/db/index.js';
 import { socialAccounts, socialPosts, socialComments } from '../../../lib/db/schema.js';
 import { eq, desc, sql, and } from 'drizzle-orm';
+import { guardPermission } from '../../../lib/rbac.js';
 
 export const GET: APIRoute = async ({ request, locals }) => {
   const user = locals.user;

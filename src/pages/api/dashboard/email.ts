@@ -4,6 +4,7 @@ import { getUserSchoolId, getUserSchool } from '../../../lib/school.js';
 import { getDb } from '../../../lib/db/index.js';
 import { emailLists, emailSubscribers, emailCampaigns, emailCampaignStats, emailTemplates } from '../../../lib/db/schema.js';
 import { eq, desc, sql } from 'drizzle-orm';
+import { guardPermission } from '../../../lib/rbac.js';
 
 export const GET: APIRoute = async ({ request, locals }) => {
   const user = locals.user;

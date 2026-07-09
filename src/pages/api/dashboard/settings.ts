@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro';
+import { guardPermission } from '../../../lib/rbac.js';
 import { getUserSchoolId } from '../../../lib/school.js';
 import { getDb } from '../../../lib/db/index.js';
 import { schools } from '../../../lib/db/schema.js';

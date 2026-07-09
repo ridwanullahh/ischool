@@ -4,6 +4,7 @@ import { getDb } from '../../../lib/db/index.js';
 import { classes, programs, faqs, galleryItems } from '../../../lib/db/schema.js';
 import { eq, and } from 'drizzle-orm';
 import { getSessionIdFromCookie, validateSession } from '../../../lib/auth.js';
+import { guardPermission } from '../../../lib/rbac.js';
 
 const tableMap = { classes, programs, faqs, gallery: galleryItems } as const;
 

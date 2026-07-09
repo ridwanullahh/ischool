@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro';
+import { guardPermission } from '../../../lib/rbac.js';
 import { getDb } from '../../../lib/db/index.js';
 import {
   aiProviders, aiApiKeys, aiModels, aiConversations, aiMessages, aiSettings,
@@ -474,6 +475,8 @@ function executeTool(toolName: string, args: any, schoolId: number): string {
 export const GET: APIRoute = async ({ locals, url }) => {
   const user = (locals as any).user;
   if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+  const denied = guardPermission(user, 'platform.settings');
+  if (denied) return denied;
   const schoolId = getUserSchoolId(user.id);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 404 });
   const db = getDb();
@@ -508,6 +511,8 @@ export const GET: APIRoute = async ({ locals, url }) => {
 export const POST: APIRoute = async ({ request, locals }) => {
   const user = (locals as any).user;
   if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+  const denied = guardPermission(user, 'platform.settings');
+  if (denied) return denied;
   const schoolId = getUserSchoolId(user.id);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 404 });
   const db = getDb();
@@ -755,6 +760,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
 export const DELETE: APIRoute = async ({ request, locals }) => {
   const user = (locals as any).user;
   if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+  const denied = guardPermission(user, 'platform.settings');
+  if (denied) return denied;
   const schoolId = getUserSchoolId(user.id);
   const { id } = await request.json();
   if (!id) return new Response(JSON.stringify({ error: 'id required' }), { status: 400 });

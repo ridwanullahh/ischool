@@ -4,6 +4,7 @@ import { leaveRequests, staff, schoolMembers, users } from '../../../lib/db/sche
 import { eq, and, desc } from 'drizzle-orm';
 import { toCsv, csvResponse, type CsvColumn } from '../../../lib/export.js';
 import { notifyLeaveStatusChanged } from '../../../lib/notifications.js';
+import { guardPermission } from '../../../lib/rbac.js';
 
 function getUserSchoolId(userId: number): number | null {
   const db = getDb();
@@ -14,6 +15,8 @@ function getUserSchoolId(userId: number): number | null {
 export const GET: APIRoute = async ({ locals, url }) => {
   const user = (locals as any).user;
   if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+  const denied = guardPermission(user, 'hr.view');
+  if (denied) return denied;
   const schoolId = getUserSchoolId(user.id);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 404 });
 
@@ -94,6 +97,8 @@ export const GET: APIRoute = async ({ locals, url }) => {
 export const POST: APIRoute = async ({ request, locals }) => {
   const user = (locals as any).user;
   if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+  const denied = guardPermission(user, 'hr.create');
+  if (denied) return denied;
   const schoolId = getUserSchoolId(user.id);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 404 });
 
@@ -119,6 +124,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
 export const PUT: APIRoute = async ({ request, locals }) => {
   const user = (locals as any).user;
   if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+  const denied = guardPermission(user, 'hr.edit');
+  if (denied) return denied;
   const schoolId = getUserSchoolId(user.id);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 404 });
 
@@ -150,6 +157,8 @@ export const PUT: APIRoute = async ({ request, locals }) => {
 export const DELETE: APIRoute = async ({ request, locals }) => {
   const user = (locals as any).user;
   if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+  const denied = guardPermission(user, 'hr.delete');
+  if (denied) return denied;
   const schoolId = getUserSchoolId(user.id);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 404 });
 

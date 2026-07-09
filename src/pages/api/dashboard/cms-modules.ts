@@ -4,6 +4,7 @@ import { getUserSchoolId } from '../../../lib/school.js';
 import { getDb } from '../../../lib/db/index.js';
 import { moduleSettings } from '../../../lib/db/schema.js';
 import { eq, and } from 'drizzle-orm';
+import { guardPermission } from '../../../lib/rbac.js';
 
 // CMS post types that can be enabled/disabled
 export const CMS_POST_TYPES = [
