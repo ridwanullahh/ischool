@@ -48,11 +48,13 @@ const num = (v: string | null) => v ? Number(v) : 0;
 export const POST: APIRoute = createCrudHandler(classes, {
   name: str,
   slug: str,
+  section: nullable,
   description: nullable,
   content: nullable,
   gradeLevel: nullable,
   teacherName: nullable,
   capacity: (v) => v ? Number(v) : null,
+  homeroomTeacherId: (v) => v ? Number(v) : null,
   imageUrl: nullable,
   hasDetailPage: (v) => v === 'on' || v === 'true',
   sortOrder: num,

@@ -107,11 +107,48 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 404 });
 
   const data = await request.json();
+  const db = getDb();
+
+  // Bulk attendance: { action: 'bulk', date, period?, records: [{ studentId, status, notes? }] }
+  if (data.action === 'bulk') {
+    if (!data.date || !Array.isArray(data.records)) {
+      return new Response(JSON.stringify({ error: 'date and records array are required' }), { status: 400 });
+    }
+    let inserted = 0, updated = 0;
+    for (const r of data.records) {
+      if (!r.studentId || !r.status) continue;
+      // Check if attendance already exists for student+date+period
+      const existing = db.select().from(attendance).where(and(
+        eq(attendance.schoolId, schoolId),
+        eq(attendance.studentId, r.studentId),
+        eq(attendance.date, data.date),
+        r.period ? eq(attendance.period, r.period) : eq(attendance.id, 0),
+      )).get();
+      if (existing) {
+        db.update(attendance).set({
+          status: r.status, notes: r.notes || null, markedBy: user.id, updatedAt: new Date(),
+        }).where(eq(attendance.id, existing.id)).run();
+        updated++;
+      } else {
+        db.insert(attendance).values({
+          schoolId, studentId: r.studentId, date: data.date,
+          period: data.period || null, status: r.status, markedBy: user.id,
+          notes: r.notes || null,
+        }).run();
+        inserted++;
+        if (r.status === 'absent') {
+          const student = db.select().from(students).where(eq(students.id, r.studentId)).get();
+          if (student) notifyAttendanceAlert(schoolId, `${student.firstName} ${student.lastName}`, data.date).catch(() => {});
+        }
+      }
+    }
+    return new Response(JSON.stringify({ success: true, inserted, updated }), { status: 201, headers: { 'Content-Type': 'application/json' } });
+  }
+
   if (!data.studentId || !data.date || !data.status) {
     return new Response(JSON.stringify({ error: 'studentId, date, and status are required' }), { status: 400 });
   }
 
-  const db = getDb();
   const result = db.insert(attendance).values({
     schoolId,
     studentId: data.studentId,

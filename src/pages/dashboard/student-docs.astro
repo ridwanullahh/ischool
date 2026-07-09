@@ -1,67 +1,220 @@
 ---
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { getUserSchoolId } from '../../lib/school.js';
+import { getDb } from '../../lib/db/index.js';
+import { studentDocuments, students } from '../../lib/db/schema.js';
+import { eq } from 'drizzle-orm';
 
-const user = Astro.locals.user;
+const user = Astro.locals.user!;
 if (!user) return Astro.redirect('/auth/login');
+const schoolId = getUserSchoolId(user.id);
+if (!schoolId) return Astro.redirect('/dashboard');
+const db = getDb();
+
+const docs = db.select({
+  id: studentDocuments.id,
+  studentId: studentDocuments.studentId,
+  studentName: students.firstName,
+  studentLastName: students.lastName,
+  studentIdCode: students.studentId,
+  category: studentDocuments.category,
+  title: studentDocuments.title,
+  fileUrl: studentDocuments.fileUrl,
+  fileName: studentDocuments.fileName,
+  fileType: studentDocuments.fileType,
+  createdAt: studentDocuments.createdAt,
+}).from(studentDocuments)
+  .leftJoin(students, eq(studentDocuments.studentId, students.id))
+  .where(eq(studentDocuments.schoolId, schoolId)).all();
+
+const allStudents = db.select({ id: students.id, name: students.firstName, lastName: students.lastName, sid: students.studentId })
+  .from(students).where(eq(students.schoolId, schoolId)).all();
+
+const categoryLabels: Record<string, string> = {
+  birth_certificate: 'Birth Certificate', passport: 'Passport', health_record: 'Health Record',
+  transfer_certificate: 'Transfer Certificate', report_card: 'Report Card', id_card: 'ID Card', other: 'Other',
+};
+const categoryColors: Record<string, string> = {
+  birth_certificate: 'bg-blue-50 text-blue-700 border-blue-200', passport: 'bg-purple-50 text-purple-700 border-purple-200',
+  health_record: 'bg-emerald-50 text-emerald-700 border-emerald-200', transfer_certificate: 'bg-amber-50 text-amber-700 border-amber-200',
+  report_card: 'bg-indigo-50 text-indigo-700 border-indigo-200', id_card: 'bg-gray-50 text-gray-700 border-gray-200',
+  other: 'bg-gray-50 text-gray-700 border-gray-200',
+};
+const formatDate = (d: any) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+const fileIcon = (ft: string) => {
+  if (!ft) return '📄';
+  if (ft.includes('pdf')) return '📕';
+  if (ft.includes('image')) return '🖼️';
+  if (ft.includes('word') || ft.includes('document')) return '📘';
+  if (ft.includes('sheet') || ft.includes('excel')) return '📗';
+  return '📄';
+};
 ---
 
 <DashboardLayout title="Student Documents - iSchool">
   <div class="space-y-6">
     <div class="flex items-center justify-between">
       <div>
-        <h2 class="text-2xl font-bold text-gray-900">Student Documents</h2>
-        <p class="text-sm text-gray-500 mt-1">Upload and manage student documents — birth certificates, transcripts, ID cards.</p>
+        <h2 class="text-2xl font-bold text-gray-900">Document Vault</h2>
+        <p class="text-sm text-gray-500 mt-1">Centralized document repository per student — birth certificates, passports, health records, transfer certificates, report cards, ID cards, and more.</p>
       </div>
-      <div class="flex items-center gap-2">
-        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-          <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-          Module Active
-        </span>
-      </div>
+      <button onclick="openModal()" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">+ Upload Document</button>
     </div>
 
-    <div class="bg-white rounded-2xl border border-gray-200 p-12 text-center">
-      <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-primary-50 to-primary-100 mb-6">
-        <svg class="w-10 h-10 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-        </svg>
-      </div>
-      <h3 class="text-xl font-bold text-gray-900 mb-2">Student Documents Module</h3>
-      <p class="text-sm text-gray-500 max-w-md mx-auto mb-6">Upload and manage student documents — birth certificates, transcripts, ID cards. This module is being prepared. You can configure settings now — full functionality will be available soon.</p>
-      <div class="flex items-center justify-center gap-3">
-        <button onclick="window.history.back()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Go Back</button>
-        <a href="/dashboard" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">Dashboard Home</a>
-      </div>
+    <!-- Filter bar -->
+    <div class="bg-white rounded-xl border border-gray-200 p-4 flex flex-col sm:flex-row gap-3">
+      <input id="searchInput" type="text" placeholder="Search by student or title..." class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm" oninput="filterDocs()" />
+      <select id="categoryFilter" class="px-3 py-2 border border-gray-300 rounded-lg text-sm" onchange="filterDocs()">
+        <option value="">All Categories</option>
+        {Object.entries(categoryLabels).map(([k, v]) => <option value={k}>{v}</option>)}
+      </select>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div class="bg-white rounded-xl border border-gray-200 p-5">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
-            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-          </div>
-          <h4 class="font-semibold text-gray-900 text-sm">Configuration Ready</h4>
-        </div>
-        <p class="text-xs text-gray-500">Module settings can be configured. Changes will be saved and applied when the module is fully activated.</p>
+    <!-- Documents grid -->
+    {docs.length === 0 ? (
+      <div class="bg-white rounded-xl border border-gray-200 p-12 text-center">
+        <div class="text-4xl mb-3">📁</div>
+        <h3 class="text-lg font-semibold text-gray-900 mb-1">No documents uploaded yet</h3>
+        <p class="text-sm text-gray-500 mb-4">Upload birth certificates, health records, passports, and other student documents.</p>
+        <button onclick="openModal()" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg">+ Upload First Document</button>
       </div>
-      <div class="bg-white rounded-xl border border-gray-200 p-5">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
-            <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    ) : (
+      <div id="docsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {docs.map(d => (
+          <div class="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition doc-card" data-student={`${d.studentName || ''} ${d.studentLastName || ''}`.toLowerCase()} data-title={(d.title || '').toLowerCase()} data-category={d.category}>
+            <div class="flex items-start gap-3">
+              <div class="text-3xl">{fileIcon(d.fileType || '')}</div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class={`text-[10px] font-bold uppercase px-2 py-0.5 rounded border ${categoryColors[d.category] || categoryColors.other}`}>{categoryLabels[d.category] || d.category}</span>
+                </div>
+                <h4 class="font-semibold text-sm text-gray-900 truncate">{d.title}</h4>
+                <p class="text-xs text-gray-500 mt-0.5">{d.studentName} {d.studentLastName} ({d.studentIdCode})</p>
+                <p class="text-xs text-gray-400 mt-1">Uploaded {formatDate(d.createdAt)}</p>
+                <div class="flex gap-2 mt-2">
+                  <a href={d.fileUrl} target="_blank" class="text-xs text-primary-600 font-medium">View</a>
+                  <a href={d.fileUrl} download={d.fileName || ''} class="text-xs text-green-600 font-medium">Download</a>
+                  <button onclick={`editDoc(${d.id})`} class="text-xs text-amber-600 font-medium">Edit</button>
+                  <button onclick={`deleteDoc(${d.id})`} class="text-xs text-red-600 font-medium">Delete</button>
+                </div>
+              </div>
+            </div>
           </div>
-          <h4 class="font-semibold text-gray-900 text-sm">Coming Soon</h4>
-        </div>
-        <p class="text-xs text-gray-500">Full module functionality is under development. Contact support if you need this feature urgently.</p>
+        ))}
       </div>
-      <div class="bg-white rounded-xl border border-gray-200 p-5">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    )}
+  </div>
+
+  <!-- Upload Modal -->
+  <div id="docModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+      <h3 class="text-lg font-bold text-gray-900 mb-4" id="modalTitle">Upload Document</h3>
+      <form id="docForm" class="space-y-3">
+        <input type="hidden" name="id" />
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">Student *</label>
+          <select name="studentId" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+            <option value="">Select student…</option>
+            {allStudents.map(s => <option value={s.id}>{s.name} {s.lastName} ({s.sid})</option>)}
+          </select>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="block text-xs font-medium text-gray-700 mb-1">Category *</label>
+            <select name="category" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+              {Object.entries(categoryLabels).map(([k, v]) => <option value={k}>{v}</option>)}
+            </select>
           </div>
-          <h4 class="font-semibold text-gray-900 text-sm">Need Help?</h4>
+          <div><label class="block text-xs font-medium text-gray-700 mb-1">Title *</label><input name="title" required placeholder="e.g. Birth Certificate 2020" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /></div>
         </div>
-        <p class="text-xs text-gray-500">Check the documentation or contact support for guidance on using this module.</p>
-      </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-700 mb-1">File *</label>
+          <input name="file" type="file" required class="w-full text-sm" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp" onchange="previewFile(this)" />
+          <p class="text-xs text-gray-500 mt-1">PDF, DOC, JPG, PNG accepted. Max 10MB.</p>
+          <div id="filePreview" class="hidden mt-2 text-xs text-gray-600 bg-gray-50 rounded p-2"></div>
+        </div>
+        <div class="flex gap-3 pt-2">
+          <button type="button" onclick="closeModal()" class="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg">Cancel</button>
+          <button type="submit" class="flex-1 px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg">Save</button>
+        </div>
+      </form>
     </div>
   </div>
+
+  <script is:inline define:vars={{ docs }} set:html={`(function(){
+    var allDocs = docs;
+    window.openModal = function() {
+      var form = document.getElementById('docForm');
+      form.reset(); form.id.value = '';
+      document.getElementById('modalTitle').textContent = 'Upload Document';
+      document.getElementById('docModal').classList.remove('hidden');
+    };
+    window.closeModal = function() { document.getElementById('docModal').classList.add('hidden'); };
+    window.previewFile = function(input) {
+      var preview = document.getElementById('filePreview');
+      if (input.files && input.files[0]) {
+        var file = input.files[0];
+        preview.textContent = file.name + ' (' + (file.size/1024).toFixed(1) + ' KB)';
+        preview.classList.remove('hidden');
+      }
+    };
+    window.editDoc = function(id) {
+      var d = allDocs.find(function(x){ return x.id === id; });
+      if (!d) return;
+      var form = document.getElementById('docForm');
+      form.id.value = d.id;
+      form.studentId.value = d.studentId;
+      form.category.value = d.category;
+      form.title.value = d.title || '';
+      // File is required only on create — make optional on edit
+      form.file.removeAttribute('required');
+      document.getElementById('modalTitle').textContent = 'Edit Document';
+      document.getElementById('docModal').classList.remove('hidden');
+    };
+    window.deleteDoc = async function(id) {
+      if (!confirm('Delete this document record? The file itself will remain on storage.')) return;
+      await fetch('/api/dashboard/student-documents', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id }) });
+      window.location.reload();
+    };
+    window.filterDocs = function() {
+      var q = document.getElementById('searchInput').value.toLowerCase();
+      var c = document.getElementById('categoryFilter').value;
+      document.querySelectorAll('.doc-card').forEach(function(card) {
+        var matchQ = !q || card.dataset.student.indexOf(q) >= 0 || card.dataset.title.indexOf(q) >= 0;
+        var matchC = !c || card.dataset.category === c;
+        card.style.display = (matchQ && matchC) ? '' : 'none';
+      });
+    };
+    document.getElementById('docForm')?.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      var fd = new FormData(this);
+      var id = fd.get('id');
+      var fileInput = this.querySelector('[name="file"]');
+      var fileUrl, fileName, fileType;
+      if (fileInput.files && fileInput.files[0]) {
+        // Upload file first
+        var uploadFd = new FormData();
+        uploadFd.append('file', fileInput.files[0]);
+        uploadFd.append('folder', 'student-docs');
+        var uploadRes = await fetch('/api/upload', { method: 'POST', body: uploadFd });
+        if (!uploadRes.ok) { alert('File upload failed'); return; }
+        var uploadData = await uploadRes.json();
+        fileUrl = uploadData.url || uploadData.secure_url;
+        fileName = fileInput.files[0].name;
+        fileType = fileInput.files[0].type;
+      } else if (id) {
+        var existing = allDocs.find(function(x){ return x.id === parseInt(id); });
+        fileUrl = existing.fileUrl; fileName = existing.fileName; fileType = existing.fileType;
+      } else {
+        alert('Please select a file'); return;
+      }
+      var payload = {
+        studentId: fd.get('studentId'), category: fd.get('category'), title: fd.get('title'),
+        fileUrl: fileUrl, fileName: fileName, fileType: fileType,
+      };
+      var method = id ? 'PUT' : 'POST';
+      if (id) payload.id = parseInt(id);
+      var res = await fetch('/api/dashboard/student-documents', { method: method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      if (res.ok) window.location.reload();
+      else { var err = await res.json(); alert(err.error || 'Failed to save document'); }
+    });
+  })();`} />
 </DashboardLayout>
