@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { getDb } from '../../../lib/db/index.js';
-import { students, schoolMembers } from '../../../lib/db/schema.js';
+import { students, schoolMembers, auditLogs } from '../../../lib/db/schema.js';
 import { eq, and, like, or } from 'drizzle-orm';
 import { toCsv, csvResponse, type CsvColumn } from '../../../lib/export.js';
 import { parseCsv, validateImportRows } from '../../../lib/import.js';
@@ -10,6 +10,12 @@ function getUserSchoolId(userId: number): number | null {
   const db = getDb();
   const membership = db.select().from(schoolMembers).where(eq(schoolMembers.userId, userId)).get();
   return membership?.schoolId || null;
+}
+
+function logAudit(schoolId: number, userId: number, action: string, entityType: string, entityId: number | null, details?: string) {
+  try {
+    getDb().insert(auditLogs).values({ schoolId, userId, action, entityType, entityId, details, createdAt: new Date() }).run();
+  } catch {}
 }
 
 export const GET: APIRoute = async ({ locals, url }) => {
@@ -130,6 +136,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
     documents: (data.documents || []) as any,
   }).returning().get();
 
+  logAudit(schoolId, user.id, 'create', 'student', result.id, `Created student ${result.firstName} ${result.lastName} (${result.studentId})`);
+
   return new Response(JSON.stringify(result), { status: 201, headers: { 'Content-Type': 'application/json' } });
 };
 
@@ -156,6 +164,8 @@ export const PUT: APIRoute = async ({ request, locals }) => {
   db.update(students).set({ ...updateData, updatedAt: new Date() }).where(eq(students.id, id)).run();
   const updated = db.select().from(students).where(eq(students.id, id)).get();
 
+  logAudit(schoolId, user.id, 'update', 'student', id, `Updated student ${updated?.firstName} ${updated?.lastName}`);
+
   return new Response(JSON.stringify(updated), { headers: { 'Content-Type': 'application/json' } });
 };
 
@@ -174,5 +184,6 @@ export const DELETE: APIRoute = async ({ request, locals }) => {
   if (!existing) return new Response(JSON.stringify({ error: 'Student not found' }), { status: 404 });
 
   db.delete(students).where(eq(students.id, id)).run();
+  logAudit(schoolId, user.id, 'delete', 'student', id, `Deleted student ${existing.firstName} ${existing.lastName} (${existing.studentId})`);
   return new Response(JSON.stringify({ success: true }), { headers: { 'Content-Type': 'application/json' } });
 };
