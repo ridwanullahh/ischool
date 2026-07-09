@@ -1081,6 +1081,38 @@ export const transportBoarding = sqliteTable('transport_boarding', {
   ...timestamps,
 });
 
+// Vehicle maintenance / service log
+export const vehicleMaintenance = sqliteTable('vehicle_maintenance', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
+  vehicleId: integer('vehicle_id').notNull().references(() => vehicles.id, { onDelete: 'cascade' }),
+  serviceType: text('service_type', { enum: ['routine', 'repair', 'inspection', 'registration', 'insurance', 'other'] }).notNull().default('routine'),
+  description: text('description'),
+  serviceDate: text('service_date').notNull(),
+  nextServiceDate: text('next_service_date'),
+  odometer: integer('odometer'),
+  cost: integer('cost'),
+  serviceProvider: text('service_provider'),
+  status: text('status', { enum: ['scheduled', 'in_progress', 'completed', 'cancelled'] }).notNull().default('scheduled'),
+  notes: text('notes'),
+  ...timestamps,
+});
+
+// Vehicle document expiry tracking (driver license, insurance, registration)
+export const vehicleDocuments = sqliteTable('vehicle_documents', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
+  vehicleId: integer('vehicle_id').references(() => vehicles.id, { onDelete: 'cascade' }),
+  driverId: integer('driver_id').references(() => users.id),
+  documentType: text('document_type', { enum: ['driver_license', 'vehicle_registration', 'insurance', 'road_worthiness', 'permit', 'other'] }).notNull(),
+  documentNumber: text('document_number'),
+  issueDate: text('issue_date'),
+  expiryDate: text('expiry_date').notNull(),
+  fileUrl: text('file_url'),
+  notes: text('notes'),
+  ...timestamps,
+});
+
 // ═══════════════════════════════════════════════════════
 // MODULE 11: INVENTORY & ASSET MANAGEMENT
 // ═══════════════════════════════════════════════════════

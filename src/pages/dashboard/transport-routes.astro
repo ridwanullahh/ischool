@@ -1,8 +1,28 @@
 ---
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { getUserSchoolId } from '../../lib/school.js';
+import { getDb } from '../../lib/db/index.js';
+import { transportRoutes, vehicles, schoolMembers } from '../../lib/db/schema.js';
+import { eq, desc, sql } from 'drizzle-orm';
 
-const user = Astro.locals.user;
+const user = Astro.locals.user!;
 if (!user) return Astro.redirect('/auth/login');
+const schoolId = getUserSchoolId(user.id);
+if (!schoolId) return Astro.redirect('/dashboard');
+const db = getDb();
+
+const routes = db.select({
+  id: transportRoutes.id, name: transportRoutes.name, vehicleId: transportRoutes.vehicleId,
+  stops: transportRoutes.stops, schedule: transportRoutes.schedule, createdAt: transportRoutes.createdAt,
+  vehicleName: vehicles.name, vehiclePlate: vehicles.plateNumber, vehicleCapacity: vehicles.capacity,
+  assignmentCount: sql<number>`(select count(*) from transport_assignments ta where ta.route_id = ${transportRoutes.id} and ta.status = 'active')`,
+}).from(transportRoutes)
+  .leftJoin(vehicles, eq(transportRoutes.vehicleId, vehicles.id))
+  .where(eq(transportRoutes.schoolId, schoolId))
+  .orderBy(desc(transportRoutes.createdAt)).all();
+
+const allVehicles = db.select().from(vehicles).where(eq(vehicles.schoolId, schoolId)).all();
+const fmtDate = (d: any) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
 ---
 
 <DashboardLayout title="Transport Routes - iSchool">
@@ -10,58 +30,145 @@ if (!user) return Astro.redirect('/auth/login');
     <div class="flex items-center justify-between">
       <div>
         <h2 class="text-2xl font-bold text-gray-900">Transport Routes</h2>
-        <p class="text-sm text-gray-500 mt-1">Define bus routes, stops, pickup times, and assign students to routes.</p>
+        <p class="text-sm text-gray-500 mt-1">Create bus routes with stop points and schedule. Assign vehicles and view student count per route.</p>
       </div>
-      <div class="flex items-center gap-2">
-        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-          <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-          Module Active
-        </span>
-      </div>
+      <button onclick="openModal()" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">+ New Route</button>
     </div>
 
-    <div class="bg-white rounded-2xl border border-gray-200 p-12 text-center">
-      <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-primary-50 to-primary-100 mb-6">
-        <svg class="w-10 h-10 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
-        </svg>
-      </div>
-      <h3 class="text-xl font-bold text-gray-900 mb-2">Transport Routes Module</h3>
-      <p class="text-sm text-gray-500 max-w-md mx-auto mb-6">Define bus routes, stops, pickup times, and assign students to routes. This module is being prepared. You can configure settings now — full functionality will be available soon.</p>
-      <div class="flex items-center justify-center gap-3">
-        <button onclick="window.history.back()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Go Back</button>
-        <a href="/dashboard" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">Dashboard Home</a>
-      </div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="bg-white rounded-xl border p-4"><div class="text-xs text-gray-500 uppercase">Total Routes</div><div class="text-2xl font-bold">{routes.length}</div></div>
+      <div class="bg-white rounded-xl border p-4"><div class="text-xs text-gray-500 uppercase">With Vehicle</div><div class="text-2xl font-bold text-blue-600">{routes.filter(r => r.vehicleId).length}</div></div>
+      <div class="bg-white rounded-xl border p-4"><div class="text-xs text-gray-500 uppercase">Total Students</div><div class="text-2xl font-bold text-green-600">{routes.reduce((s, r) => s + (r.assignmentCount || 0), 0)}</div></div>
+      <div class="bg-white rounded-xl border p-4"><div class="text-xs text-gray-500 uppercase">Unassigned Vehicles</div><div class="text-2xl font-bold text-amber-600">{allVehicles.filter(v => !routes.some(r => r.vehicleId === v.id)).length}</div></div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div class="bg-white rounded-xl border border-gray-200 p-5">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
-            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-          </div>
-          <h4 class="font-semibold text-gray-900 text-sm">Configuration Ready</h4>
+    <div class="bg-white rounded-xl border border-gray-200">
+      {routes.length === 0 ? (
+        <div class="p-12 text-center">
+          <div class="text-4xl mb-3">🚌</div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-1">No routes created</h3>
+          <p class="text-sm text-gray-500">Create a route with stop points to start assigning students.</p>
         </div>
-        <p class="text-xs text-gray-500">Module settings can be configured. Changes will be saved and applied when the module is fully activated.</p>
-      </div>
-      <div class="bg-white rounded-xl border border-gray-200 p-5">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
-            <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          </div>
-          <h4 class="font-semibold text-gray-900 text-sm">Coming Soon</h4>
+      ) : (
+        <div class="divide-y divide-gray-100">
+          {routes.map(r => {
+            let stops: any[] = [];
+            try { stops = typeof r.stops === 'string' ? JSON.parse(r.stops) : r.stops; } catch {}
+            let schedule: any = null;
+            try { schedule = r.schedule ? (typeof r.schedule === 'string' ? JSON.parse(r.schedule) : r.schedule) : null; } catch {}
+            return (
+              <div class="p-4 hover:bg-gray-50">
+                <div class="flex items-start justify-between mb-2">
+                  <div>
+                    <h3 class="font-semibold text-gray-900">{r.name}</h3>
+                    <p class="text-xs text-gray-500 mt-0.5">
+                      {r.vehicleName ? <span>🚍 {r.vehicleName} ({r.vehiclePlate}) · {r.vehicleCapacity} seats</span> : <span class="text-amber-600">No vehicle assigned</span>}
+                      {' · '}👥 {r.assignmentCount} student{(r.assignmentCount || 0) !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                  <div class="flex gap-2">
+                    <button onclick={`editRoute(${r.id})`} class="text-xs text-amber-600 font-medium">Edit</button>
+                    <button onclick={`deleteRoute(${r.id})`} class="text-xs text-red-600 font-medium">Delete</button>
+                  </div>
+                </div>
+                {Array.isArray(stops) && stops.length > 0 && (
+                  <div class="mt-2 flex flex-wrap gap-1.5">
+                    {stops.map((s, i) => (
+                      <span class="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 border border-blue-200 rounded text-xs">
+                        <span class="font-bold">{i+1}.</span> {typeof s === 'string' ? s : (s.name || s.stop || 'Stop')}
+                        {typeof s === 'object' && s.time && <span className="text-blue-500">· {s.time}</span>}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {schedule && (
+                  <p class="text-xs text-gray-500 mt-2">📅 Schedule: {typeof schedule === 'string' ? schedule : JSON.stringify(schedule)}</p>
+                )}
+              </div>
+            );
+          })}
         </div>
-        <p class="text-xs text-gray-500">Full module functionality is under development. Contact support if you need this feature urgently.</p>
-      </div>
-      <div class="bg-white rounded-xl border border-gray-200 p-5">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          </div>
-          <h4 class="font-semibold text-gray-900 text-sm">Need Help?</h4>
-        </div>
-        <p class="text-xs text-gray-500">Check the documentation or contact support for guidance on using this module.</p>
-      </div>
+      )}
     </div>
   </div>
+
+  <div id="routeModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+      <h3 class="text-lg font-bold text-gray-900 mb-4" id="modalTitle">New Transport Route</h3>
+      <form id="routeForm" class="space-y-3">
+        <input type="hidden" name="id" />
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">Route Name *</label><input name="name" required placeholder="e.g. North Route — Ikoyi Loop" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /></div>
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">Vehicle</label>
+          <select name="vehicleId" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+            <option value="">— Unassigned —</option>
+            {allVehicles.map(v => <option value={v.id}>{v.name} ({v.plateNumber}) — {v.capacity} seats</option>)}
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-700 mb-1">Stops (one per line, format: Stop Name | Time)</label>
+          <textarea name="stops" rows="5" placeholder="Ikoyi Gate | 06:30&#10;Banana Island | 06:45&#10;Park View Estate | 07:00" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono"></textarea>
+          <p class="text-xs text-gray-500 mt-1">Each line becomes a stop. Use "Name | Time" format.</p>
+        </div>
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">Schedule Notes (optional)</label><input name="schedule" placeholder="e.g. Weekdays only, returns 3:30 PM" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /></div>
+        <div class="flex gap-3 pt-2">
+          <button type="button" onclick="document.getElementById('routeModal').classList.add('hidden')" class="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg">Cancel</button>
+          <button type="submit" class="flex-1 px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg">Save Route</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script is:inline define:vars={{ routes }} set:html={`(function(){
+    var allRoutes = routes;
+    window.openModal = function() {
+      var form = document.getElementById('routeForm');
+      form.reset(); form.id.value = '';
+      document.getElementById('modalTitle').textContent = 'New Transport Route';
+      document.getElementById('routeModal').classList.remove('hidden');
+    };
+    window.editRoute = function(id) {
+      var r = allRoutes.find(function(x){ return x.id === id; });
+      if (!r) return;
+      var form = document.getElementById('routeForm');
+      form.id.value = r.id; form.name.value = r.name;
+      form.vehicleId.value = r.vehicleId || '';
+      var stops = [];
+      try { stops = JSON.parse(r.stops || '[]'); } catch {}
+      var stopsText = stops.map(function(s) {
+        if (typeof s === 'string') return s;
+        return (s.name || s.stop || '') + (s.time ? ' | ' + s.time : '');
+      }).join('\\n');
+      form.stops.value = stopsText;
+      form.schedule.value = r.schedule || '';
+      document.getElementById('modalTitle').textContent = 'Edit Route';
+      document.getElementById('routeModal').classList.remove('hidden');
+    };
+    window.deleteRoute = async function(id) {
+      if (!confirm('Delete this route? All student assignments will also be deleted.')) return;
+      await fetch('/api/dashboard/transport-routes', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id }) });
+      window.location.reload();
+    };
+    document.getElementById('routeForm')?.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      var fd = new FormData(this);
+      var id = fd.get('id');
+      var stopsText = fd.get('stops') || '';
+      var stops = stopsText.split('\\n').filter(function(l){ return l.trim(); }).map(function(line) {
+        var parts = line.split('|').map(function(p){ return p.trim(); });
+        if (parts.length > 1) return { name: parts[0], time: parts[1] };
+        return parts[0];
+      });
+      var payload = {
+        name: fd.get('name'),
+        vehicleId: fd.get('vehicleId') ? parseInt(fd.get('vehicleId')) : null,
+        stops: stops,
+        schedule: fd.get('schedule') || null,
+      };
+      var method = id ? 'PUT' : 'POST';
+      if (id) payload.id = parseInt(id);
+      var res = await fetch('/api/dashboard/transport-routes', { method: method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      if (res.ok) window.location.reload();
+      else { var err = await res.json(); alert(err.error || 'Failed'); }
+    });
+  })();`} />
 </DashboardLayout>

@@ -522,6 +522,22 @@ export function migrate() {
       route_id INTEGER NOT NULL REFERENCES transport_routes(id), stop_name TEXT,
       status TEXT NOT NULL DEFAULT 'active', created_at INTEGER, updated_at INTEGER
     );
+    CREATE TABLE IF NOT EXISTS vehicle_maintenance (
+      id INTEGER PRIMARY KEY AUTOINCREMENT, school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      vehicle_id INTEGER NOT NULL REFERENCES vehicles(id) ON DELETE CASCADE,
+      service_type TEXT NOT NULL DEFAULT 'routine', description TEXT,
+      service_date TEXT NOT NULL, next_service_date TEXT,
+      odometer INTEGER, cost INTEGER, service_provider TEXT,
+      status TEXT NOT NULL DEFAULT 'scheduled', notes TEXT,
+      created_at INTEGER, updated_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS vehicle_documents (
+      id INTEGER PRIMARY KEY AUTOINCREMENT, school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      vehicle_id INTEGER REFERENCES vehicles(id) ON DELETE CASCADE, driver_id INTEGER REFERENCES users(id),
+      document_type TEXT NOT NULL, document_number TEXT,
+      issue_date TEXT, expiry_date TEXT NOT NULL, file_url TEXT, notes TEXT,
+      created_at INTEGER, updated_at INTEGER
+    );
     CREATE TABLE IF NOT EXISTS assets (
       id INTEGER PRIMARY KEY AUTOINCREMENT, school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
       name TEXT NOT NULL, category TEXT, serial_number TEXT, description TEXT,

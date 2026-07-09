@@ -694,6 +694,23 @@ function autoMigrate(sqlite: Database.Database) {
       created_at INTEGER,
       updated_at INTEGER
     );
+    CREATE TABLE IF NOT EXISTS vehicle_maintenance (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+      vehicle_id INTEGER NOT NULL, service_type TEXT DEFAULT 'routine',
+      description TEXT, service_date TEXT NOT NULL, next_service_date TEXT,
+      odometer INTEGER, cost INTEGER, service_provider TEXT,
+      status TEXT DEFAULT 'scheduled', notes TEXT,
+      created_at INTEGER, updated_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS vehicle_documents (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+      vehicle_id INTEGER, driver_id INTEGER,
+      document_type TEXT NOT NULL, document_number TEXT,
+      issue_date TEXT, expiry_date TEXT NOT NULL, file_url TEXT, notes TEXT,
+      created_at INTEGER, updated_at INTEGER
+    );
 
     CREATE TABLE IF NOT EXISTS assets (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
