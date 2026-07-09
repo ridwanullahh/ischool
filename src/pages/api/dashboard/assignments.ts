@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { getDb } from '../../../lib/db/index.js';
-import { assignments, schoolMembers, courses, students } from '../../../lib/db/schema.js';
+import { assignments, submissions, grades, schoolMembers, courses, students } from '../../../lib/db/schema.js';
 import { eq, and, like, desc } from 'drizzle-orm';
 import { notifyAssignmentCreated } from '../../../lib/notifications.js';
 import { toCsv, csvResponse, type CsvColumn } from '../../../lib/export.js';
@@ -21,6 +21,22 @@ export const GET: APIRoute = async ({ locals, url }) => {
   const courseId = url.searchParams.get('courseId');
   const search = url.searchParams.get('search');
   const action = url.searchParams.get('action');
+
+  // Submissions for an assignment
+  if (action === 'submissions' && url.searchParams.get('assignmentId')) {
+    const subs = db.select({
+      id: submissions.id, status: submissions.status, grade: submissions.grade, feedback: submissions.feedback,
+      content: submissions.content, fileUrl: submissions.fileUrl, linkUrl: submissions.linkUrl,
+      submittedAt: submissions.submittedAt, gradedAt: submissions.gradedAt,
+      studentId: submissions.studentId,
+      studentName: students.firstName,
+      studentLastName: students.lastName,
+      studentCode: students.studentId,
+    }).from(submissions)
+      .leftJoin(students, eq(submissions.studentId, students.id))
+      .where(and(eq(submissions.schoolId, schoolId), eq(submissions.assignmentId, parseInt(url.searchParams.get('assignmentId')!)))).all();
+    return new Response(JSON.stringify(subs), { headers: { 'Content-Type': 'application/json' } });
+  }
 
   if (action === 'export') {
     const allAssignments = db.select().from(assignments).where(eq(assignments.schoolId, schoolId)).orderBy(desc(assignments.createdAt)).all();
@@ -58,11 +74,46 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 404 });
 
   const data = await request.json();
+  const db = getDb();
+
+  // Grade submission
+  if (data.action === 'grade_submission') {
+    if (!data.submissionId) return new Response(JSON.stringify({ error: 'submissionId required' }), { status: 400 });
+    db.update(submissions).set({
+      grade: data.grade, feedback: data.feedback || null,
+      status: 'graded', gradedAt: new Date(), gradedBy: user.id, updatedAt: new Date(),
+    }).where(and(eq(submissions.id, data.submissionId), eq(submissions.schoolId, schoolId))).run();
+    // Sync to gradebook
+    const sub = db.select().from(submissions).where(eq(submissions.id, data.submissionId)).get();
+    if (sub && sub.grade !== null) {
+      const assignment = db.select().from(assignments).where(eq(assignments.id, sub.assignmentId)).get();
+      if (assignment) {
+        // Insert or update grade
+        const existingGrade = db.select().from(grades).where(and(
+          eq(grades.studentId, sub.studentId),
+          eq(grades.assignmentId, assignment.id),
+        )).get();
+        if (existingGrade) {
+          db.update(grades).set({
+            score: sub.grade, maxScore: assignment.maxPoints,
+            category: 'assignment', comments: data.feedback || null, updatedAt: new Date(),
+          }).where(eq(grades.id, existingGrade.id)).run();
+        } else {
+          db.insert(grades).values({
+            schoolId, studentId: sub.studentId, assignmentId: assignment.id,
+            courseId: assignment.courseId, score: sub.grade, maxScore: assignment.maxPoints,
+            category: 'assignment', comments: data.feedback || null, createdAt: new Date(),
+          } as any).run();
+        }
+      }
+    }
+    return new Response(JSON.stringify({ success: true }), { headers: { 'Content-Type': 'application/json' } });
+  }
+
   if (!data.title || !data.courseId) {
     return new Response(JSON.stringify({ error: 'title and courseId are required' }), { status: 400 });
   }
 
-  const db = getDb();
   const result = db.insert(assignments).values({
     schoolId,
     courseId: data.courseId,

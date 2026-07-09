@@ -58,6 +58,7 @@ if (schoolId) {
                 <td class="px-4 py-3">{r.maxPoints}</td>
                 <td class="px-4 py-3 flex gap-2">
                   <button onclick={`editRecord(${JSON.stringify(r)})`} class="text-primary-600 hover:text-primary-800 text-xs font-medium">Edit</button>
+                  <button onclick={`viewSubmissions(${r.id}, ${r.maxPoints || 100})`} class="text-indigo-600 hover:text-indigo-800 text-xs font-medium">Submissions</button>
                   <button onclick={`deleteRecord(${r.id})`} class="text-red-600 hover:text-red-800 text-xs font-medium">Delete</button>
                 </td>
               </tr>
@@ -140,5 +141,61 @@ if (schoolId) {
       await fetch('/api/dashboard/assignments', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
       location.reload();
     }
+
+    async function viewSubmissions(assignmentId: number, maxPoints: number) {
+      const res = await fetch(`/api/dashboard/assignments?action=submissions&assignmentId=${assignmentId}`);
+      const subs = await res.json();
+      const list = document.getElementById('submissionsList')!;
+      list.innerHTML = '';
+      if (subs.length === 0) {
+        list.innerHTML = '<p class="text-sm text-gray-500 text-center py-8">No submissions yet for this assignment.</p>';
+      } else {
+        subs.forEach((s: any) => {
+          const row = document.createElement('div');
+          row.className = 'border rounded-lg p-3';
+          const statusColors: any = { submitted: 'bg-blue-100 text-blue-700', graded: 'bg-green-100 text-green-700', late: 'bg-yellow-100 text-yellow-700', missing: 'bg-red-100 text-red-700', returned: 'bg-purple-100 text-purple-700' };
+          row.innerHTML = `
+            <div class="flex items-center justify-between mb-2">
+              <div>
+                <div class="text-sm font-medium">${s.studentName} ${s.studentLastName || ''} <span class="text-xs text-gray-500">(${s.studentCode})</span></div>
+                <div class="text-xs text-gray-500">Submitted: ${s.submittedAt ? new Date(s.submittedAt).toLocaleString() : '—'}</div>
+              </div>
+              <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded ${statusColors[s.status] || 'bg-gray-100'}">${s.status}</span>
+            </div>
+            ${s.content ? `<div class="text-xs text-gray-600 mb-2 p-2 bg-gray-50 rounded">${s.content.substring(0, 200)}${s.content.length > 200 ? '…' : ''}</div>` : ''}
+            ${s.fileUrl ? `<a href="${s.fileUrl}" target="_blank" class="text-xs text-blue-600 underline">View attached file</a>` : ''}
+            ${s.linkUrl ? `<a href="${s.linkUrl}" target="_blank" class="text-xs text-blue-600 underline">Open submitted link</a>` : ''}
+            <div class="grid grid-cols-3 gap-2 mt-3 items-end">
+              <div><label class="block text-[10px] text-gray-600">Grade (out of ${maxPoints})</label><input type="number" min="0" max="${maxPoints}" value="${s.grade ?? ''}" class="grade-input w-full px-2 py-1 border rounded text-sm" data-sub-id="${s.id}" /></div>
+              <div class="col-span-2"><label class="block text-[10px] text-gray-600">Feedback</label><input type="text" value="${(s.feedback || '').replace(/"/g, '&quot;')}" class="feedback-input w-full px-2 py-1 border rounded text-sm" data-sub-id="${s.id}" /></div>
+            </div>
+            <button onclick="gradeSubmission(${s.id})" class="mt-2 text-xs px-3 py-1 bg-green-600 text-white rounded">Save Grade</button>
+          `;
+          list.appendChild(row);
+        });
+      }
+      document.getElementById('submissionsModal')!.classList.remove('hidden');
+    }
+    async function gradeSubmission(submissionId: number) {
+      const grade = (document.querySelector(`.grade-input[data-sub-id="${submissionId}"]`) as HTMLInputElement).value;
+      const feedback = (document.querySelector(`.feedback-input[data-sub-id="${submissionId}"]`) as HTMLInputElement).value;
+      const res = await fetch('/api/dashboard/assignments', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'grade_submission', submissionId, grade: grade ? parseInt(grade) : null, feedback })
+      });
+      if (res.ok) { alert('Grade saved and synced to gradebook!'); location.reload(); }
+      else { alert('Failed to save grade'); }
+    }
   </script>
+
+  <!-- Submissions Modal -->
+  <div id="submissionsModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl p-6 w-full max-w-3xl mx-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-bold">Assignment Submissions</h3>
+        <button onclick="document.getElementById('submissionsModal').classList.add('hidden')" class="text-gray-400 text-2xl">&times;</button>
+      </div>
+      <div id="submissionsList" class="space-y-3"></div>
+    </div>
+  </div>
 </DashboardLayout>

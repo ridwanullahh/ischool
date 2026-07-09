@@ -2020,6 +2020,9 @@ function autoMigrate(sqlite: Database.Database) {
   addColumnIfMissing('grades', 'academic_year', 'TEXT');
   addColumnIfMissing('grades', 'category', 'TEXT');
   addColumnIfMissing('grades', 'comment', 'TEXT');
+  addColumnIfMissing('grades', 'comments', 'TEXT');
+  addColumnIfMissing('grades', 'assignment_id', 'INTEGER');
+  addColumnIfMissing('grades', 'exam_id', 'INTEGER');
   addColumnIfMissing('academic_periods', 'parent_period_id', 'INTEGER');
   addColumnIfMissing('prayer_schedules', 'periods', 'TEXT');
   addColumnIfMissing('prayer_schedules', 'applies_to', "TEXT NOT NULL DEFAULT 'weekday'");

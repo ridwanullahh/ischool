@@ -341,7 +341,8 @@ export function migrate() {
     CREATE TABLE IF NOT EXISTS grades (
       id INTEGER PRIMARY KEY AUTOINCREMENT, school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
       student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE, course_id INTEGER REFERENCES courses(id),
-      term TEXT, academic_year TEXT, category TEXT, score INTEGER, max_score INTEGER, grade TEXT, comment TEXT,
+      assignment_id INTEGER, exam_id INTEGER,
+      term TEXT, academic_year TEXT, category TEXT, score INTEGER, max_score INTEGER, grade TEXT, comment TEXT, comments TEXT,
       created_at INTEGER, updated_at INTEGER
     );
     CREATE TABLE IF NOT EXISTS academic_periods (

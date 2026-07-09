@@ -495,6 +495,8 @@ export const grades = sqliteTable('grades', {
   schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
   studentId: integer('student_id').notNull().references(() => students.id, { onDelete: 'cascade' }),
   courseId: integer('course_id').references(() => courses.id),
+  assignmentId: integer('assignment_id').references(() => assignments.id, { onDelete: 'cascade' }),
+  examId: integer('exam_id'),
   term: text('term'),
   academicYear: text('academic_year'),
   category: text('category'),
@@ -502,6 +504,7 @@ export const grades = sqliteTable('grades', {
   maxScore: integer('max_score'),
   grade: text('grade'),
   comment: text('comment'),
+  comments: text('comments'),
   ...timestamps,
 });
 

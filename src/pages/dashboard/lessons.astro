@@ -1,67 +1,308 @@
 ---
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { getUserSchoolId } from '../../lib/school.js';
+import { getDb } from '../../lib/db/index.js';
+import { courses, courseUnits, lessons } from '../../lib/db/schema.js';
+import { eq, asc } from 'drizzle-orm';
 
-const user = Astro.locals.user;
+const user = Astro.locals.user!;
 if (!user) return Astro.redirect('/auth/login');
+const schoolId = getUserSchoolId(user.id);
+if (!schoolId) return Astro.redirect('/dashboard');
+const db = getDb();
+
+const allCourses = db.select().from(courses).where(eq(courses.schoolId, schoolId)).orderBy(asc(courses.title)).all();
+const allUnits = db.select().from(courseUnits).all();
+const allLessons = db.select().from(lessons).all();
+
+// Group units by course
+const unitsByCourse = new Map<number, typeof allUnits>();
+for (const u of allUnits) {
+  if (!unitsByCourse.has(u.courseId)) unitsByCourse.set(u.courseId, []);
+  unitsByCourse.get(u.courseId)!.push(u);
+}
+// Group lessons by unit
+const lessonsByUnit = new Map<number, typeof allLessons>();
+for (const l of allLessons) {
+  if (!lessonsByUnit.has(l.unitId)) lessonsByUnit.set(l.unitId, []);
+  lessonsByUnit.get(l.unitId)!.push(l);
+}
+
+const typeIcons: Record<string, string> = { text: '📝', video: '🎥', file: '📎', link: '🔗', interactive: '🎮' };
+const typeColors: Record<string, string> = {
+  text: 'bg-blue-50 text-blue-700', video: 'bg-purple-50 text-purple-700',
+  file: 'bg-amber-50 text-amber-700', link: 'bg-cyan-50 text-cyan-700', interactive: 'bg-emerald-50 text-emerald-700',
+};
+const statusColors: Record<string, string> = {
+  draft: 'bg-gray-100 text-gray-700', published: 'bg-green-100 text-green-700', archived: 'bg-amber-100 text-amber-700',
+};
 ---
 
-<DashboardLayout title="Lessons - iSchool">
+<DashboardLayout title="Lessons & Course Content - iSchool">
   <div class="space-y-6">
     <div class="flex items-center justify-between">
       <div>
-        <h2 class="text-2xl font-bold text-gray-900">Lessons</h2>
-        <p class="text-sm text-gray-500 mt-1">Create and manage lesson plans, learning objectives, and teaching resources.</p>
+        <h2 class="text-2xl font-bold text-gray-900">Lessons & Course Content</h2>
+        <p class="text-sm text-gray-500 mt-1">Build course content hierarchy: Course → Unit → Lesson. Add text pages, videos, files, external links, and interactive content.</p>
       </div>
-      <div class="flex items-center gap-2">
-        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-          <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-          Module Active
-        </span>
+      <div class="flex gap-2">
+        <button onclick="openUnitModal()" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700">+ New Unit</button>
+        <button onclick="openLessonModal()" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">+ New Lesson</button>
       </div>
     </div>
 
-    <div class="bg-white rounded-2xl border border-gray-200 p-12 text-center">
-      <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-primary-50 to-primary-100 mb-6">
-        <svg class="w-10 h-10 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253"/>
-        </svg>
+    {allCourses.length === 0 ? (
+      <div class="bg-white rounded-xl border border-gray-200 p-12 text-center">
+        <div class="text-4xl mb-3">📚</div>
+        <h3 class="text-lg font-semibold text-gray-900 mb-1">No courses yet</h3>
+        <p class="text-sm text-gray-500 mb-4">Create a course first, then add units and lessons.</p>
+        <a href="/dashboard/courses" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg">Go to Courses</a>
       </div>
-      <h3 class="text-xl font-bold text-gray-900 mb-2">Lessons Module</h3>
-      <p class="text-sm text-gray-500 max-w-md mx-auto mb-6">Create and manage lesson plans, learning objectives, and teaching resources. This module is being prepared. You can configure settings now — full functionality will be available soon.</p>
-      <div class="flex items-center justify-center gap-3">
-        <button onclick="window.history.back()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Go Back</button>
-        <a href="/dashboard" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">Dashboard Home</a>
+    ) : (
+      <div class="space-y-4">
+        {allCourses.map(c => {
+          const units = unitsByCourse.get(c.id) || [];
+          return (
+            <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              <div class="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-100">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <h3 class="font-semibold text-gray-900">{c.title}</h3>
+                    <p class="text-xs text-gray-500 mt-0.5">{c.subject && <span>{c.subject}</span>}{c.gradeLevel && <span> · {c.gradeLevel}</span>} · <span class={`px-1.5 py-0.5 text-[10px] font-bold uppercase rounded ${statusColors[c.status]}`}>{c.status}</span></p>
+                  </div>
+                  <button onclick={`openUnitModal(${c.id})`} class="text-xs text-indigo-600 font-medium">+ Add Unit</button>
+                </div>
+              </div>
+              {units.length === 0 ? (
+                <div class="p-6 text-center text-sm text-gray-500">No units yet. Click "+ Add Unit" to start building content.</div>
+              ) : (
+                <div class="divide-y divide-gray-100">
+                  {units.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)).map(u => {
+                    const lessons = lessonsByUnit.get(u.id) || [];
+                    return (
+                      <div class="p-4">
+                        <div class="flex items-center justify-between mb-2">
+                          <div>
+                            <h4 class="font-medium text-sm text-gray-900">📂 {u.title}</h4>
+                            {u.description && <p class="text-xs text-gray-500 mt-0.5">{u.description}</p>}
+                          </div>
+                          <div class="flex gap-2">
+                            <button onclick={`openLessonModal(${c.id}, ${u.id})`} class="text-xs text-primary-600 font-medium">+ Lesson</button>
+                            <button onclick={`editUnit(${u.id}, '${u.title.replace(/'/g, "\\'")}', '${(u.description || '').replace(/'/g, "\\'")}', ${u.sortOrder || 0})`} class="text-xs text-amber-600 font-medium">Edit</button>
+                            <button onclick={`deleteUnit(${u.id})`} class="text-xs text-red-600 font-medium">Delete</button>
+                          </div>
+                        </div>
+                        {lessons.length === 0 ? (
+                          <p class="text-xs text-gray-400 ml-6">No lessons in this unit.</p>
+                        ) : (
+                          <div class="ml-6 space-y-1">
+                            {lessons.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)).map(l => (
+                              <div class="flex items-center gap-2 p-2 hover:bg-gray-50 rounded">
+                                <span class="text-sm">{typeIcons[l.type || 'text']}</span>
+                                <div class="flex-1">
+                                  <div class="text-sm font-medium text-gray-900">{l.title}</div>
+                                  {l.duration && <div class="text-xs text-gray-500">{l.duration} min</div>}
+                                </div>
+                                <span class={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${typeColors[l.type || 'text']}`}>{l.type || 'text'}</span>
+                                <button onclick={`editLesson(${l.id}, '${l.title.replace(/'/g, "\\'")}', '${l.type || 'text'}', ${l.duration || 0}, ${l.sortOrder || 0})`} class="text-xs text-amber-600 font-medium">Edit</button>
+                                <button onclick={`deleteLesson(${l.id})`} class="text-xs text-red-600 font-medium">Delete</button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
-    </div>
+    )}
+  </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div class="bg-white rounded-xl border border-gray-200 p-5">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
-            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-          </div>
-          <h4 class="font-semibold text-gray-900 text-sm">Configuration Ready</h4>
+  <!-- Unit Modal -->
+  <div id="unitModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-6 max-w-md w-full">
+      <h3 class="text-lg font-bold text-gray-900 mb-4" id="unitModalTitle">New Unit</h3>
+      <form id="unitForm" class="space-y-3">
+        <input type="hidden" name="id" />
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">Course *</label>
+          <select name="courseId" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+            <option value="">Select course…</option>
+            {allCourses.map(c => <option value={c.id}>{c.title}</option>)}
+          </select>
         </div>
-        <p class="text-xs text-gray-500">Module settings can be configured. Changes will be saved and applied when the module is fully activated.</p>
-      </div>
-      <div class="bg-white rounded-xl border border-gray-200 p-5">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
-            <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          </div>
-          <h4 class="font-semibold text-gray-900 text-sm">Coming Soon</h4>
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">Unit Title *</label><input name="title" required placeholder="e.g. Unit 1: Introduction" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /></div>
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">Description</label><textarea name="description" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"></textarea></div>
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">Sort Order</label><input name="sortOrder" type="number" value="0" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /></div>
+        <div class="flex gap-3 pt-2">
+          <button type="button" onclick="document.getElementById('unitModal').classList.add('hidden')" class="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg">Cancel</button>
+          <button type="submit" class="flex-1 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg">Save</button>
         </div>
-        <p class="text-xs text-gray-500">Full module functionality is under development. Contact support if you need this feature urgently.</p>
-      </div>
-      <div class="bg-white rounded-xl border border-gray-200 p-5">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          </div>
-          <h4 class="font-semibold text-gray-900 text-sm">Need Help?</h4>
-        </div>
-        <p class="text-xs text-gray-500">Check the documentation or contact support for guidance on using this module.</p>
-      </div>
+      </form>
     </div>
   </div>
+
+  <!-- Lesson Modal -->
+  <div id="lessonModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <h3 class="text-lg font-bold text-gray-900 mb-4" id="lessonModalTitle">New Lesson</h3>
+      <form id="lessonForm" class="space-y-3">
+        <input type="hidden" name="id" />
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="block text-xs font-medium text-gray-700 mb-1">Course *</label>
+            <select name="courseId" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" onchange="updateUnits()">
+              <option value="">Select course…</option>
+              {allCourses.map(c => <option value={c.id}>{c.title}</option>)}
+            </select>
+          </div>
+          <div><label class="block text-xs font-medium text-gray-700 mb-1">Unit *</label>
+            <select name="unitId" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+              <option value="">Select unit…</option>
+            </select>
+          </div>
+        </div>
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">Lesson Title *</label><input name="title" required placeholder="e.g. Lesson 1: The Five Pillars of Islam" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /></div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="block text-xs font-medium text-gray-700 mb-1">Type</label>
+            <select name="type" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" onchange="toggleTypeFields(this.value)">
+              <option value="text">Text Page (Rich Text)</option>
+              <option value="video">Video</option>
+              <option value="file">File (PDF, DOC, etc.)</option>
+              <option value="link">External Link</option>
+              <option value="interactive">Interactive</option>
+            </select>
+          </div>
+          <div><label class="block text-xs font-medium text-gray-700 mb-1">Duration (minutes)</label><input name="duration" type="number" placeholder="30" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /></div>
+        </div>
+        <div id="contentField"><label class="block text-xs font-medium text-gray-700 mb-1">Content (Rich Text)</label><textarea name="content" rows="6" placeholder="Write the lesson content here. Supports HTML formatting." class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono"></textarea></div>
+        <div id="fileField" class="hidden"><label class="block text-xs font-medium text-gray-700 mb-1">File Upload</label><input name="file" type="file" class="w-full text-sm" accept=".pdf,.doc,.docx,.ppt,.pptx,.mp4,.webm" onchange="previewFile(this)" /><div id="filePreview" class="hidden mt-2 text-xs text-gray-600 bg-gray-50 rounded p-2"></div></div>
+        <div id="linkField" class="hidden"><label class="block text-xs font-medium text-gray-700 mb-1">External URL</label><input name="externalUrl" placeholder="https://youtube.com/watch?v=..." class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /></div>
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">Sort Order</label><input name="sortOrder" type="number" value="0" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /></div>
+        <div class="flex gap-3 pt-2">
+          <button type="button" onclick="document.getElementById('lessonModal').classList.remove('hidden')" class="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg">Cancel</button>
+          <button type="submit" class="flex-1 px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg">Save Lesson</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script is:inline define:vars={{ allUnits }} set:html={`(function(){
+    var units = allUnits;
+    window.openUnitModal = function(courseId) {
+      var form = document.getElementById('unitForm');
+      form.reset(); form.id.value = '';
+      if (courseId) form.courseId.value = courseId;
+      document.getElementById('unitModalTitle').textContent = 'New Unit';
+      document.getElementById('unitModal').classList.remove('hidden');
+    };
+    window.editUnit = function(id, title, description, sortOrder) {
+      var u = units.find(function(x){ return x.id === id; });
+      if (!u) return;
+      var form = document.getElementById('unitForm');
+      form.id.value = u.id;
+      form.courseId.value = u.courseId;
+      form.title.value = u.title;
+      form.description.value = u.description || '';
+      form.sortOrder.value = sortOrder;
+      document.getElementById('unitModalTitle').textContent = 'Edit Unit';
+      document.getElementById('unitModal').classList.remove('hidden');
+    };
+    window.deleteUnit = async function(id) {
+      if (!confirm('Delete this unit and all its lessons?')) return;
+      await fetch('/api/dashboard/lessons', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'delete_unit', id: id }) });
+      window.location.reload();
+    };
+    document.getElementById('unitForm')?.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      var fd = new FormData(this);
+      var id = fd.get('id');
+      var action = id ? 'update_unit' : 'create_unit';
+      var payload = { action: action, courseId: parseInt(fd.get('courseId')), title: fd.get('title'), description: fd.get('description') || null, sortOrder: parseInt(fd.get('sortOrder')) || 0 };
+      if (id) payload.id = parseInt(id);
+      var res = await fetch('/api/dashboard/lessons', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      if (res.ok) window.location.reload();
+      else { var err = await res.json(); alert(err.error || 'Failed'); }
+    });
+
+    window.openLessonModal = function(courseId, unitId) {
+      var form = document.getElementById('lessonForm');
+      form.reset(); form.id.value = '';
+      if (courseId) { form.courseId.value = courseId; updateUnits(); if (unitId) form.unitId.value = unitId; }
+      toggleTypeFields('text');
+      document.getElementById('lessonModalTitle').textContent = 'New Lesson';
+      document.getElementById('lessonModal').classList.remove('hidden');
+    };
+    window.editLesson = function(id, title, type, duration, sortOrder) {
+      var form = document.getElementById('lessonForm');
+      form.id.value = id;
+      form.title.value = title;
+      form.type.value = type;
+      form.duration.value = duration;
+      form.sortOrder.value = sortOrder;
+      toggleTypeFields(type);
+      document.getElementById('lessonModalTitle').textContent = 'Edit Lesson';
+      document.getElementById('lessonModal').classList.remove('hidden');
+    };
+    window.deleteLesson = async function(id) {
+      if (!confirm('Delete this lesson?')) return;
+      await fetch('/api/dashboard/lessons', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id }) });
+      window.location.reload();
+    };
+    window.updateUnits = function() {
+      var courseId = parseInt(document.getElementById('lessonForm').courseId.value);
+      var unitSelect = document.getElementById('lessonForm').unitId;
+      unitSelect.innerHTML = '<option value="">Select unit…</option>';
+      units.filter(function(u){ return u.courseId === courseId; }).forEach(function(u) {
+        var opt = document.createElement('option');
+        opt.value = u.id; opt.textContent = u.title;
+        unitSelect.appendChild(opt);
+      });
+    };
+    window.toggleTypeFields = function(type) {
+      document.getElementById('contentField').classList.toggle('hidden', type !== 'text' && type !== 'interactive');
+      document.getElementById('fileField').classList.toggle('hidden', type !== 'file' && type !== 'video');
+      document.getElementById('linkField').classList.toggle('hidden', type !== 'link');
+    };
+    window.previewFile = function(input) {
+      var preview = document.getElementById('filePreview');
+      if (input.files && input.files[0]) {
+        var file = input.files[0];
+        preview.textContent = file.name + ' (' + (file.size/1024).toFixed(1) + ' KB)';
+        preview.classList.remove('hidden');
+      }
+    };
+    document.getElementById('lessonForm')?.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      var fd = new FormData(this);
+      var id = fd.get('id');
+      var payload = {
+        unitId: parseInt(fd.get('unitId')),
+        title: fd.get('title'),
+        content: fd.get('content') || null,
+        type: fd.get('type'),
+        externalUrl: fd.get('externalUrl') || null,
+        duration: fd.get('duration') ? parseInt(fd.get('duration')) : null,
+        sortOrder: parseInt(fd.get('sortOrder')) || 0,
+      };
+      // Handle file upload
+      var fileInput = this.querySelector('[name="file"]');
+      if (fileInput.files && fileInput.files[0]) {
+        var uploadFd = new FormData();
+        uploadFd.append('file', fileInput.files[0]);
+        uploadFd.append('folder', 'lessons');
+        var uploadRes = await fetch('/api/upload', { method: 'POST', body: uploadFd });
+        if (!uploadRes.ok) { alert('File upload failed'); return; }
+        var uploadData = await uploadRes.json();
+        payload.fileUrl = uploadData.url || uploadData.secure_url;
+      }
+      var method = id ? 'PUT' : 'POST';
+      if (id) payload.id = parseInt(id);
+      var res = await fetch('/api/dashboard/lessons', { method: method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      if (res.ok) window.location.reload();
+      else { var err = await res.json(); alert(err.error || 'Failed'); }
+    });
+  })();`} />
 </DashboardLayout>
