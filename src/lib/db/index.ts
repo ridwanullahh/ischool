@@ -632,6 +632,32 @@ function autoMigrate(sqlite: Database.Database) {
       created_at INTEGER,
       updated_at INTEGER
     );
+    CREATE TABLE IF NOT EXISTS hostel_checkins (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+      student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+      room_id INTEGER, type TEXT NOT NULL, timestamp TEXT NOT NULL, notes TEXT,
+      recorded_by INTEGER, created_at INTEGER, updated_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS hostel_visitors (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+      visitor_name TEXT NOT NULL, visitor_phone TEXT, visitor_relation TEXT,
+      visiting_student_id INTEGER REFERENCES students(id) ON DELETE CASCADE,
+      hostel_id INTEGER, time_in TEXT NOT NULL, time_out TEXT,
+      purpose TEXT, notes TEXT, recorded_by INTEGER,
+      created_at INTEGER, updated_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS hostel_maintenance_requests (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+      hostel_id INTEGER NOT NULL, room_id INTEGER,
+      title TEXT NOT NULL, description TEXT,
+      category TEXT DEFAULT 'other', priority TEXT DEFAULT 'medium',
+      status TEXT DEFAULT 'pending', reported_by INTEGER,
+      assigned_to TEXT, cost INTEGER, completed_at INTEGER, notes TEXT,
+      created_at INTEGER, updated_at INTEGER
+    );
 
     CREATE TABLE IF NOT EXISTS vehicles (
       id INTEGER PRIMARY KEY AUTOINCREMENT,

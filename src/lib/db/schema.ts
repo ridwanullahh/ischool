@@ -968,6 +968,55 @@ export const hostelAllocations = sqliteTable('hostel_allocations', {
   ...timestamps,
 });
 
+// Hostel check-in/out log per student
+export const hostelCheckins = sqliteTable('hostel_checkins', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
+  studentId: integer('student_id').notNull().references(() => students.id, { onDelete: 'cascade' }),
+  roomId: integer('room_id').references(() => hostelRooms.id),
+  type: text('type', { enum: ['check_in', 'check_out'] }).notNull(),
+  timestamp: text('timestamp').notNull(),
+  notes: text('notes'),
+  recordedBy: integer('recorded_by').references(() => users.id),
+  ...timestamps,
+});
+
+// Visitor log for hostel access control
+export const hostelVisitors = sqliteTable('hostel_visitors', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
+  visitorName: text('visitor_name').notNull(),
+  visitorPhone: text('visitor_phone'),
+  visitorRelation: text('visitor_relation'), // e.g. parent, sibling, guardian
+  visitingStudentId: integer('visiting_student_id').references(() => students.id, { onDelete: 'cascade' }),
+  hostelId: integer('hostel_id').references(() => hostels.id, { onDelete: 'cascade' }),
+  timeIn: text('time_in').notNull(),
+  timeOut: text('time_out'),
+  purpose: text('purpose'),
+  notes: text('notes'),
+  recordedBy: integer('recorded_by').references(() => users.id),
+  ...timestamps,
+});
+
+// Maintenance request per room
+export const hostelMaintenanceRequests = sqliteTable('hostel_maintenance_requests', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
+  hostelId: integer('hostel_id').notNull().references(() => hostels.id, { onDelete: 'cascade' }),
+  roomId: integer('room_id').references(() => hostelRooms.id),
+  title: text('title').notNull(),
+  description: text('description'),
+  category: text('category', { enum: ['electrical', 'plumbing', 'furniture', 'cleaning', 'structural', 'other'] }).notNull().default('other'),
+  priority: text('priority', { enum: ['low', 'medium', 'high', 'urgent'] }).notNull().default('medium'),
+  status: text('status', { enum: ['pending', 'in_progress', 'completed', 'cancelled'] }).notNull().default('pending'),
+  reportedBy: integer('reported_by').references(() => users.id),
+  assignedTo: text('assigned_to'),
+  cost: integer('cost'),
+  completedAt: integer('completed_at', { mode: 'timestamp' }),
+  notes: text('notes'),
+  ...timestamps,
+});
+
 // ═══════════════════════════════════════════════════════
 // MODULE 10: TRANSPORT MANAGEMENT
 // ═══════════════════════════════════════════════════════
