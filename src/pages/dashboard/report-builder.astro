@@ -1,67 +1,209 @@
 ---
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { getUserSchoolId } from '../../lib/school.js';
+import { getDb } from '../../lib/db/index.js';
+import { savedReports, schoolMembers } from '../../lib/db/schema.js';
+import { eq, desc } from 'drizzle-orm';
 
-const user = Astro.locals.user;
+const user = Astro.locals.user!;
 if (!user) return Astro.redirect('/auth/login');
+const schoolId = getUserSchoolId(user.id);
+if (!schoolId) return Astro.redirect('/dashboard');
+const db = getDb();
+
+const saved = db.select().from(savedReports).where(eq(savedReports.schoolId, schoolId)).orderBy(desc(savedReports.createdAt)).all();
+
+const reportTypes = [
+  { value: 'students', label: 'Students', icon: '👨‍🎓', fields: ['firstName', 'lastName', 'studentId', 'email', 'phone', 'gender', 'status', 'enrollmentDate', 'dateOfBirth', 'address'] },
+  { value: 'staff', label: 'Staff', icon: '👔', fields: ['firstName', 'lastName', 'staffId', 'email', 'phone', 'department', 'designation', 'employmentType', 'joinDate'] },
+  { value: 'attendance', label: 'Attendance', icon: '📅', fields: ['studentName', 'date', 'period', 'status', 'notes'] },
+  { value: 'invoices', label: 'Invoices', icon: '💰', fields: ['invoiceNumber', 'studentName', 'amount', 'discount', 'fine', 'paidAmount', 'balance', 'status', 'dueDate'] },
+  { value: 'payments', label: 'Payments', icon: '💳', fields: ['invoiceNumber', 'studentName', 'amount', 'method', 'reference', 'status', 'paidAt'] },
+  { value: 'grades', label: 'Grades', icon: '📊', fields: ['studentName', 'courseTitle', 'category', 'score', 'maxScore', 'grade', 'term', 'academicYear'] },
+];
+const fmtDate = (d: any) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
 ---
 
 <DashboardLayout title="Report Builder - iSchool">
   <div class="space-y-6">
-    <div class="flex items-center justify-between">
-      <div>
-        <h2 class="text-2xl font-bold text-gray-900">Report Builder</h2>
-        <p class="text-sm text-gray-500 mt-1">Build custom reports with drag-and-drop fields, filters, and grouping.</p>
-      </div>
-      <div class="flex items-center gap-2">
-        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-          <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-          Module Active
-        </span>
-      </div>
+    <div>
+      <h2 class="text-2xl font-bold text-gray-900">Custom Report Builder</h2>
+      <p class="text-sm text-gray-500 mt-1">Build custom reports by selecting fields, preview results, and save for later. Drag-and-drop field selection.</p>
     </div>
 
-    <div class="bg-white rounded-2xl border border-gray-200 p-12 text-center">
-      <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-primary-50 to-primary-100 mb-6">
-        <svg class="w-10 h-10 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-        </svg>
-      </div>
-      <h3 class="text-xl font-bold text-gray-900 mb-2">Report Builder Module</h3>
-      <p class="text-sm text-gray-500 max-w-md mx-auto mb-6">Build custom reports with drag-and-drop fields, filters, and grouping. This module is being prepared. You can configure settings now — full functionality will be available soon.</p>
-      <div class="flex items-center justify-center gap-3">
-        <button onclick="window.history.back()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Go Back</button>
-        <a href="/dashboard" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">Dashboard Home</a>
-      </div>
-    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Builder */}
+      <div class="lg:col-span-2 space-y-4">
+        <div class="bg-white rounded-xl border border-gray-200 p-4">
+          <h3 class="text-sm font-semibold text-gray-900 mb-3">Report Configuration</h3>
+          <div class="space-y-3">
+            <div><label class="block text-xs font-medium text-gray-700 mb-1">Report Name</label><input id="reportName" placeholder="e.g. Q1 Student Attendance Summary" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /></div>
+            <div><label class="block text-xs font-medium text-gray-700 mb-1">Report Type</label>
+              <select id="reportType" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" onchange="updateFieldOptions()">
+                {reportTypes.map(t => <option value={t.value}>{t.icon} {t.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-2">Select Fields</label>
+              <div id="fieldCheckboxes" class="grid grid-cols-2 md:grid-cols-3 gap-2"></div>
+            </div>
+            <div class="flex gap-2 pt-2">
+              <button onclick="generateReport(false)" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg">Preview</button>
+              <button onclick="generateReport(true)" class="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg">Save & Generate</button>
+            </div>
+          </div>
+        </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div class="bg-white rounded-xl border border-gray-200 p-5">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
-            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+        {/* Preview */}
+        <div class="bg-white rounded-xl border border-gray-200">
+          <div class="p-4 border-b flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-gray-900">Preview</h3>
+            {saved.length > 0 && (
+              <select id="savedReportSelect" class="text-xs px-2 py-1 border rounded" onchange="loadSaved()">
+                <option value="">Load saved report…</option>
+                {saved.map(r => <option value={r.id}>{r.name}</option>)}
+              </select>
+            )}
           </div>
-          <h4 class="font-semibold text-gray-900 text-sm">Configuration Ready</h4>
+          <div id="previewArea" class="p-4">
+            <p class="text-sm text-gray-500 text-center py-8">Select fields and click Preview to see results.</p>
+          </div>
         </div>
-        <p class="text-xs text-gray-500">Module settings can be configured. Changes will be saved and applied when the module is fully activated.</p>
       </div>
-      <div class="bg-white rounded-xl border border-gray-200 p-5">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
-            <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          </div>
-          <h4 class="font-semibold text-gray-900 text-sm">Coming Soon</h4>
+
+      {/* Saved reports */}
+      <div class="space-y-4">
+        <div class="bg-white rounded-xl border border-gray-200 p-4">
+          <h3 class="text-sm font-semibold text-gray-900 mb-3">Saved Reports ({saved.length})</h3>
+          {saved.length === 0 ? (
+            <p class="text-sm text-gray-500 text-center py-4">No saved reports yet.</p>
+          ) : (
+            <div class="space-y-2">
+              {saved.map(r => (
+                <div class="border rounded-lg p-3 hover:bg-gray-50">
+                  <div class="flex items-start justify-between">
+                    <div class="flex-1 min-w-0">
+                      <h4 class="text-sm font-medium text-gray-900 truncate">{r.name}</h4>
+                      <p class="text-xs text-gray-500">Type: {r.type} · {fmtDate(r.createdAt)}</p>
+                    </div>
+                    <div class="flex gap-1 shrink-0">
+                      <button onclick={`loadSavedById(${r.id})`} class="text-xs text-primary-600 font-medium">Load</button>
+                      <button onclick={`deleteReport(${r.id})`} class="text-xs text-red-600 font-medium">Delete</button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-        <p class="text-xs text-gray-500">Full module functionality is under development. Contact support if you need this feature urgently.</p>
-      </div>
-      <div class="bg-white rounded-xl border border-gray-200 p-5">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          </div>
-          <h4 class="font-semibold text-gray-900 text-sm">Need Help?</h4>
+
+        {/* Field reference */}
+        <div class="bg-white rounded-xl border border-gray-200 p-4">
+          <h3 class="text-sm font-semibold text-gray-900 mb-2">Available Report Types</h3>
+          <ul class="text-xs text-gray-600 space-y-1">
+            {reportTypes.map(t => <li>{t.icon} <strong>{t.label}</strong> — {t.fields.length} fields available</li>)}
+          </ul>
         </div>
-        <p class="text-xs text-gray-500">Check the documentation or contact support for guidance on using this module.</p>
       </div>
     </div>
   </div>
+
+  <script is:inline define:vars={{ reportTypes, schoolId }} set:html={`(function(){
+    var types = reportTypes;
+    var currentSchoolId = schoolId;
+
+    window.updateFieldOptions = function() {
+      var type = document.getElementById('reportType').value;
+      var typeObj = types.find(function(t){ return t.value === type; });
+      var container = document.getElementById('fieldCheckboxes');
+      container.innerHTML = '';
+      if (!typeObj) return;
+      typeObj.fields.forEach(function(f, i) {
+        var label = document.createElement('label');
+        label.className = 'flex items-center gap-2 text-xs text-gray-700 p-2 border rounded hover:bg-gray-50';
+        label.innerHTML = '<input type="checkbox" name="field" value="' + f + '" class="rounded" ' + (i < 5 ? 'checked' : '') + ' />' + f;
+        container.appendChild(label);
+      });
+    };
+
+    window.generateReport = async function(save) {
+      var type = document.getElementById('reportType').value;
+      var name = document.getElementById('reportName').value || (type + ' Report');
+      var fields = [];
+      document.querySelectorAll('input[name="field"]:checked').forEach(function(c) { fields.push(c.value); });
+      if (fields.length === 0) { alert('Select at least one field'); return; }
+
+      var previewArea = document.getElementById('previewArea');
+      previewArea.innerHTML = '<p class="text-sm text-gray-500 text-center py-8">Loading…</p>';
+
+      var res = await fetch('/api/dashboard/reports', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ schoolId: currentSchoolId, name: name, type: type, fields: fields, save: save })
+      });
+      var data = await res.json();
+      if (!data.ok) { previewArea.innerHTML = '<p class="text-sm text-red-600">Error: ' + (data.error || 'Failed') + '</p>'; return; }
+
+      var rows = data.rows || [];
+      if (rows.length === 0) {
+        previewArea.innerHTML = '<p class="text-sm text-gray-500 text-center py-8">No data found for this report.</p>';
+        return;
+      }
+      // Build table
+      var html = '<div class="overflow-x-auto"><table class="w-full text-xs"><thead class="bg-gray-50"><tr>';
+      fields.forEach(function(f) { html += '<th class="px-2 py-2 text-left font-medium text-gray-600 uppercase">' + f + '</th>'; });
+      html += '</tr></thead><tbody class="divide-y divide-gray-100">';
+      rows.slice(0, 100).forEach(function(r) {
+        html += '<tr>';
+        fields.forEach(function(f) {
+          var val = r[f];
+          if (val === null || val === undefined) val = '—';
+          else if (typeof val === 'object') val = JSON.stringify(val).substring(0, 50);
+          html += '<td class="px-2 py-1.5">' + String(val) + '</td>';
+        });
+        html += '</tr>';
+      });
+      html += '</tbody></table></div>';
+      html += '<p class="text-xs text-gray-500 mt-2">Showing ' + Math.min(rows.length, 100) + ' of ' + rows.length + ' rows.</p>';
+      if (save) { html += '<p class="text-xs text-green-600 mt-1">✓ Report saved.</p>'; }
+      previewArea.innerHTML = html;
+    };
+
+    window.loadSaved = function() {
+      var id = document.getElementById('savedReportSelect').value;
+      if (id) loadSavedById(parseInt(id));
+    };
+    window.loadSavedById = async function(id) {
+      var res = await fetch('/api/dashboard/reports?id=' + id);
+      var data = await res.json();
+      if (!data.ok) { alert('Failed to load'); return; }
+      var fields = data.fields || [];
+      // Update preview
+      var previewArea = document.getElementById('previewArea');
+      var rows = data.rows || [];
+      if (rows.length === 0) { previewArea.innerHTML = '<p class="text-sm text-gray-500 text-center py-8">No data.</p>'; return; }
+      var html = '<div class="overflow-x-auto"><table class="w-full text-xs"><thead class="bg-gray-50"><tr>';
+      fields.forEach(function(f) { html += '<th class="px-2 py-2 text-left font-medium text-gray-600 uppercase">' + f + '</th>'; });
+      html += '</tr></thead><tbody class="divide-y divide-gray-100">';
+      rows.slice(0, 100).forEach(function(r) {
+        html += '<tr>';
+        fields.forEach(function(f) {
+          var val = r[f];
+          if (val === null || val === undefined) val = '—';
+          else if (typeof val === 'object') val = JSON.stringify(val).substring(0, 50);
+          html += '<td class="px-2 py-1.5">' + String(val) + '</td>';
+        });
+        html += '</tr>';
+      });
+      html += '</tbody></table></div>';
+      previewArea.innerHTML = html;
+    };
+    window.deleteReport = async function(id) {
+      if (!confirm('Delete this saved report?')) return;
+      await fetch('/api/dashboard/reports', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id }) });
+      window.location.reload();
+    };
+
+    // Initialize
+    updateFieldOptions();
+  })();`} />
 </DashboardLayout>
