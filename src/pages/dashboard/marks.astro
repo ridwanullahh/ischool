@@ -1,67 +1,241 @@
 ---
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { getUserSchoolId } from '../../lib/school.js';
+import { getDb } from '../../lib/db/index.js';
+import { exams, examSeries, students, classes, enrollments, schoolMembers } from '../../lib/db/schema.js';
+import { eq, and } from 'drizzle-orm';
 
-const user = Astro.locals.user;
+const user = Astro.locals.user!;
 if (!user) return Astro.redirect('/auth/login');
+const schoolId = getUserSchoolId(user.id);
+if (!schoolId) return Astro.redirect('/dashboard');
+const db = getDb();
+
+// All exams with series info
+const allExams = db.select({
+  id: exams.id, title: exams.title, subject: exams.subject, totalMarks: exams.totalMarks,
+  passingMarks: exams.passingMarks, classId: exams.classId, date: exams.date,
+  seriesName: examSeries.name, seriesType: examSeries.type, academicYear: examSeries.academicYear, term: examSeries.term,
+  className: classes.name,
+}).from(exams)
+  .leftJoin(examSeries, eq(exams.seriesId, examSeries.id))
+  .leftJoin(classes, eq(exams.classId, classes.id))
+  .where(eq(examSeries.schoolId, schoolId)).all();
+
+// Students grouped by class
+const allStudents = db.select().from(students).where(eq(students.schoolId, schoolId)).all();
+const studentMap = new Map(allStudents.map(s => [s.id, s]));
+
+// Enrollments by class
+const allEnrollments = db.select().from(enrollments)
+  .where(and(eq(enrollments.schoolId, schoolId), eq(enrollments.status, 'accepted'))).all();
+const studentsByClass = new Map<number, number[]>();
+for (const e of allEnrollments) {
+  if (e.classId) {
+    if (!studentsByClass.has(e.classId)) studentsByClass.set(e.classId, []);
+    studentsByClass.get(e.classId)!.push(e.studentId);
+  }
+}
+
+const gradeScale = [
+  { min: 90, grade: 'A+', remark: 'Excellent' },
+  { min: 80, grade: 'A', remark: 'Very Good' },
+  { min: 70, grade: 'B', remark: 'Good' },
+  { min: 60, grade: 'C', remark: 'Satisfactory' },
+  { min: 50, grade: 'D', remark: 'Pass' },
+  { min: 0, grade: 'F', remark: 'Fail' },
+];
+function computeGrade(pct: number) {
+  return gradeScale.find(g => pct >= g.min) || gradeScale[gradeScale.length - 1];
+}
 ---
 
-<DashboardLayout title="Marks Entry - iSchool">
+<DashboardLayout title="Mark Entry - iSchool">
   <div class="space-y-6">
-    <div class="flex items-center justify-between">
-      <div>
-        <h2 class="text-2xl font-bold text-gray-900">Marks Entry</h2>
-        <p class="text-sm text-gray-500 mt-1">Enter and manage student marks for assignments, tests, and exams.</p>
+    <div>
+      <h2 class="text-2xl font-bold text-gray-900">Mark Entry</h2>
+      <p class="text-sm text-gray-500 mt-1">Enter marks per student per exam. Auto-computes grade based on percentage. Supports absent and withheld status.</p>
+    </div>
+
+    {/* Exam selector */}
+    <div class="bg-white rounded-xl border border-gray-200 p-4">
+      <label class="block text-xs font-medium text-gray-700 mb-2">Select Exam</label>
+      <select id="examSelect" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" onchange="loadMarksheet()">
+        <option value="">Choose an exam…</option>
+        {allExams.map(e => <option value={e.id} data-total={e.totalMarks} data-passing={e.passingMarks || 0} data-class={e.classId || 0}>{e.title} — {e.subject} ({e.seriesName} · {e.term || '—'}) {e.className ? `· ${e.className}` : ''}</option>)}
+      </select>
+    </div>
+
+    {/* Marksheet */}
+    <div id="marksheetContainer" class="hidden bg-white rounded-xl border border-gray-200">
+      <div class="p-4 border-b border-gray-200 flex items-center justify-between">
+        <div>
+          <h3 class="font-semibold text-gray-900" id="examTitle">Mark Sheet</h3>
+          <p class="text-xs text-gray-500 mt-0.5" id="examMeta"></p>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="setAllStatus('present')" class="text-xs px-2 py-1 bg-green-100 text-green-700 rounded">All Present</button>
+          <button onclick="setAllStatus('absent')" class="text-xs px-2 py-1 bg-red-100 text-red-700 rounded">All Absent</button>
+          <button onclick="saveMarks()" class="px-3 py-1.5 text-xs font-medium text-white bg-primary-600 rounded">Save All</button>
+        </div>
       </div>
-      <div class="flex items-center gap-2">
-        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-          <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-          Module Active
-        </span>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50"><tr class="text-left text-xs text-gray-500 uppercase">
+            <th class="px-4 py-3">#</th>
+            <th class="px-4 py-3">Student</th>
+            <th class="px-4 py-3">Student ID</th>
+            <th class="px-4 py-3">Marks</th>
+            <th class="px-4 py-3">%</th>
+            <th class="px-4 py-3">Grade</th>
+            <th class="px-4 py-3">Remark</th>
+            <th class="px-4 py-3">Status</th>
+          </tr></thead>
+          <tbody id="marksheetBody" class="divide-y divide-gray-200"></tbody>
+        </table>
       </div>
     </div>
 
-    <div class="bg-white rounded-2xl border border-gray-200 p-12 text-center">
-      <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-primary-50 to-primary-100 mb-6">
-        <svg class="w-10 h-10 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-        </svg>
-      </div>
-      <h3 class="text-xl font-bold text-gray-900 mb-2">Marks Entry Module</h3>
-      <p class="text-sm text-gray-500 max-w-md mx-auto mb-6">Enter and manage student marks for assignments, tests, and exams. This module is being prepared. You can configure settings now — full functionality will be available soon.</p>
-      <div class="flex items-center justify-center gap-3">
-        <button onclick="window.history.back()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Go Back</button>
-        <a href="/dashboard" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">Dashboard Home</a>
-      </div>
+    {/* Empty state */}
+    <div id="emptyState" class="bg-white rounded-xl border border-gray-200 p-12 text-center">
+      <div class="text-4xl mb-3">📝</div>
+      <h3 class="text-lg font-semibold text-gray-900 mb-1">Select an exam to enter marks</h3>
+      <p class="text-sm text-gray-500">Choose from any exam series (midterm, final, mock, quiz, practical). {allExams.length === 0 ? 'No exams created yet — ' : ''}<a href="/dashboard/exams" class="text-primary-600">Go to Exams</a></p>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div class="bg-white rounded-xl border border-gray-200 p-5">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
-            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+    {/* Grade scale reference */}
+    <div class="bg-white rounded-xl border border-gray-200 p-4">
+      <h3 class="text-sm font-semibold text-gray-900 mb-3">Grade Scale (auto-computed)</h3>
+      <div class="grid grid-cols-3 md:grid-cols-6 gap-2">
+        {gradeScale.map(g => (
+          <div class="text-center p-2 border rounded">
+            <div class="text-lg font-bold text-gray-900">{g.grade}</div>
+            <div class="text-xs text-gray-500">{g.min}%+</div>
+            <div class="text-[10px] text-gray-400">{g.remark}</div>
           </div>
-          <h4 class="font-semibold text-gray-900 text-sm">Configuration Ready</h4>
-        </div>
-        <p class="text-xs text-gray-500">Module settings can be configured. Changes will be saved and applied when the module is fully activated.</p>
+        ))}
       </div>
-      <div class="bg-white rounded-xl border border-gray-200 p-5">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
-            <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          </div>
-          <h4 class="font-semibold text-gray-900 text-sm">Coming Soon</h4>
-        </div>
-        <p class="text-xs text-gray-500">Full module functionality is under development. Contact support if you need this feature urgently.</p>
-      </div>
-      <div class="bg-white rounded-xl border border-gray-200 p-5">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          </div>
-          <h4 class="font-semibold text-gray-900 text-sm">Need Help?</h4>
-        </div>
-        <p class="text-xs text-gray-500">Check the documentation or contact support for guidance on using this module.</p>
-      </div>
+      <p class="text-xs text-gray-500 mt-3">Edit this scale in <code>marks.astro</code> if your school uses a different system (GPA, custom letters, etc.).</p>
     </div>
   </div>
+
+  <script is:inline define:vars={{ studentMap: Array.from(studentMap.entries()).map(([id, s]) => ({ id, name: `${s.firstName} ${s.lastName}`, code: s.studentId })), studentsByClass: Object.fromEntries(studentsByClass) }} set:html={`(function(){
+    var students = studentMap;
+    var classStudents = studentsByClass;
+    var currentExam = null;
+
+    window.loadMarksheet = async function() {
+      var select = document.getElementById('examSelect');
+      var examId = parseInt(select.value);
+      if (!examId) { document.getElementById('marksheetContainer').classList.add('hidden'); document.getElementById('emptyState').classList.remove('hidden'); return; }
+      var opt = select.options[select.selectedIndex];
+      var totalMarks = parseInt(opt.dataset.total);
+      var passingMarks = parseInt(opt.dataset.passing);
+      var classId = parseInt(opt.dataset.class);
+      document.getElementById('examTitle').textContent = opt.text;
+      document.getElementById('examMeta').textContent = 'Total: ' + totalMarks + ' marks' + (passingMarks ? ' · Passing: ' + passingMarks : '') + (classId ? ' · Class enrollment: ' + (classStudents[classId] || []).length : ' · All students');
+
+      // Get existing results
+      var res = await fetch('/api/dashboard/exams?action=results&examId=' + examId);
+      var results = await res.json();
+      var resultMap = {};
+      results.forEach(function(r) { resultMap[r.studentId] = r; });
+
+      // Get student list (by class or all)
+      var studentIds = classId ? (classStudents[classId] || []) : students.map(function(s) { return s.id; });
+      var body = document.getElementById('marksheetBody');
+      body.innerHTML = '';
+
+      if (studentIds.length === 0) {
+        body.innerHTML = '<tr><td colspan="8" class="px-4 py-8 text-center text-gray-500">No students enrolled in this class.</td></tr>';
+      } else {
+        studentIds.forEach(function(sid, idx) {
+          var s = students.find(function(x) { return x.id === sid; });
+          if (!s) return;
+          var r = resultMap[sid] || {};
+          var row = document.createElement('tr');
+          row.className = 'hover:bg-gray-50';
+          row.innerHTML = '<td class="px-4 py-3 text-gray-500">' + (idx+1) + '</td>' +
+            '<td class="px-4 py-3 font-medium text-gray-900">' + s.name + '</td>' +
+            '<td class="px-4 py-3 text-gray-600">' + s.code + '</td>' +
+            '<td class="px-4 py-3"><input type="number" min="0" max="' + totalMarks + '" class="mark-input w-20 px-2 py-1 border rounded text-sm" data-student-id="' + sid + '" value="' + (r.marksObtained != null ? r.marksObtained : '') + '" oninput="updateGrade(this, ' + totalMarks + ')" /></td>' +
+            '<td class="px-4 py-3 pct-cell text-gray-600">—</td>' +
+            '<td class="px-4 py-3 grade-cell"><span class="text-xs font-bold px-2 py-0.5 rounded bg-gray-100">—</span></td>' +
+            '<td class="px-4 py-3 remark-cell text-xs text-gray-500">—</td>' +
+            '<td class="px-4 py-3"><select class="status-input border rounded px-2 py-1 text-xs" data-student-id="' + sid + '">' +
+              '<option value="present"' + (r.status === 'present' || !r.status ? ' selected' : '') + '>Present</option>' +
+              '<option value="absent"' + (r.status === 'absent' ? ' selected' : '') + '>Absent</option>' +
+              '<option value="withheld"' + (r.status === 'withheld' ? ' selected' : '') + '>Withheld</option>' +
+            '</select></td>';
+          body.appendChild(row);
+          // Initialize grade display
+          var markInput = row.querySelector('.mark-input');
+          if (markInput.value) updateGrade(markInput, totalMarks);
+        });
+      }
+      document.getElementById('emptyState').classList.add('hidden');
+      document.getElementById('marksheetContainer').classList.remove('hidden');
+      currentExam = examId;
+    };
+
+    window.updateGrade = function(input, totalMarks) {
+      var marks = parseFloat(input.value);
+      var pctCell = input.parentElement.nextElementSibling;
+      var gradeCell = pctCell.nextElementSibling;
+      var remarkCell = gradeCell.nextElementSibling;
+      if (isNaN(marks)) {
+        pctCell.textContent = '—';
+        gradeCell.innerHTML = '<span class="text-xs font-bold px-2 py-0.5 rounded bg-gray-100">—</span>';
+        remarkCell.textContent = '—';
+        return;
+      }
+      var pct = (marks / totalMarks) * 100;
+      pctCell.textContent = pct.toFixed(1) + '%';
+      var scale = [
+        { min: 90, grade: 'A+', remark: 'Excellent', color: 'bg-emerald-100 text-emerald-700' },
+        { min: 80, grade: 'A', remark: 'Very Good', color: 'bg-green-100 text-green-700' },
+        { min: 70, grade: 'B', remark: 'Good', color: 'bg-blue-100 text-blue-700' },
+        { min: 60, grade: 'C', remark: 'Satisfactory', color: 'bg-amber-100 text-amber-700' },
+        { min: 50, grade: 'D', remark: 'Pass', color: 'bg-orange-100 text-orange-700' },
+        { min: 0, grade: 'F', remark: 'Fail', color: 'bg-red-100 text-red-700' },
+      ];
+      var g = scale.find(function(x) { return pct >= x.min; }) || scale[scale.length - 1];
+      gradeCell.innerHTML = '<span class="text-xs font-bold px-2 py-0.5 rounded ' + g.color + '">' + g.grade + '</span>';
+      remarkCell.textContent = g.remark;
+    };
+
+    window.setAllStatus = function(status) {
+      document.querySelectorAll('.status-input').forEach(function(sel) { sel.value = status; });
+    };
+
+    window.saveMarks = async function() {
+      if (!currentExam) return;
+      var totalMarks = parseInt(document.getElementById('examSelect').options[document.getElementById('examSelect').selectedIndex].dataset.total);
+      var results = [];
+      document.querySelectorAll('.mark-input').forEach(function(input) {
+        var sid = parseInt(input.dataset.studentId);
+        var statusSelect = document.querySelector('.status-input[data-student-id="' + sid + '"]');
+        var scale = [
+          { min: 90, grade: 'A+' }, { min: 80, grade: 'A' }, { min: 70, grade: 'B' },
+          { min: 60, grade: 'C' }, { min: 50, grade: 'D' }, { min: 0, grade: 'F' },
+        ];
+        var marks = input.value !== '' ? parseFloat(input.value) : null;
+        var grade = null;
+        if (marks !== null) {
+          var pct = (marks / totalMarks) * 100;
+          grade = (scale.find(function(x) { return pct >= x.min; }) || scale[scale.length - 1]).grade;
+        }
+        results.push({
+          studentId: sid, marksObtained: marks, grade: grade,
+          status: statusSelect.value,
+        });
+      });
+      var res = await fetch('/api/dashboard/exams', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'bulk_results', examId: currentExam, results: results })
+      });
+      if (res.ok) { var data = await res.json(); alert('Saved: ' + data.inserted + ' new, ' + data.updated + ' updated'); }
+      else { alert('Failed to save marks'); }
+    };
+  })();`} />
 </DashboardLayout>

@@ -1,8 +1,47 @@
 ---
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { getUserSchoolId } from '../../lib/school.js';
+import { getDb } from '../../lib/db/index.js';
+import { reportCards, students, classes, enrollments, exams, examSeries, examResults, schools, schoolMembers } from '../../lib/db/schema.js';
+import { eq, and, sql, desc } from 'drizzle-orm';
 
-const user = Astro.locals.user;
+const user = Astro.locals.user!;
 if (!user) return Astro.redirect('/auth/login');
+const schoolId = getUserSchoolId(user.id);
+if (!schoolId) return Astro.redirect('/dashboard');
+const db = getDb();
+
+const school = db.select().from(schools).where(eq(schools.id, schoolId)).get();
+
+const cards = db.select({
+  id: reportCards.id, academicYear: reportCards.academicYear, term: reportCards.term,
+  totalMarks: reportCards.totalMarks, percentage: reportCards.percentage, classRank: reportCards.classRank,
+  promotionStatus: reportCards.promotionStatus, generatedAt: reportCards.generatedAt,
+  classTeacherComment: reportCards.classTeacherComment, principalRemark: reportCards.principalRemark,
+  studentId: reportCards.studentId,
+  studentName: students.firstName, studentLastName: students.lastName, studentCode: students.studentId,
+  className: classes.name,
+}).from(reportCards)
+  .leftJoin(students, eq(reportCards.studentId, students.id))
+  .leftJoin(classes, eq(students.id, students.id))
+  .where(eq(reportCards.schoolId, schoolId))
+  .orderBy(desc(reportCards.generatedAt)).all();
+
+const allStudents = db.select({ id: students.id, name: students.firstName, lastName: students.lastName, code: students.studentId })
+  .from(students).where(eq(students.schoolId, schoolId)).all();
+const allClasses = db.select().from(classes).where(eq(classes.schoolId, schoolId)).all();
+
+// All exam results grouped by student for report card generation
+const allExams = db.select({
+  id: exams.id, title: exams.title, subject: exams.subject, totalMarks: exams.totalMarks,
+  classId: exams.classId, seriesName: examSeries.name, seriesType: examSeries.type,
+  academicYear: examSeries.academicYear, term: examSeries.term,
+}).from(exams)
+  .leftJoin(examSeries, eq(exams.seriesId, examSeries.id))
+  .where(eq(examSeries.schoolId, schoolId)).all();
+
+const formatDate = (d: any) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+const promotionColors: Record<string, string> = { promoted: 'bg-green-100 text-green-700', retained: 'bg-red-100 text-red-700', pending: 'bg-amber-100 text-amber-700' };
 ---
 
 <DashboardLayout title="Report Cards - iSchool">
@@ -10,58 +49,159 @@ if (!user) return Astro.redirect('/auth/login');
     <div class="flex items-center justify-between">
       <div>
         <h2 class="text-2xl font-bold text-gray-900">Report Cards</h2>
-        <p class="text-sm text-gray-500 mt-1">Generate and customize student report cards with grades, comments, and attendance.</p>
+        <p class="text-sm text-gray-500 mt-1">Generate term report cards per student with subject grades, class teacher comment, principal remark, ranking, and promotion decision.</p>
       </div>
-      <div class="flex items-center gap-2">
-        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-          <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-          Module Active
-        </span>
-      </div>
+      <button onclick="openGenerateModal()" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">+ Generate Report Card</button>
     </div>
 
-    <div class="bg-white rounded-2xl border border-gray-200 p-12 text-center">
-      <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-primary-50 to-primary-100 mb-6">
-        <svg class="w-10 h-10 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-        </svg>
-      </div>
-      <h3 class="text-xl font-bold text-gray-900 mb-2">Report Cards Module</h3>
-      <p class="text-sm text-gray-500 max-w-md mx-auto mb-6">Generate and customize student report cards with grades, comments, and attendance. This module is being prepared. You can configure settings now — full functionality will be available soon.</p>
-      <div class="flex items-center justify-center gap-3">
-        <button onclick="window.history.back()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Go Back</button>
-        <a href="/dashboard" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">Dashboard Home</a>
-      </div>
+    <div class="grid grid-cols-3 gap-4">
+      <div class="bg-white rounded-xl border p-4"><div class="text-xs text-gray-500 uppercase">Total Cards</div><div class="text-2xl font-bold">{cards.length}</div></div>
+      <div class="bg-white rounded-xl border p-4"><div class="text-xs text-gray-500 uppercase">Promoted</div><div class="text-2xl font-bold text-green-600">{cards.filter(c => c.promotionStatus === 'promoted').length}</div></div>
+      <div class="bg-white rounded-xl border p-4"><div class="text-xs text-gray-500 uppercase">Retained</div><div class="text-2xl font-bold text-red-600">{cards.filter(c => c.promotionStatus === 'retained').length}</div></div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div class="bg-white rounded-xl border border-gray-200 p-5">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
-            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-          </div>
-          <h4 class="font-semibold text-gray-900 text-sm">Configuration Ready</h4>
+    {/* Cards list */}
+    <div class="bg-white rounded-xl border border-gray-200">
+      {cards.length === 0 ? (
+        <div class="p-12 text-center">
+          <div class="text-4xl mb-3">📋</div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-1">No report cards generated yet</h3>
+          <p class="text-sm text-gray-500">Click "Generate Report Card" to create one for a student.</p>
         </div>
-        <p class="text-xs text-gray-500">Module settings can be configured. Changes will be saved and applied when the module is fully activated.</p>
-      </div>
-      <div class="bg-white rounded-xl border border-gray-200 p-5">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
-            <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          </div>
-          <h4 class="font-semibold text-gray-900 text-sm">Coming Soon</h4>
+      ) : (
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50"><tr class="text-left text-xs text-gray-500 uppercase">
+              <th class="px-4 py-3">Student</th><th class="px-4 py-3">Year · Term</th>
+              <th class="px-4 py-3">Total / %</th><th class="px-4 py-3">Rank</th>
+              <th class="px-4 py-3">Promotion</th><th class="px-4 py-3">Generated</th>
+              <th class="px-4 py-3">Actions</th>
+            </tr></thead>
+            <tbody class="divide-y divide-gray-200">
+              {cards.map(c => (
+                <tr class="hover:bg-gray-50">
+                  <td class="px-4 py-3 font-medium text-gray-900">{c.studentName} {c.studentLastName}<div class="text-xs text-gray-500">{c.studentCode}</div></td>
+                  <td class="px-4 py-3 text-gray-700">{c.academicYear} · {c.term}</td>
+                  <td class="px-4 py-3 text-gray-700">{c.totalMarks || '—'} {c.percentage ? `(${c.percentage}%)` : ''}</td>
+                  <td class="px-4 py-3 text-gray-700">{c.classRank ? '#' + c.classRank : '—'}</td>
+                  <td class="px-4 py-3"><span class={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${promotionColors[c.promotionStatus || 'pending']}`}>{c.promotionStatus || 'pending'}</span></td>
+                  <td class="px-4 py-3 text-gray-600">{formatDate(c.generatedAt)}</td>
+                  <td class="px-4 py-3">
+                    <button onclick={`viewCard(${c.id})`} class="text-xs text-primary-600 font-medium">View</button>
+                    <button onclick={`printCard(${c.id})`} class="text-xs text-green-600 font-medium ml-2">Print</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-        <p class="text-xs text-gray-500">Full module functionality is under development. Contact support if you need this feature urgently.</p>
-      </div>
-      <div class="bg-white rounded-xl border border-gray-200 p-5">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          </div>
-          <h4 class="font-semibold text-gray-900 text-sm">Need Help?</h4>
-        </div>
-        <p class="text-xs text-gray-500">Check the documentation or contact support for guidance on using this module.</p>
-      </div>
+      )}
     </div>
   </div>
+
+  {/* Generate Modal */}
+  <div id="generateModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+      <h3 class="text-lg font-bold text-gray-900 mb-4">Generate Report Card</h3>
+      <form id="generateForm" class="space-y-3">
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">Student *</label>
+          <select name="studentId" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+            <option value="">Select student…</option>
+            {allStudents.map(s => <option value={s.id}>{s.name} {s.lastName} ({s.code})</option>)}
+          </select>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="block text-xs font-medium text-gray-700 mb-1">Academic Year *</label><input name="academicYear" required placeholder="2025-2026" value="2025-2026" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /></div>
+          <div><label class="block text-xs font-medium text-gray-700 mb-1">Term *</label>
+            <select name="term" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+              <option value="Term 1">Term 1</option><option value="Term 2">Term 2</option><option value="Term 3">Term 3</option>
+            </select>
+          </div>
+        </div>
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">Class Teacher Comment</label><textarea name="classTeacherComment" rows="2" placeholder="e.g. A diligent student who shows consistent effort." class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"></textarea></div>
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">Principal Remark</label><textarea name="principalRemark" rows="2" placeholder="e.g. Excellent performance. Keep it up." class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"></textarea></div>
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">Promotion Status</label>
+          <select name="promotionStatus" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+            <option value="pending">Pending</option><option value="promoted">Promoted</option><option value="retained">Retained</option>
+          </select>
+        </div>
+        <div class="flex gap-3 pt-2">
+          <button type="button" onclick="document.getElementById('generateModal').classList.add('hidden')" class="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg">Cancel</button>
+          <button type="submit" class="flex-1 px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg">Generate</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {/* View Modal */}
+  <div id="viewModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-8 max-w-3xl w-full max-h-[90vh] overflow-y-auto" id="cardContent">
+    </div>
+  </div>
+
+  <script is:inline define:vars={{ cards, school }} set:html={`(function(){
+    var allCards = cards;
+    var schoolInfo = school;
+    window.openGenerateModal = function() { document.getElementById('generateModal').classList.remove('hidden'); };
+    window.viewCard = function(id) {
+      var c = allCards.find(function(x) { return x.id === id; });
+      if (!c) return;
+      var results = [];
+      try { results = JSON.parse(c.results || '[]'); } catch {}
+      var html = '<div class="text-center mb-6">' +
+        '<h1 style="font-size: 24px; font-weight: bold; color: #111;">' + (schoolInfo?.name || 'School') + '</h1>' +
+        '<p style="font-size: 14px; color: #666;">Report Card · ' + c.academicYear + ' · ' + c.term + '</p>' +
+        '</div>' +
+        '<div style="margin-bottom: 16px; padding: 12px; background: #f9fafb; border-radius: 8px;">' +
+        '<div style="font-weight: bold; font-size: 16px;">' + c.studentName + ' ' + (c.studentLastName || '') + '</div>' +
+        '<div style="font-size: 12px; color: #666;">Student ID: ' + c.studentCode + '</div>' +
+        '</div>' +
+        '<table style="width: 100%; border-collapse: collapse; margin-bottom: 16px;"><thead><tr style="background: #f3f4f6;">' +
+        '<th style="padding: 8px; text-align: left; border: 1px solid #e5e7eb;">Subject</th>' +
+        '<th style="padding: 8px; text-align: left; border: 1px solid #e5e7eb;">Marks</th>' +
+        '<th style="padding: 8px; text-align: left; border: 1px solid #e5e7eb;">Grade</th>' +
+        '<th style="padding: 8px; text-align: left; border: 1px solid #e5e7eb;">Remark</th>' +
+        '</tr></thead><tbody>';
+      if (results.length === 0) {
+        html += '<tr><td colspan="4" style="padding: 8px; text-align: center; border: 1px solid #e5e7eb;">No subject results recorded</td></tr>';
+      } else {
+        results.forEach(function(r) {
+          html += '<tr><td style="padding: 8px; border: 1px solid #e5e7eb;">' + (r.subject || '—') + '</td>' +
+            '<td style="padding: 8px; border: 1px solid #e5e7eb;">' + (r.marksObtained != null ? r.marksObtained + ' / ' + (r.totalMarks || 100) : '—') + '</td>' +
+            '<td style="padding: 8px; border: 1px solid #e5e7eb;">' + (r.grade || '—') + '</td>' +
+            '<td style="padding: 8px; border: 1px solid #e5e7eb;">' + (r.remark || '—') + '</td></tr>';
+        });
+      }
+      html += '</tbody></table>' +
+        '<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px;">' +
+        '<div style="padding: 12px; background: #f9fafb; border-radius: 8px;"><div style="font-size: 10px; color: #666; text-transform: uppercase;">Total</div><div style="font-size: 20px; font-weight: bold;">' + (c.totalMarks || '—') + '</div></div>' +
+        '<div style="padding: 12px; background: #f9fafb; border-radius: 8px;"><div style="font-size: 10px; color: #666; text-transform: uppercase;">Percentage</div><div style="font-size: 20px; font-weight: bold;">' + (c.percentage || '—') + '%</div></div>' +
+        '<div style="padding: 12px; background: #f9fafb; border-radius: 8px;"><div style="font-size: 10px; color: #666; text-transform: uppercase;">Class Rank</div><div style="font-size: 20px; font-weight: bold;">' + (c.classRank ? '#' + c.classRank : '—') + '</div></div>' +
+        '</div>';
+      if (c.classTeacherComment) html += '<div style="margin-bottom: 8px;"><strong>Class Teacher:</strong> ' + c.classTeacherComment + '</div>';
+      if (c.principalRemark) html += '<div style="margin-bottom: 8px;"><strong>Principal:</strong> ' + c.principalRemark + '</div>';
+      html += '<div style="margin-top: 24px; display: flex; justify-content: space-between;"><div style="text-align: center;"><div style="border-top: 1px solid #000; padding-top: 4px; font-size: 12px;">Class Teacher</div></div><div style="text-align: center;"><div style="border-top: 1px solid #000; padding-top: 4px; font-size: 12px;">Principal</div></div></div>';
+      html += '<div style="text-align: center; margin-top: 16px;"><button onclick="window.print()" class="px-4 py-2 bg-primary-600 text-white rounded text-sm">Print / Save as PDF</button></div>';
+      document.getElementById('cardContent').innerHTML = html;
+      document.getElementById('viewModal').classList.remove('hidden');
+    };
+    window.printCard = function(id) { window.viewCard(id); setTimeout(function() { window.print(); }, 300); };
+
+    document.getElementById('generateForm')?.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      var fd = new FormData(this);
+      var payload = {
+        action: 'generate',
+        studentId: parseInt(fd.get('studentId')),
+        academicYear: fd.get('academicYear'),
+        term: fd.get('term'),
+        classTeacherComment: fd.get('classTeacherComment') || null,
+        principalRemark: fd.get('principalRemark') || null,
+        promotionStatus: fd.get('promotionStatus'),
+      };
+      var res = await fetch('/api/dashboard/report-cards', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      if (res.ok) window.location.reload();
+      else { var err = await res.json(); alert(err.error || 'Failed to generate'); }
+    });
+  })();`} />
 </DashboardLayout>
