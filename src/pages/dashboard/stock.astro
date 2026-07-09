@@ -1,67 +1,209 @@
 ---
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { getUserSchoolId } from '../../lib/school.js';
+import { getDb } from '../../lib/db/index.js';
+import { inventoryItems, schoolMembers } from '../../lib/db/schema.js';
+import { eq, desc } from 'drizzle-orm';
 
-const user = Astro.locals.user;
+const user = Astro.locals.user!;
 if (!user) return Astro.redirect('/auth/login');
+const schoolId = getUserSchoolId(user.id);
+if (!schoolId) return Astro.redirect('/dashboard');
+const db = getDb();
+
+const items = db.select().from(inventoryItems).where(eq(inventoryItems.schoolId, schoolId)).orderBy(desc(inventoryItems.createdAt)).all();
+const lowStock = items.filter(i => (i.quantity || 0) <= (i.reorderLevel || 0));
+const outOfStock = items.filter(i => (i.quantity || 0) === 0);
+const totalValue = items.reduce((s, i) => s + (i.quantity || 0), 0);
+
+const statusColors = (qty: number, reorder: number) => {
+  if (qty === 0) return 'bg-red-100 text-red-700';
+  if (qty <= reorder) return 'bg-amber-100 text-amber-700';
+  return 'bg-green-100 text-green-700';
+};
+const statusText = (qty: number, reorder: number) => {
+  if (qty === 0) return 'Out of Stock';
+  if (qty <= reorder) return 'Low Stock';
+  return 'In Stock';
+};
 ---
 
-<DashboardLayout title="Stock Management - iSchool">
+<DashboardLayout title="Stock Items - iSchool">
   <div class="space-y-6">
     <div class="flex items-center justify-between">
       <div>
-        <h2 class="text-2xl font-bold text-gray-900">Stock Management</h2>
-        <p class="text-sm text-gray-500 mt-1">Track stock levels, manage suppliers, and generate reorder alerts.</p>
+        <h2 class="text-2xl font-bold text-gray-900">Consumable Stock Items</h2>
+        <p class="text-sm text-gray-500 mt-1">Track consumables (stationery, lab supplies, cleaning materials). Auto-reorder alerts when stock falls below threshold.</p>
       </div>
-      <div class="flex items-center gap-2">
-        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-          <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-          Module Active
-        </span>
-      </div>
+      <button onclick="openModal()" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">+ Add Stock Item</button>
     </div>
 
-    <div class="bg-white rounded-2xl border border-gray-200 p-12 text-center">
-      <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-primary-50 to-primary-100 mb-6">
-        <svg class="w-10 h-10 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-        </svg>
-      </div>
-      <h3 class="text-xl font-bold text-gray-900 mb-2">Stock Management Module</h3>
-      <p class="text-sm text-gray-500 max-w-md mx-auto mb-6">Track stock levels, manage suppliers, and generate reorder alerts. This module is being prepared. You can configure settings now — full functionality will be available soon.</p>
-      <div class="flex items-center justify-center gap-3">
-        <button onclick="window.history.back()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Go Back</button>
-        <a href="/dashboard" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">Dashboard Home</a>
-      </div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="bg-white rounded-xl border p-4"><div class="text-xs text-gray-500 uppercase">Total Items</div><div class="text-2xl font-bold">{items.length}</div></div>
+      <div class="bg-white rounded-xl border p-4"><div class="text-xs text-gray-500 uppercase">Total Quantity</div><div class="text-2xl font-bold text-blue-600">{totalValue}</div></div>
+      <div class="bg-white rounded-xl border p-4"><div class="text-xs text-gray-500 uppercase">Low Stock</div><div class="text-2xl font-bold text-amber-600">{lowStock.length}</div></div>
+      <div class="bg-white rounded-xl border p-4"><div class="text-xs text-gray-500 uppercase">Out of Stock</div><div class="text-2xl font-bold text-red-600">{outOfStock.length}</div></div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div class="bg-white rounded-xl border border-gray-200 p-5">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
-            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-          </div>
-          <h4 class="font-semibold text-gray-900 text-sm">Configuration Ready</h4>
+    {lowStock.length > 0 && (
+      <div class="bg-amber-50 border border-amber-200 rounded-xl p-4">
+        <h3 class="text-sm font-semibold text-amber-900 mb-2">⚠ Reorder Alerts</h3>
+        <div class="flex flex-wrap gap-2">
+          {lowStock.map(i => (
+            <span class="inline-flex items-center gap-1 px-2 py-1 bg-white border border-amber-300 rounded text-xs text-amber-800">
+              {i.name}: {i.quantity} {i.unit || ''} left (reorder at {i.reorderLevel})
+            </span>
+          ))}
         </div>
-        <p class="text-xs text-gray-500">Module settings can be configured. Changes will be saved and applied when the module is fully activated.</p>
       </div>
-      <div class="bg-white rounded-xl border border-gray-200 p-5">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
-            <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          </div>
-          <h4 class="font-semibold text-gray-900 text-sm">Coming Soon</h4>
+    )}
+
+    <div class="bg-white rounded-xl border border-gray-200">
+      <div class="p-4 border-b">
+        <input id="searchInput" type="text" placeholder="Search items…" class="w-full px-3 py-2 border rounded-lg text-sm" oninput="filterItems()" />
+      </div>
+      {items.length === 0 ? (
+        <div class="p-12 text-center">
+          <div class="text-4xl mb-3">📦</div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-1">No stock items yet</h3>
+          <p class="text-sm text-gray-500">Add your first consumable item to track.</p>
         </div>
-        <p class="text-xs text-gray-500">Full module functionality is under development. Contact support if you need this feature urgently.</p>
-      </div>
-      <div class="bg-white rounded-xl border border-gray-200 p-5">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          </div>
-          <h4 class="font-semibold text-gray-900 text-sm">Need Help?</h4>
+      ) : (
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50"><tr class="text-left text-xs text-gray-500 uppercase">
+              <th class="px-4 py-3">Item</th><th class="px-4 py-3">Category</th>
+              <th class="px-4 py-3">Quantity</th><th class="px-4 py-3">Reorder Level</th>
+              <th class="px-4 py-3">Supplier</th><th class="px-4 py-3">Status</th>
+              <th class="px-4 py-3">Actions</th>
+            </tr></thead>
+            <tbody class="divide-y divide-gray-200">
+              {items.map(i => (
+                <tr class="hover:bg-gray-50 item-row" data-search={`${i.name} ${i.category || ''} ${i.supplier || ''}`.toLowerCase()}>
+                  <td class="px-4 py-3 font-medium text-gray-900">{i.name}</td>
+                  <td class="px-4 py-3 text-gray-600">{i.category || '—'}</td>
+                  <td class="px-4 py-3 text-gray-900 font-medium">{i.quantity} {i.unit || ''}</td>
+                  <td class="px-4 py-3 text-gray-600">{i.reorderLevel}</td>
+                  <td class="px-4 py-3 text-gray-600">{i.supplier || '—'}</td>
+                  <td class="px-4 py-3"><span class={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${statusColors(i.quantity || 0, i.reorderLevel || 0)}`}>{statusText(i.quantity || 0, i.reorderLevel || 0)}</span></td>
+                  <td class="px-4 py-3">
+                    <button onclick={`adjustStock(${i.id})`} class="text-xs text-blue-600 font-medium">Adjust</button>
+                    <button onclick={`editItem(${i.id})`} class="text-xs text-amber-600 font-medium ml-2">Edit</button>
+                    <button onclick={`deleteItem(${i.id})`} class="text-xs text-red-600 font-medium ml-2">Delete</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-        <p class="text-xs text-gray-500">Check the documentation or contact support for guidance on using this module.</p>
-      </div>
+      )}
     </div>
   </div>
+
+  <div id="itemModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-6 max-w-md w-full">
+      <h3 class="text-lg font-bold text-gray-900 mb-4" id="modalTitle">Add Stock Item</h3>
+      <form id="itemForm" class="space-y-3">
+        <input type="hidden" name="id" />
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">Item Name *</label><input name="name" required placeholder="e.g. A4 Paper" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /></div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="block text-xs font-medium text-gray-700 mb-1">Category</label><input name="category" placeholder="e.g. Stationery" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /></div>
+          <div><label class="block text-xs font-medium text-gray-700 mb-1">Unit</label><input name="unit" placeholder="e.g. reams, pcs" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /></div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="block text-xs font-medium text-gray-700 mb-1">Quantity</label><input name="quantity" type="number" value="0" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /></div>
+          <div><label class="block text-xs font-medium text-gray-700 mb-1">Reorder Level</label><input name="reorderLevel" type="number" value="5" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /></div>
+        </div>
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">Supplier</label><input name="supplier" placeholder="e.g. ABC Office Supplies" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /></div>
+        <div class="flex gap-3 pt-2">
+          <button type="button" onclick="document.getElementById('itemModal').classList.add('hidden')" class="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg">Cancel</button>
+          <button type="submit" class="flex-1 px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="adjustModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-6 max-w-md w-full">
+      <h3 class="text-lg font-bold text-gray-900 mb-4">Adjust Stock</h3>
+      <form id="adjustForm" class="space-y-3">
+        <input type="hidden" name="id" />
+        <p class="text-sm text-gray-600" id="adjustInfo"></p>
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">Adjustment (positive = add, negative = remove)</label><input name="adjustment" type="number" required placeholder="e.g. +10 or -5" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /></div>
+        <div class="flex gap-3 pt-2">
+          <button type="button" onclick="document.getElementById('adjustModal').classList.add('hidden')" class="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg">Cancel</button>
+          <button type="submit" class="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg">Apply</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script is:inline define:vars={{ items }} set:html={`(function(){
+    var allItems = items;
+    window.openModal = function() {
+      var form = document.getElementById('itemForm');
+      form.reset(); form.id.value = '';
+      document.getElementById('modalTitle').textContent = 'Add Stock Item';
+      document.getElementById('itemModal').classList.remove('hidden');
+    };
+    window.editItem = function(id) {
+      var i = allItems.find(function(x){ return x.id === id; });
+      if (!i) return;
+      var form = document.getElementById('itemForm');
+      form.id.value = i.id; form.name.value = i.name;
+      form.category.value = i.category || '';
+      form.unit.value = i.unit || '';
+      form.quantity.value = i.quantity;
+      form.reorderLevel.value = i.reorderLevel;
+      form.supplier.value = i.supplier || '';
+      document.getElementById('modalTitle').textContent = 'Edit Stock Item';
+      document.getElementById('itemModal').classList.remove('hidden');
+    };
+    window.adjustStock = function(id) {
+      var i = allItems.find(function(x){ return x.id === id; });
+      if (!i) return;
+      document.getElementById('adjustForm').id.value = id;
+      document.getElementById('adjustInfo').textContent = 'Current stock of ' + i.name + ': ' + i.quantity + ' ' + (i.unit || '');
+      document.getElementById('adjustForm').adjustment.value = '';
+      document.getElementById('adjustModal').classList.remove('hidden');
+    };
+    window.deleteItem = async function(id) {
+      if (!confirm('Delete this stock item?')) return;
+      await fetch('/api/dashboard/stock', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id }) });
+      window.location.reload();
+    };
+    window.filterItems = function() {
+      var q = document.getElementById('searchInput').value.toLowerCase();
+      document.querySelectorAll('.item-row').forEach(function(row) {
+        row.style.display = !q || row.dataset.search.indexOf(q) >= 0 ? '' : 'none';
+      });
+    };
+    document.getElementById('itemForm')?.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      var fd = new FormData(this);
+      var id = fd.get('id');
+      var payload = {
+        name: fd.get('name'),
+        category: fd.get('category') || null,
+        unit: fd.get('unit') || null,
+        quantity: parseInt(fd.get('quantity')) || 0,
+        reorderLevel: parseInt(fd.get('reorderLevel')) || 5,
+        supplier: fd.get('supplier') || null,
+      };
+      var method = id ? 'PUT' : 'POST';
+      if (id) payload.id = parseInt(id);
+      var res = await fetch('/api/dashboard/stock', { method: method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      if (res.ok) window.location.reload();
+      else { var err = await res.json(); alert(err.error || 'Failed'); }
+    });
+    document.getElementById('adjustForm')?.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      var fd = new FormData(this);
+      var res = await fetch('/api/dashboard/stock', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+        action: 'adjust_stock', id: parseInt(fd.get('id')), adjustment: parseInt(fd.get('adjustment'))
+      }) });
+      if (res.ok) window.location.reload();
+      else { var err = await res.json(); alert(err.error || 'Failed'); }
+    });
+  })();`} />
 </DashboardLayout>
