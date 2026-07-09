@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro';
+import { guardPermission } from '../../../lib/rbac.js';
 import { getDb } from '../../../lib/db/index.js';
 import { feeStructures, schoolMembers } from '../../../lib/db/schema.js';
 import { eq } from 'drizzle-orm';
@@ -12,6 +13,8 @@ async function getUserSchoolId(userId: number) {
 export const GET: APIRoute = async ({ locals }) => {
   const user = (locals as any).user;
   if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+  const denied = guardPermission(user, 'fees.view');
+  if (denied) return denied;
   const db = getDb();
   const schoolId = await getUserSchoolId(user.id);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 403 });
@@ -23,6 +26,8 @@ export const GET: APIRoute = async ({ locals }) => {
 export const POST: APIRoute = async ({ request, locals }) => {
   const user = (locals as any).user;
   if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+  const denied = guardPermission(user, 'fees.view');
+  if (denied) return denied;
   const db = getDb();
   const schoolId = await getUserSchoolId(user.id);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 403 });
@@ -47,6 +52,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
 export const DELETE: APIRoute = async ({ request, locals }) => {
   const user = (locals as any).user;
   if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+  const denied = guardPermission(user, 'fees.view');
+  if (denied) return denied;
   const db = getDb();
   const schoolId = await getUserSchoolId(user.id);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 403 });
