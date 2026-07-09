@@ -1280,12 +1280,12 @@ function autoMigrate(sqlite: Database.Database) {
       external_url TEXT,
       duration INTEGER,
       created_at INTEGER, updated_at INTEGER);
-    CREATE TABLE IF NOT EXISTS bell_schedules (
+    CREATE TABLE IF NOT EXISTS prayer_schedules (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
-      name TEXT NOT NULL, period_name TEXT, start_time TEXT, end_time TEXT,
-      day_of_week INTEGER, sort_order INTEGER DEFAULT 0,
-      periods TEXT,
+      name TEXT NOT NULL, applies_to TEXT NOT NULL DEFAULT 'weekday', periods TEXT NOT NULL,
+      fajr_time TEXT, dhuhr_time TEXT, asr_time TEXT, maghrib_time TEXT, isha_time TEXT, jumuah_time TEXT,
+      play_adhan INTEGER NOT NULL DEFAULT 0, adhan_audio_url TEXT, notes TEXT,
       created_at INTEGER, updated_at INTEGER);
     CREATE TABLE IF NOT EXISTS asset_checkouts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -2021,7 +2021,17 @@ function autoMigrate(sqlite: Database.Database) {
   addColumnIfMissing('grades', 'category', 'TEXT');
   addColumnIfMissing('grades', 'comment', 'TEXT');
   addColumnIfMissing('academic_periods', 'parent_period_id', 'INTEGER');
-  addColumnIfMissing('bell_schedules', 'periods', 'TEXT');
+  addColumnIfMissing('prayer_schedules', 'periods', 'TEXT');
+  addColumnIfMissing('prayer_schedules', 'applies_to', "TEXT NOT NULL DEFAULT 'weekday'");
+  addColumnIfMissing('prayer_schedules', 'fajr_time', 'TEXT');
+  addColumnIfMissing('prayer_schedules', 'dhuhr_time', 'TEXT');
+  addColumnIfMissing('prayer_schedules', 'asr_time', 'TEXT');
+  addColumnIfMissing('prayer_schedules', 'maghrib_time', 'TEXT');
+  addColumnIfMissing('prayer_schedules', 'isha_time', 'TEXT');
+  addColumnIfMissing('prayer_schedules', 'jumuah_time', 'TEXT');
+  addColumnIfMissing('prayer_schedules', 'play_adhan', 'INTEGER NOT NULL DEFAULT 0');
+  addColumnIfMissing('prayer_schedules', 'adhan_audio_url', 'TEXT');
+  addColumnIfMissing('prayer_schedules', 'notes', 'TEXT');
   addColumnIfMissing('exam_series', 'type', 'TEXT');
   addColumnIfMissing('exam_series', 'academic_year', 'TEXT');
   addColumnIfMissing('exam_results', 'marks_obtained', 'INTEGER');

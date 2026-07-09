@@ -349,9 +349,12 @@ export function migrate() {
       name TEXT NOT NULL, type TEXT NOT NULL, start_date TEXT NOT NULL, end_date TEXT NOT NULL,
       parent_period_id INTEGER, created_at INTEGER, updated_at INTEGER
     );
-    CREATE TABLE IF NOT EXISTS bell_schedules (
+    CREATE TABLE IF NOT EXISTS prayer_schedules (
       id INTEGER PRIMARY KEY AUTOINCREMENT, school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
-      name TEXT NOT NULL, periods TEXT NOT NULL, created_at INTEGER, updated_at INTEGER
+      name TEXT NOT NULL, applies_to TEXT NOT NULL DEFAULT 'weekday', periods TEXT NOT NULL,
+      fajr_time TEXT, dhuhr_time TEXT, asr_time TEXT, maghrib_time TEXT, isha_time TEXT, jumuah_time TEXT,
+      play_adhan INTEGER NOT NULL DEFAULT 0, adhan_audio_url TEXT, notes TEXT,
+      created_at INTEGER, updated_at INTEGER
     );
     CREATE TABLE IF NOT EXISTS timetable_entries (
       id INTEGER PRIMARY KEY AUTOINCREMENT, school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,

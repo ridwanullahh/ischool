@@ -1,5 +1,5 @@
 import { getDb } from './index.js';
-import { users, schools, schoolMembers, aboutPages, navigationItems, contactInfo, announcements, programs, faqs, classes, blogPosts, students, enrollments, attendance, courses, courseUnits, lessons, assignments, quizzes, questions, grades, academicPeriods, bellSchedules, timetableEntries, examSeries, exams, examResults, reportCards, feeStructures, invoices, payments, staff, leaveRequests, payroll, messages, notifications, libraryBooks, libraryLoans, hostels, hostelRooms, vehicles, transportRoutes, assets, inventoryItems, events, behaviorLogs, lessonPlans, auditLogs, moduleSettings, cbtExams, cbtCandidates, notificationTemplates, banners, popups, galleryAlbums, galleryItems, virtualTours, mediaUploads, subscriptionPlans, schoolSubscriptions, coupons, platformFaqs, platformSettings, platformBlogPosts, schoolTicketCategories, aiSettings, admissionPeriods, admissionApplications } from './schema.js';
+import { users, schools, schoolMembers, aboutPages, navigationItems, contactInfo, announcements, programs, faqs, classes, blogPosts, students, enrollments, attendance, courses, courseUnits, lessons, assignments, quizzes, questions, grades, academicPeriods, prayerSchedules, timetableEntries, examSeries, exams, examResults, reportCards, feeStructures, invoices, payments, staff, leaveRequests, payroll, messages, notifications, libraryBooks, libraryLoans, hostels, hostelRooms, vehicles, transportRoutes, assets, inventoryItems, events, behaviorLogs, lessonPlans, auditLogs, moduleSettings, cbtExams, cbtCandidates, notificationTemplates, banners, popups, galleryAlbums, galleryItems, virtualTours, mediaUploads, subscriptionPlans, schoolSubscriptions, coupons, platformFaqs, platformSettings, platformBlogPosts, schoolTicketCategories, aiSettings, admissionPeriods, admissionApplications } from './schema.js';
 import bcrypt from 'bcryptjs';
 import { eq } from 'drizzle-orm';
 
@@ -481,18 +481,59 @@ async function seed() {
     { schoolId: school1.id, name: 'Spring Semester 2026', type: 'semester', startDate: '2026-01-20', endDate: '2026-06-15' },
   ]);
 
-  // Bell Schedules
-  db.insert(bellSchedules).values({
+  // Islamic Prayer Schedule (Adhan-aware) — replaces bell schedule
+  db.insert(prayerSchedules).values({
     schoolId: school1.id,
-    name: 'Regular Schedule',
+    name: 'Regular Weekday Schedule',
+    appliesTo: 'weekday',
     periods: ([
-      { name: 'Fajr Prayer', start: '06:30', end: '07:00' },
-      { name: 'Period 1', start: '08:00', end: '08:50' },
-      { name: 'Period 2', start: '09:00', end: '09:50' },
-      { name: 'Dhuhr Prayer', start: '12:30', end: '13:00' },
-      { name: 'Period 5', start: '13:15', end: '14:05' },
+      { label: 'Morning Assembly', start: '07:30', end: '07:50', type: 'assembly' },
+      { label: 'Period 1', start: '07:50', end: '08:35', type: 'lesson' },
+      { label: 'Period 2', start: '08:40', end: '09:25', type: 'lesson' },
+      { label: 'Period 3', start: '09:30', end: '10:15', type: 'lesson' },
+      { label: 'Break', start: '10:15', end: '10:35', type: 'break' },
+      { label: 'Period 4', start: '10:35', end: '11:20', type: 'lesson' },
+      { label: 'Period 5 — before Dhuhr', start: '11:25', end: '12:10', type: 'lesson' },
+      { label: 'Dhuhr Prayer', start: '12:15', end: '12:45', type: 'prayer', prayerName: 'dhuhr' },
+      { label: 'Period 6', start: '12:50', end: '13:35', type: 'lesson' },
+      { label: 'Period 7', start: '13:40', end: '14:25', type: 'lesson' },
+      { label: 'Asr Prayer', start: '15:30', end: '16:00', type: 'prayer', prayerName: 'asr' },
     ]),
-  }).run();
+    fajrTime: '05:15',
+    dhuhrTime: '12:15',
+    asrTime: '15:30',
+    maghribTime: '18:45',
+    ishaTime: '20:00',
+    playAdhan: true,
+    notes: 'Standard weekday schedule aligned with the five daily prayers. Fajr is before school hours; Maghrib and Isha fall after dismissal.',
+  } as any).run();
+
+  // Friday (Jumu'ah) schedule
+  db.insert(prayerSchedules).values({
+    schoolId: school1.id,
+    name: 'Friday (Jumu\'ah) Schedule',
+    appliesTo: 'friday',
+    periods: ([
+      { label: 'Morning Assembly', start: '07:30', end: '07:50', type: 'assembly' },
+      { label: 'Period 1', start: '07:50', end: '08:35', type: 'lesson' },
+      { label: 'Period 2', start: '08:40', end: '09:25', type: 'lesson' },
+      { label: 'Period 3', start: '09:30', end: '10:15', type: 'lesson' },
+      { label: 'Break', start: '10:15', end: '10:35', type: 'break' },
+      { label: 'Period 4', start: '10:35', end: '11:20', type: 'lesson' },
+      { label: 'Jumu\'ah Preparation', start: '11:30', end: '12:00', type: 'break' },
+      { label: 'Salatul Jumu\'ah', start: '12:00', end: '13:00', type: 'prayer', prayerName: 'jumuah' },
+      { label: 'Period 5', start: '13:15', end: '14:00', type: 'lesson' },
+      { label: 'Period 6', start: '14:05', end: '14:50', type: 'lesson' },
+    ]),
+    fajrTime: '05:15',
+    dhuhrTime: '12:00',
+    asrTime: '15:30',
+    maghribTime: '18:45',
+    ishaTime: '20:00',
+    jumuahTime: '12:00',
+    playAdhan: true,
+    notes: 'Friday schedule with extended Jumu\'ah prayer time replacing Dhuhr. Students attend Khutbah.',
+  } as any).run();
 
   // Exam Series
   const examSeries1 = safeInsertReturning(db, examSeries, {

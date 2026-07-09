@@ -520,11 +520,27 @@ export const academicPeriods = sqliteTable('academic_periods', {
   ...timestamps,
 });
 
-export const bellSchedules = sqliteTable('bell_schedules', {
+// Islamic Prayer Schedule (Adhan-aware) — replaces secular "bell schedule"
+// Schools can define period timings aligned with the five daily prayers
+// (Fajr, Dhuhr, Asr, Maghrib, Isha) plus Jumu'ah, with Adhan reminders.
+export const prayerSchedules = sqliteTable('prayer_schedules', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
-  name: text('name').notNull(),
+  name: text('name').notNull(), // e.g. "Regular Weekday", "Ramadan Schedule", "Exam Day"
+  appliesTo: text('applies_to', { enum: ['weekday', 'friday', 'weekend', 'ramadan', 'exam', 'custom'] }).notNull().default('weekday'),
+  // periods: JSON array of { label, start, end, type: 'lesson'|'break'|'prayer'|'assembly', prayerName?: 'fajr'|'dhuhr'|'asr'|'maghrib'|'isha'|'jumuah' }
   periods: text('periods', { mode: 'json' }).notNull(),
+  // Prayer times for the schedule (HH:MM) — admin can set per-term or import from Adhan API
+  fajrTime: text('fajr_time'),
+  dhuhrTime: text('dhuhr_time'),
+  asrTime: text('asr_time'),
+  maghribTime: text('maghrib_time'),
+  ishaTime: text('isha_time'),
+  jumuahTime: text('jumuah_time'),
+  playAdhan: integer('play_adhan', { mode: 'boolean' }).notNull().default(false),
+  adhanAudioUrl: text('adhan_audio_url'),
+  // Hijri date offset / Ramadan awareness
+  notes: text('notes'),
   ...timestamps,
 });
 

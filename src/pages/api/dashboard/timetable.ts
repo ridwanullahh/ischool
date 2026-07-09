@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { getDb } from '../../../lib/db/index.js';
-import { timetableEntries, classes, courses, users, schoolMembers, academicPeriods, bellSchedules } from '../../../lib/db/schema.js';
+import { timetableEntries, classes, courses, users, schoolMembers, academicPeriods, prayerSchedules } from '../../../lib/db/schema.js';
 import { eq, and } from 'drizzle-orm';
 import { toCsv, csvResponse, type CsvColumn } from '../../../lib/export.js';
 
@@ -19,6 +19,18 @@ export const GET: APIRoute = async ({ locals, url }) => {
   const db = getDb();
   const classId = url.searchParams.get('classId');
   const action = url.searchParams.get('action');
+
+  // Prayer schedule endpoints
+  if (action === 'prayer_schedules') {
+    const schedules = db.select().from(prayerSchedules).where(eq(prayerSchedules.schoolId, schoolId)).all();
+    return new Response(JSON.stringify(schedules), { headers: { 'Content-Type': 'application/json' } });
+  }
+
+  // Academic periods endpoint
+  if (action === 'academic_periods') {
+    const periods = db.select().from(academicPeriods).where(eq(academicPeriods.schoolId, schoolId)).all();
+    return new Response(JSON.stringify(periods), { headers: { 'Content-Type': 'application/json' } });
+  }
 
   if (action === 'export') {
     const allEntries = db.select({
@@ -90,43 +102,93 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 404 });
 
   const data = await request.json();
-  if (data.dayOfWeek === undefined || data.periodNumber === undefined || !data.startTime || !data.endTime) {
-    return new Response(JSON.stringify({ error: 'dayOfWeek, periodNumber, startTime, and endTime are required' }), { status: 400 });
-  }
-
+  const action = data.action;
   const db = getDb();
-  const result = db.insert(timetableEntries).values({
-    schoolId,
-    classId: data.classId || null,
-    courseId: data.courseId || null,
-    teacherId: data.teacherId || null,
-    dayOfWeek: data.dayOfWeek,
-    periodNumber: data.periodNumber,
-    startTime: data.startTime,
-    endTime: data.endTime,
-    room: data.room || null,
-  }).returning().get();
 
-  return new Response(JSON.stringify(result), { status: 201, headers: { 'Content-Type': 'application/json' } });
-
-  // Academic Periods & Bell Schedules
+  // ─── Academic Periods ──────────────────────────────────
   if (action === 'create_period') {
-    db.insert(academicPeriods).values({ schoolId, name: data.name, type: data.type || 'term', startDate: data.startDate, endDate: data.endDate, status: data.status || 'draft' } as any).run();
+    const result = db.insert(academicPeriods).values({
+      schoolId, name: data.name, type: data.type || 'term',
+      startDate: data.startDate, endDate: data.endDate,
+      status: data.status || 'draft', parentPeriodId: data.parentPeriodId || null,
+    } as any).returning().get();
+    return new Response(JSON.stringify({ success: true, id: result.id }), { headers: { 'Content-Type': 'application/json' } });
+  }
+  if (action === 'update_period') {
+    db.update(academicPeriods).set({
+      name: data.name, type: data.type, startDate: data.startDate, endDate: data.endDate,
+      status: data.status, updatedAt: new Date(),
+    }).where(and(eq(academicPeriods.id, data.id), eq(academicPeriods.schoolId, schoolId))).run();
     return new Response(JSON.stringify({ success: true }), { headers: { 'Content-Type': 'application/json' } });
   }
   if (action === 'delete_period') {
     db.delete(academicPeriods).where(and(eq(academicPeriods.id, data.id), eq(academicPeriods.schoolId, schoolId))).run();
     return new Response(JSON.stringify({ success: true }), { headers: { 'Content-Type': 'application/json' } });
   }
-  if (action === 'create_bell') {
-    db.insert(bellSchedules).values({ schoolId, name: data.name, periods: data.periods as any } as any).run();
+
+  // ─── Islamic Prayer Schedules (Adhan-aware) ────────────
+  if (action === 'create_prayer_schedule') {
+    const result = db.insert(prayerSchedules).values({
+      schoolId, name: data.name, appliesTo: data.appliesTo || 'weekday',
+      periods: data.periods || [],
+      fajrTime: data.fajrTime || null, dhuhrTime: data.dhuhrTime || null,
+      asrTime: data.asrTime || null, maghribTime: data.maghribTime || null,
+      ishaTime: data.ishaTime || null, jumuahTime: data.jumuahTime || null,
+      playAdhan: data.playAdhan ?? false, adhanAudioUrl: data.adhanAudioUrl || null,
+      notes: data.notes || null,
+    } as any).returning().get();
+    return new Response(JSON.stringify({ success: true, id: result.id }), { headers: { 'Content-Type': 'application/json' } });
+  }
+  if (action === 'update_prayer_schedule') {
+    db.update(prayerSchedules).set({
+      name: data.name, appliesTo: data.appliesTo, periods: data.periods,
+      fajrTime: data.fajrTime, dhuhrTime: data.dhuhrTime, asrTime: data.asrTime,
+      maghribTime: data.maghribTime, ishaTime: data.ishaTime, jumuahTime: data.jumuahTime,
+      playAdhan: data.playAdhan, adhanAudioUrl: data.adhanAudioUrl, notes: data.notes,
+      updatedAt: new Date(),
+    }).where(and(eq(prayerSchedules.id, data.id), eq(prayerSchedules.schoolId, schoolId))).run();
     return new Response(JSON.stringify({ success: true }), { headers: { 'Content-Type': 'application/json' } });
   }
-  if (action === 'delete_bell') {
-    db.delete(bellSchedules).where(and(eq(bellSchedules.id, data.id), eq(bellSchedules.schoolId, schoolId))).run();
+  if (action === 'delete_prayer_schedule') {
+    db.delete(prayerSchedules).where(and(eq(prayerSchedules.id, data.id), eq(prayerSchedules.schoolId, schoolId))).run();
     return new Response(JSON.stringify({ success: true }), { headers: { 'Content-Type': 'application/json' } });
   }
 
+  // ─── Timetable Entry CRUD ──────────────────────────────
+  if (action === 'create_entry' || !action) {
+    if (data.dayOfWeek === undefined || data.periodNumber === undefined || !data.startTime || !data.endTime) {
+      return new Response(JSON.stringify({ error: 'dayOfWeek, periodNumber, startTime, and endTime are required' }), { status: 400 });
+    }
+    // Conflict detection
+    const conflicts = db.select().from(timetableEntries).where(and(
+      eq(timetableEntries.schoolId, schoolId),
+      eq(timetableEntries.dayOfWeek, data.dayOfWeek),
+      eq(timetableEntries.periodNumber, data.periodNumber),
+      data.classId ? eq(timetableEntries.classId, data.classId) : eq(timetableEntries.id, 0),
+    )).all();
+    if (conflicts.length > 0) {
+      return new Response(JSON.stringify({ error: 'Conflict: this class already has an entry for the same day and period.', conflict: conflicts[0] }), { status: 409 });
+    }
+    const result = db.insert(timetableEntries).values({
+      schoolId,
+      classId: data.classId || null,
+      courseId: data.courseId || null,
+      teacherId: data.teacherId || null,
+      dayOfWeek: data.dayOfWeek,
+      periodNumber: data.periodNumber,
+      startTime: data.startTime,
+      endTime: data.endTime,
+      room: data.room || null,
+    }).returning().get();
+    return new Response(JSON.stringify(result), { status: 201, headers: { 'Content-Type': 'application/json' } });
+  }
+
+  if (action === 'delete_entry') {
+    db.delete(timetableEntries).where(and(eq(timetableEntries.id, data.id), eq(timetableEntries.schoolId, schoolId))).run();
+    return new Response(JSON.stringify({ success: true }), { headers: { 'Content-Type': 'application/json' } });
+  }
+
+  return new Response(JSON.stringify({ error: 'Unknown action' }), { status: 400 });
 };
 
 export const PUT: APIRoute = async ({ request, locals }) => {
