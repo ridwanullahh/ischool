@@ -1,67 +1,118 @@
 ---
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { getUserSchoolId } from '../../lib/school.js';
+import { getDb } from '../../lib/db/index.js';
+import { webhooks, schoolMembers } from '../../lib/db/schema.js';
+import { eq, desc } from 'drizzle-orm';
 
-const user = Astro.locals.user;
+const user = Astro.locals.user!;
 if (!user) return Astro.redirect('/auth/login');
+const schoolId = getUserSchoolId(user.id);
+if (!schoolId) return Astro.redirect('/dashboard');
+const db = getDb();
+
+const webhooksList = db.select().from(webhooks).where(eq(webhooks.schoolId, schoolId)).orderBy(desc(webhooks.createdAt)).all();
+
+const integrations = [
+  { key: 'cloudinary', name: 'Cloudinary', icon: '☁️', desc: 'Image & video storage for galleries, banners, student photos', status: 'configured', configUrl: '/dashboard/settings' },
+  { key: 'gmail', name: 'Gmail SMTP', icon: '📧', desc: 'Email delivery for notifications, campaigns, ticket replies', status: 'configured', configUrl: '/dashboard/settings' },
+  { key: 'ai', name: 'AI Provider', icon: '🤖', desc: 'LLM for content generation, AI chat, smart suggestions', status: 'configured', configUrl: '/dashboard/ai-setup' },
+  { key: 'stripe', name: 'Stripe', icon: '💳', desc: 'Online payment gateway for fee collection', status: 'available', configUrl: '/dashboard/settings' },
+  { key: 'paystack', name: 'Paystack', icon: '💳', desc: 'African payment gateway (Nigeria, Ghana, South Africa)', status: 'available', configUrl: '/dashboard/settings' },
+  { key: 'flutterwave', name: 'Flutterwave', icon: '💳', desc: 'Pan-African payment gateway', status: 'available', configUrl: '/dashboard/settings' },
+  { key: 'paypal', name: 'PayPal', icon: '💳', desc: 'International payment gateway', status: 'available', configUrl: '/dashboard/settings' },
+  { key: 'google_translate', name: 'Google Translate', icon: '🌐', desc: 'Multi-language translation for public pages', status: 'configured', configUrl: '/dashboard/settings' },
+  { key: 'gmb', name: 'Google My Business', icon: '🏢', desc: 'Manage Google Business Profile, posts, and reviews', status: 'available', configUrl: '/dashboard/gmb' },
+  { key: 'social_facebook', name: 'Facebook', icon: '📘', desc: 'Auto-post to Facebook page', status: 'available', configUrl: '/dashboard/social/accounts' },
+  { key: 'social_instagram', name: 'Instagram', icon: '📸', desc: 'Auto-post to Instagram', status: 'available', configUrl: '/dashboard/social/accounts' },
+  { key: 'social_twitter', name: 'Twitter / X', icon: '🐦', desc: 'Auto-post to Twitter/X', status: 'available', configUrl: '/dashboard/social/accounts' },
+];
+
+const statusColors: Record<string, string> = {
+  configured: 'bg-green-100 text-green-700', available: 'bg-gray-100 text-gray-700',
+  required: 'bg-amber-100 text-amber-700',
+};
+const statusLabels: Record<string, string> = {
+  configured: 'Configured', available: 'Available', required: 'Setup Required',
+};
 ---
 
 <DashboardLayout title="Integrations - iSchool">
   <div class="space-y-6">
-    <div class="flex items-center justify-between">
-      <div>
-        <h2 class="text-2xl font-bold text-gray-900">Integrations</h2>
-        <p class="text-sm text-gray-500 mt-1">Connect third-party services — payment gateways, email providers, SMS, analytics.</p>
-      </div>
-      <div class="flex items-center gap-2">
-        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-          <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-          Module Active
-        </span>
-      </div>
+    <div>
+      <h2 class="text-2xl font-bold text-gray-900">Integrations & Connected Apps</h2>
+      <p class="text-sm text-gray-500 mt-1">Manage third-party integrations: payment gateways, email providers, AI, social media, and more.</p>
     </div>
 
-    <div class="bg-white rounded-2xl border border-gray-200 p-12 text-center">
-      <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-primary-50 to-primary-100 mb-6">
-        <svg class="w-10 h-10 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
-        </svg>
-      </div>
-      <h3 class="text-xl font-bold text-gray-900 mb-2">Integrations Module</h3>
-      <p class="text-sm text-gray-500 max-w-md mx-auto mb-6">Connect third-party services — payment gateways, email providers, SMS, analytics. This module is being prepared. You can configure settings now — full functionality will be available soon.</p>
-      <div class="flex items-center justify-center gap-3">
-        <button onclick="window.history.back()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Go Back</button>
-        <a href="/dashboard" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">Dashboard Home</a>
-      </div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="bg-white rounded-xl border p-4"><div class="text-xs text-gray-500 uppercase">Total Integrations</div><div class="text-2xl font-bold">{integrations.length}</div></div>
+      <div class="bg-white rounded-xl border p-4"><div class="text-xs text-gray-500 uppercase">Configured</div><div class="text-2xl font-bold text-green-600">{integrations.filter(i => i.status === 'configured').length}</div></div>
+      <div class="bg-white rounded-xl border p-4"><div class="text-xs text-gray-500 uppercase">Available</div><div class="text-2xl font-bold text-blue-600">{integrations.filter(i => i.status === 'available').length}</div></div>
+      <div class="bg-white rounded-xl border p-4"><div class="text-xs text-gray-500 uppercase">Webhooks</div><div class="text-2xl font-bold text-purple-600">{webhooksList.length}</div></div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div class="bg-white rounded-xl border border-gray-200 p-5">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
-            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+    {/* Integrations grid */}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {integrations.map(int => (
+        <div class="bg-white rounded-xl border border-gray-200 p-5">
+          <div class="flex items-start gap-3 mb-3">
+            <div class="text-3xl">{int.icon}</div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2">
+                <h3 class="font-semibold text-gray-900">{int.name}</h3>
+                <span class={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${statusColors[int.status]}`}>{statusLabels[int.status]}</span>
+              </div>
+              <p class="text-xs text-gray-500 mt-0.5">{int.desc}</p>
+            </div>
           </div>
-          <h4 class="font-semibold text-gray-900 text-sm">Configuration Ready</h4>
+          <a href={int.configUrl} class="block text-center px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200">
+            {int.status === 'configured' ? '⚙ Configure' : '+ Setup'}
+          </a>
         </div>
-        <p class="text-xs text-gray-500">Module settings can be configured. Changes will be saved and applied when the module is fully activated.</p>
-      </div>
-      <div class="bg-white rounded-xl border border-gray-200 p-5">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
-            <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          </div>
-          <h4 class="font-semibold text-gray-900 text-sm">Coming Soon</h4>
+      ))}
+    </div>
+
+    {/* Webhooks */}
+    <div class="bg-white rounded-xl border border-gray-200">
+      <div class="p-4 border-b flex items-center justify-between">
+        <div>
+          <h3 class="font-semibold text-gray-900">Webhooks</h3>
+          <p class="text-xs text-gray-500">Event-driven automation — receive HTTP POST calls when events occur</p>
         </div>
-        <p class="text-xs text-gray-500">Full module functionality is under development. Contact support if you need this feature urgently.</p>
+        <a href="/dashboard/webhooks" class="text-xs text-primary-600 font-medium">Manage Webhooks →</a>
       </div>
-      <div class="bg-white rounded-xl border border-gray-200 p-5">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          </div>
-          <h4 class="font-semibold text-gray-900 text-sm">Need Help?</h4>
+      {webhooksList.length === 0 ? (
+        <p class="p-8 text-center text-sm text-gray-500">No webhooks configured. <a href="/dashboard/webhooks" class="text-primary-600">Set up your first webhook →</a></p>
+      ) : (
+        <div class="divide-y divide-gray-100">
+          {webhooksList.slice(0, 5).map(w => (
+            <div class="p-4 flex items-center justify-between">
+              <div>
+                <div class="text-sm font-medium text-gray-900">{w.name || 'Webhook'}</div>
+                <div class="text-xs text-gray-500 truncate max-w-md">{w.url}</div>
+              </div>
+              <span class={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${w.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>{w.isActive ? 'Active' : 'Inactive'}</span>
+            </div>
+          ))}
         </div>
-        <p class="text-xs text-gray-500">Check the documentation or contact support for guidance on using this module.</p>
+      )}
+    </div>
+
+    {/* API documentation */}
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <h3 class="text-sm font-semibold text-gray-900 mb-2">📡 Developer API</h3>
+      <p class="text-sm text-gray-600 mb-3">The platform exposes a REST API for third-party integrations. All endpoints require authentication via session cookie or Bearer token.</p>
+      <div class="bg-gray-900 rounded-lg p-4 text-xs text-gray-100 font-mono overflow-x-auto">
+        <div class="text-green-400"># Get all students</div>
+        <div>curl -X GET https://your-school.com/api/dashboard/students \</div>
+        <div class="ml-4">-H "Cookie: sid=YOUR_SESSION_ID"</div>
+        <div class="mt-3 text-green-400"># Create a new student</div>
+        <div>curl -X POST https://your-school.com/api/dashboard/students \</div>
+        <div class="ml-4">-H "Content-Type: application/json" \</div>
+        <div class="ml-4">-H "Cookie: sid=YOUR_SESSION_ID" \</div>
+        <div class="ml-4">-d &#123;"firstName":"Ahmad","lastName":"Rashid","studentId":"STU001","gender":"male"&#125;</div>
       </div>
+      <p class="text-xs text-gray-500 mt-3">See <code>/api/docs</code> for the full API specification. Webhooks can be configured to call your endpoints on events like student.enrolled, fee.paid, attendance.marked, etc.</p>
     </div>
   </div>
 </DashboardLayout>

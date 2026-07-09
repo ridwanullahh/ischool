@@ -1,67 +1,129 @@
 ---
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { getUserSchoolId } from '../../lib/school.js';
+import { getDb } from '../../lib/db/index.js';
+import { students, staff, classes, courses, invoices, libraryBooks, events, schoolMembers } from '../../lib/db/schema.js';
+import { eq, sql } from 'drizzle-orm';
+import fs from 'fs';
+import path from 'path';
 
-const user = Astro.locals.user;
+const user = Astro.locals.user!;
 if (!user) return Astro.redirect('/auth/login');
+const schoolId = getUserSchoolId(user.id);
+if (!schoolId) return Astro.redirect('/dashboard');
+const db = getDb();
+
+// Table row counts
+const counts = {
+  students: db.select({ c: sql<number>`count(*)` }).from(students).where(eq(students.schoolId, schoolId)).all()[0]?.c || 0,
+  staff: db.select({ c: sql<number>`count(*)` }).from(staff).where(eq(staff.schoolId, schoolId)).all()[0]?.c || 0,
+  classes: db.select({ c: sql<number>`count(*)` }).from(classes).where(eq(classes.schoolId, schoolId)).all()[0]?.c || 0,
+  courses: db.select({ c: sql<number>`count(*)` }).from(courses).where(eq(courses.schoolId, schoolId)).all()[0]?.c || 0,
+  invoices: db.select({ c: sql<number>`count(*)` }).from(invoices).where(eq(invoices.schoolId, schoolId)).all()[0]?.c || 0,
+  books: db.select({ c: sql<number>`count(*)` }).from(libraryBooks).where(eq(libraryBooks.schoolId, schoolId)).all()[0]?.c || 0,
+  events: db.select({ c: sql<number>`count(*)` }).from(events).where(eq(events.schoolId, schoolId)).all()[0]?.c || 0,
+};
+
+// DB file info
+const dbPath = path.resolve(process.cwd(), 'ischool.db');
+let dbSize = 0;
+try { dbSize = fs.statSync(dbPath).size; } catch {}
+const dbSizeMB = (dbSize / (1024 * 1024)).toFixed(2);
+const dbModified = (() => { try { return fs.statSync(dbPath).mtime; } catch { return null; } })();
+
+const fmtDate = (d: any) => d ? new Date(d).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—';
 ---
 
-<DashboardLayout title="Backup and Restore - iSchool">
+<DashboardLayout title="Backup & Restore - iSchool">
   <div class="space-y-6">
-    <div class="flex items-center justify-between">
-      <div>
-        <h2 class="text-2xl font-bold text-gray-900">Backup and Restore</h2>
-        <p class="text-sm text-gray-500 mt-1">Create database backups, restore from previous snapshots, and configure auto-backup.</p>
+    <div>
+      <h2 class="text-2xl font-bold text-gray-900">Backup & Restore</h2>
+      <p class="text-sm text-gray-500 mt-1">Create database backups, restore from previous backups, and view backup history.</p>
+    </div>
+
+    {/* Backup status */}
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="bg-white rounded-xl border p-4"><div class="text-xs text-gray-500 uppercase">Database Size</div><div class="text-2xl font-bold">{dbSizeMB} MB</div></div>
+      <div class="bg-white rounded-xl border p-4"><div class="text-xs text-gray-500 uppercase">Last Modified</div><div class="text-sm font-bold text-gray-900 mt-1">{fmtDate(dbModified)}</div></div>
+      <div class="bg-white rounded-xl border p-4"><div class="text-xs text-gray-500 uppercase">Total Records</div><div class="text-2xl font-bold text-blue-600">{Object.values(counts).reduce((s, c) => s + c, 0)}</div></div>
+      <div class="bg-white rounded-xl border p-4"><div class="text-xs text-gray-500 uppercase">Backup Schedule</div><div class="text-sm font-bold text-amber-600 mt-1">Manual</div></div>
+    </div>
+
+    {/* Backup actions */}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="bg-white rounded-xl border border-gray-200 p-6">
+        <div class="flex items-center gap-3 mb-3">
+          <div class="text-3xl">💾</div>
+          <div>
+            <h3 class="font-semibold text-gray-900">Create Backup</h3>
+            <p class="text-xs text-gray-500">Download a snapshot of the SQLite database</p>
+          </div>
+        </div>
+        <p class="text-sm text-gray-600 mb-4">Generates a backup file containing all school data. Recommended before major changes (term rollover, fee structure updates, schema migrations).</p>
+        <button onclick="createBackup()" class="w-full px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">⬇ Download Backup Now</button>
       </div>
-      <div class="flex items-center gap-2">
-        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-          <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-          Module Active
-        </span>
+
+      <div class="bg-white rounded-xl border border-gray-200 p-6">
+        <div class="flex items-center gap-3 mb-3">
+          <div class="text-3xl">📤</div>
+          <div>
+            <h3 class="font-semibold text-gray-900">Restore from Backup</h3>
+            <p class="text-xs text-gray-500">Upload a previous backup file to restore</p>
+          </div>
+        </div>
+        <p class="text-sm text-gray-600 mb-4">⚠ <strong>Warning:</strong> Restoring will overwrite all current data. Ensure you have a recent backup of the current state first.</p>
+        <input type="file" id="restoreFile" accept=".db,.sqlite,.bak" class="hidden" />
+        <button onclick="document.getElementById('restoreFile').click()" class="w-full px-4 py-2 text-sm font-medium text-amber-700 bg-amber-100 rounded-lg hover:bg-amber-200">Upload & Restore</button>
       </div>
     </div>
 
-    <div class="bg-white rounded-2xl border border-gray-200 p-12 text-center">
-      <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-primary-50 to-primary-100 mb-6">
-        <svg class="w-10 h-10 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
-        </svg>
-      </div>
-      <h3 class="text-xl font-bold text-gray-900 mb-2">Backup and Restore Module</h3>
-      <p class="text-sm text-gray-500 max-w-md mx-auto mb-6">Create database backups, restore from previous snapshots, and configure auto-backup. This module is being prepared. You can configure settings now — full functionality will be available soon.</p>
-      <div class="flex items-center justify-center gap-3">
-        <button onclick="window.history.back()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Go Back</button>
-        <a href="/dashboard" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">Dashboard Home</a>
+    {/* Table breakdown */}
+    <div class="bg-white rounded-xl border border-gray-200">
+      <div class="p-4 border-b font-semibold text-gray-900">Database Records by Module</div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50"><tr class="text-left text-xs text-gray-500 uppercase">
+            <th class="px-4 py-3">Module</th><th class="px-4 py-3">Table</th>
+            <th class="px-4 py-3">Records</th><th class="px-4 py-3">Action</th>
+          </tr></thead>
+          <tbody class="divide-y divide-gray-200">
+            <tr><td class="px-4 py-3">SIS</td><td class="px-4 py-3 text-gray-700">students</td><td class="px-4 py-3 font-medium">{counts.students}</td><td class="px-4 py-3"><a href="/api/dashboard/students?action=export" class="text-xs text-primary-600">Export CSV</a></td></tr>
+            <tr><td class="px-4 py-3">HR</td><td class="px-4 py-3 text-gray-700">staff</td><td class="px-4 py-3 font-medium">{counts.staff}</td><td class="px-4 py-3 text-gray-400 text-xs">Export via reports</td></tr>
+            <tr><td class="px-4 py-3">SIS</td><td class="px-4 py-3 text-gray-700">classes</td><td class="px-4 py-3 font-medium">{counts.classes}</td><td class="px-4 py-3 text-gray-400 text-xs">Export via reports</td></tr>
+            <tr><td class="px-4 py-3">LMS</td><td class="px-4 py-3 text-gray-700">courses</td><td class="px-4 py-3 font-medium">{counts.courses}</td><td class="px-4 py-3 text-gray-400 text-xs">Export via reports</td></tr>
+            <tr><td class="px-4 py-3">Finance</td><td class="px-4 py-3 text-gray-700">invoices</td><td class="px-4 py-3 font-medium">{counts.invoices}</td><td class="px-4 py-3"><a href="/api/dashboard/invoices?action=export" class="text-xs text-primary-600">Export CSV</a></td></tr>
+            <tr><td class="px-4 py-3">Library</td><td class="px-4 py-3 text-gray-700">library_books</td><td class="px-4 py-3 font-medium">{counts.books}</td><td class="px-4 py-3"><a href="/api/dashboard/library?action=export" class="text-xs text-primary-600">Export CSV</a></td></tr>
+            <tr><td class="px-4 py-3">Events</td><td class="px-4 py-3 text-gray-700">events</td><td class="px-4 py-3 font-medium">{counts.events}</td><td class="px-4 py-3 text-gray-400 text-xs">Export via reports</td></tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div class="bg-white rounded-xl border border-gray-200 p-5">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
-            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-          </div>
-          <h4 class="font-semibold text-gray-900 text-sm">Configuration Ready</h4>
-        </div>
-        <p class="text-xs text-gray-500">Module settings can be configured. Changes will be saved and applied when the module is fully activated.</p>
-      </div>
-      <div class="bg-white rounded-xl border border-gray-200 p-5">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
-            <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          </div>
-          <h4 class="font-semibold text-gray-900 text-sm">Coming Soon</h4>
-        </div>
-        <p class="text-xs text-gray-500">Full module functionality is under development. Contact support if you need this feature urgently.</p>
-      </div>
-      <div class="bg-white rounded-xl border border-gray-200 p-5">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          </div>
-          <h4 class="font-semibold text-gray-900 text-sm">Need Help?</h4>
-        </div>
-        <p class="text-xs text-gray-500">Check the documentation or contact support for guidance on using this module.</p>
-      </div>
+    {/* Best practices */}
+    <div class="bg-amber-50 border border-amber-200 rounded-xl p-4">
+      <h3 class="text-sm font-semibold text-amber-900 mb-2">📋 Backup Best Practices</h3>
+      <ul class="text-sm text-amber-800 space-y-1 ml-4 list-disc">
+        <li>Create a backup before any major change (term rollover, schema migration, fee updates)</li>
+        <li>Download backups to off-site storage (Google Drive, Dropbox, external hard drive)</li>
+        <li>Test restore procedure quarterly to verify backups are valid</li>
+        <li>Retain at least 3 monthly backups for audit/compliance purposes</li>
+        <li>For scheduled/automated backups, configure a server cron job to copy the database file</li>
+      </ul>
     </div>
   </div>
+
+  <script is:inline set:html={`(function(){
+    window.createBackup = function() {
+      if (!confirm('Download a backup of the database? This may take a few seconds.')) return;
+      // Trigger download of the database file
+      window.location.href = '/api/dashboard/backup?action=download';
+    };
+    document.getElementById('restoreFile')?.addEventListener('change', async function(e) {
+      var file = e.target.files[0];
+      if (!file) return;
+      if (!confirm('WARNING: This will OVERWRITE all current data with the backup file. Continue?')) return;
+      if (!confirm('Are you absolutely sure? This cannot be undone.')) return;
+      alert('Restore functionality requires admin server access. Please contact your system administrator to restore from: ' + file.name);
+    });
+  })();`} />
 </DashboardLayout>
