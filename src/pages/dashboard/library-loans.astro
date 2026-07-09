@@ -1,67 +1,178 @@
 ---
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { getUserSchoolId } from '../../lib/school.js';
+import { getDb } from '../../lib/db/index.js';
+import { libraryLoans, libraryBooks, users, schoolMembers } from '../../lib/db/schema.js';
+import { eq, desc } from 'drizzle-orm';
 
-const user = Astro.locals.user;
+const user = Astro.locals.user!;
 if (!user) return Astro.redirect('/auth/login');
+const schoolId = getUserSchoolId(user.id);
+if (!schoolId) return Astro.redirect('/dashboard');
+const db = getDb();
+
+const loans = db.select({
+  id: libraryLoans.id, bookId: libraryLoans.bookId, borrowerId: libraryLoans.borrowerId,
+  issueDate: libraryLoans.issueDate, dueDate: libraryLoans.dueDate, returnDate: libraryLoans.returnDate,
+  renewals: libraryLoans.renewals, fine: libraryLoans.fine, finePaid: libraryLoans.finePaid,
+  status: libraryLoans.status, createdAt: libraryLoans.createdAt,
+  bookTitle: libraryBooks.title, bookAuthor: libraryBooks.author,
+  borrowerName: users.name, borrowerEmail: users.email,
+}).from(libraryLoans)
+  .leftJoin(libraryBooks, eq(libraryLoans.bookId, libraryBooks.id))
+  .leftJoin(users, eq(libraryLoans.borrowerId, users.id))
+  .where(eq(libraryLoans.schoolId, schoolId))
+  .orderBy(desc(libraryLoans.createdAt)).all();
+
+const allBooks = db.select({ id: libraryBooks.id, title: libraryBooks.title, author: libraryBooks.author, availableCopies: libraryBooks.availableCopies })
+  .from(libraryBooks).where(eq(libraryBooks.schoolId, schoolId)).all();
+const allUsers = db.select({ id: users.id, name: users.name, email: users.email })
+  .from(users).innerJoin(schoolMembers, eq(users.id, schoolMembers.userId))
+  .where(eq(schoolMembers.schoolId, schoolId)).all();
+
+const stats = {
+  total: loans.length,
+  active: loans.filter(l => l.status === 'active').length,
+  overdue: loans.filter(l => l.status === 'overdue' || (l.status === 'active' && l.dueDate && new Date(l.dueDate) < new Date())).length,
+  returned: loans.filter(l => l.status === 'returned').length,
+};
+
+const statusColors: Record<string, string> = {
+  active: 'bg-blue-100 text-blue-700', returned: 'bg-green-100 text-green-700',
+  overdue: 'bg-red-100 text-red-700', lost: 'bg-gray-100 text-gray-700',
+};
+const fmtDate = (d: any) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+
+const defaultDue = new Date(); defaultDue.setDate(defaultDue.getDate() + 14);
 ---
 
 <DashboardLayout title="Library Loans - iSchool">
   <div class="space-y-6">
     <div class="flex items-center justify-between">
       <div>
-        <h2 class="text-2xl font-bold text-gray-900">Library Loans</h2>
-        <p class="text-sm text-gray-500 mt-1">Manage book loans, returns, renewals, and track borrowed items.</p>
+        <h2 class="text-2xl font-bold text-gray-900">Loans & Returns</h2>
+        <p class="text-sm text-gray-500 mt-1">Issue books to members, track due dates, process returns with auto-fine calculation, and renew loans.</p>
       </div>
-      <div class="flex items-center gap-2">
-        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-          <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-          Module Active
-        </span>
-      </div>
+      <button onclick="openIssueModal()" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">+ Issue Book</button>
     </div>
 
-    <div class="bg-white rounded-2xl border border-gray-200 p-12 text-center">
-      <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-primary-50 to-primary-100 mb-6">
-        <svg class="w-10 h-10 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253"/>
-        </svg>
-      </div>
-      <h3 class="text-xl font-bold text-gray-900 mb-2">Library Loans Module</h3>
-      <p class="text-sm text-gray-500 max-w-md mx-auto mb-6">Manage book loans, returns, renewals, and track borrowed items. This module is being prepared. You can configure settings now — full functionality will be available soon.</p>
-      <div class="flex items-center justify-center gap-3">
-        <button onclick="window.history.back()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Go Back</button>
-        <a href="/dashboard" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">Dashboard Home</a>
-      </div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="bg-white rounded-xl border p-4"><div class="text-xs text-gray-500 uppercase">Total Loans</div><div class="text-2xl font-bold">{stats.total}</div></div>
+      <div class="bg-white rounded-xl border p-4"><div class="text-xs text-gray-500 uppercase">Active</div><div class="text-2xl font-bold text-blue-600">{stats.active}</div></div>
+      <div class="bg-white rounded-xl border p-4"><div class="text-xs text-gray-500 uppercase">Overdue</div><div class="text-2xl font-bold text-red-600">{stats.overdue}</div></div>
+      <div class="bg-white rounded-xl border p-4"><div class="text-xs text-gray-500 uppercase">Returned</div><div class="text-2xl font-bold text-green-600">{stats.returned}</div></div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div class="bg-white rounded-xl border border-gray-200 p-5">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
-            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-          </div>
-          <h4 class="font-semibold text-gray-900 text-sm">Configuration Ready</h4>
-        </div>
-        <p class="text-xs text-gray-500">Module settings can be configured. Changes will be saved and applied when the module is fully activated.</p>
+    <div class="bg-white rounded-xl border border-gray-200">
+      <div class="p-4 border-b flex gap-3">
+        <input id="searchInput" type="text" placeholder="Search by book or borrower…" class="flex-1 px-3 py-2 border rounded-lg text-sm" oninput="filterLoans()" />
+        <select id="statusFilter" class="px-3 py-2 border rounded-lg text-sm" onchange="filterLoans()">
+          <option value="">All Status</option>
+          <option value="active">Active</option><option value="overdue">Overdue</option>
+          <option value="returned">Returned</option><option value="lost">Lost</option>
+        </select>
       </div>
-      <div class="bg-white rounded-xl border border-gray-200 p-5">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
-            <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          </div>
-          <h4 class="font-semibold text-gray-900 text-sm">Coming Soon</h4>
+      {loans.length === 0 ? (
+        <div class="p-12 text-center">
+          <div class="text-4xl mb-3">📚</div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-1">No loans recorded</h3>
+          <p class="text-sm text-gray-500">Issue a book to get started.</p>
         </div>
-        <p class="text-xs text-gray-500">Full module functionality is under development. Contact support if you need this feature urgently.</p>
-      </div>
-      <div class="bg-white rounded-xl border border-gray-200 p-5">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          </div>
-          <h4 class="font-semibold text-gray-900 text-sm">Need Help?</h4>
+      ) : (
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50"><tr class="text-left text-xs text-gray-500 uppercase">
+              <th class="px-4 py-3">Book</th><th class="px-4 py-3">Borrower</th>
+              <th class="px-4 py-3">Issued</th><th class="px-4 py-3">Due</th>
+              <th class="px-4 py-3">Returned</th><th class="px-4 py-3">Renewals</th>
+              <th class="px-4 py-3">Status</th><th class="px-4 py-3">Actions</th>
+            </tr></thead>
+            <tbody class="divide-y divide-gray-200">
+              {loans.map(l => {
+                const isOverdue = l.status === 'active' && l.dueDate && new Date(l.dueDate) < new Date();
+                const effectiveStatus = isOverdue ? 'overdue' : l.status;
+                return (
+                  <tr class="hover:bg-gray-50 loan-row" data-search={`${l.bookTitle || ''} ${l.borrowerName || ''}`.toLowerCase()} data-status={effectiveStatus}>
+                    <td class="px-4 py-3 font-medium text-gray-900">{l.bookTitle || '—'}<div class="text-xs text-gray-500">{l.bookAuthor || ''}</div></td>
+                    <td class="px-4 py-3 text-gray-700">{l.borrowerName || '—'}<div class="text-xs text-gray-500">{l.borrowerEmail || ''}</div></td>
+                    <td class="px-4 py-3 text-gray-600">{fmtDate(l.issueDate)}</td>
+                    <td class="px-4 py-3 text-gray-600">{fmtDate(l.dueDate)}</td>
+                    <td class="px-4 py-3 text-gray-600">{fmtDate(l.returnDate)}</td>
+                    <td class="px-4 py-3 text-gray-600">{l.renewals || 0}</td>
+                    <td class="px-4 py-3"><span class={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${statusColors[effectiveStatus]}`}>{effectiveStatus}</span></td>
+                    <td class="px-4 py-3">
+                      {l.status !== 'returned' && (
+                        <div class="flex gap-2">
+                          <button onclick={`returnBook(${l.id})`} class="text-xs text-green-600 font-medium">Return</button>
+                          <button onclick={`renewBook(${l.id})`} class="text-xs text-blue-600 font-medium">Renew</button>
+                        </div>
+                      )}
+                      {l.fine && !l.finePaid && <span class="text-xs text-red-600 font-medium ml-2">Fine: ₦{l.fine}</span>}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
-        <p class="text-xs text-gray-500">Check the documentation or contact support for guidance on using this module.</p>
-      </div>
+      )}
     </div>
   </div>
+
+  {/* Issue Modal */}
+  <div id="issueModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-6 max-w-md w-full">
+      <h3 class="text-lg font-bold text-gray-900 mb-4">Issue Book</h3>
+      <form id="issueForm" class="space-y-3">
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">Book *</label>
+          <select name="bookId" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+            <option value="">Select book…</option>
+            {allBooks.filter(b => (b.availableCopies || 0) > 0).map(b => <option value={b.id}>{b.title} — {b.author || 'Unknown'} ({b.availableCopies} available)</option>)}
+          </select>
+        </div>
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">Borrower *</label>
+          <select name="borrowerId" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+            <option value="">Select member…</option>
+            {allUsers.map(u => <option value={u.id}>{u.name} ({u.email})</option>)}
+          </select>
+        </div>
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">Due Date *</label><input name="dueDate" type="date" required value={defaultDue.toISOString().split('T')[0]} class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /></div>
+        <div class="flex gap-3 pt-2">
+          <button type="button" onclick="document.getElementById('issueModal').classList.add('hidden')" class="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg">Cancel</button>
+          <button type="submit" class="flex-1 px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg">Issue</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script is:inline set:html={`(function(){
+    window.openIssueModal = function() { document.getElementById('issueModal').classList.remove('hidden'); };
+    window.returnBook = async function(loanId) {
+      if (!confirm('Process return for this book?')) return;
+      var res = await fetch('/api/dashboard/library', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'return', loanId: loanId }) });
+      if (res.ok) { var data = await res.json(); if (data.fine > 0) alert('Book returned. Overdue fine: ₦' + data.fine); window.location.reload(); }
+      else { var err = await res.json(); alert(err.error || 'Failed'); }
+    };
+    window.renewBook = async function(loanId) {
+      var res = await fetch('/api/dashboard/library', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'renew', loanId: loanId }) });
+      if (res.ok) { var data = await res.json(); alert('Renewed! New due date: ' + data.newDueDate); window.location.reload(); }
+      else { var err = await res.json(); alert(err.error || 'Failed'); }
+    };
+    window.filterLoans = function() {
+      var q = document.getElementById('searchInput').value.toLowerCase();
+      var s = document.getElementById('statusFilter').value;
+      document.querySelectorAll('.loan-row').forEach(function(row) {
+        var matchQ = !q || row.dataset.search.indexOf(q) >= 0;
+        var matchS = !s || row.dataset.status === s;
+        row.style.display = (matchQ && matchS) ? '' : 'none';
+      });
+    };
+    document.getElementById('issueForm')?.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      var fd = new FormData(this);
+      var res = await fetch('/api/dashboard/library', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'issue', bookId: parseInt(fd.get('bookId')), borrowerId: parseInt(fd.get('borrowerId')), dueDate: fd.get('dueDate') }) });
+      if (res.ok) window.location.reload();
+      else { var err = await res.json(); alert(err.error || 'Failed'); }
+    });
+  })();`} />
 </DashboardLayout>
