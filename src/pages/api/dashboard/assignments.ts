@@ -142,7 +142,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       .filter(s => s.email)
       .map(s => s.email as string);
     if (course && studentEmails.length > 0) {
-      notifyAssignmentCreated(schoolId, course.title, data.title, data.dueDate || 'No due date', studentEmails.slice(0, 50)).catch(() => {});
+      notifyAssignmentCreated(schoolId, course.title, data.title, data.dueDate || 'No due date', studentEmails.slice(0, 50)).catch((e: any) => console.error("Async op failed:", e));
     }
   }
 

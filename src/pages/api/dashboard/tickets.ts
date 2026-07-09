@@ -134,7 +134,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         link: '/dashboard/tickets',
         channel: 'email',
         email: ticket.createdByEmail,
-      }).catch(() => {});
+      }).catch((e: any) => console.error("Async op failed:", e));
     }
 
     return new Response(JSON.stringify(reply), { status: 201, headers: { 'Content-Type': 'application/json' } });
@@ -158,7 +158,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         link: '/dashboard/tickets',
         channel: assignedUser?.email ? 'email' : 'in_app',
         email: assignedUser?.email,
-      }).catch(() => {});
+      }).catch((e: any) => console.error("Async op failed:", e));
     }
     return new Response(JSON.stringify({ success: true }), { headers: { 'Content-Type': 'application/json' } });
   }
@@ -173,7 +173,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     db.update(schoolSupportTickets).set(update)
       .where(and(eq(schoolSupportTickets.id, data.ticketId), eq(schoolSupportTickets.schoolId, schoolId))).run();
     if (ticketToResolve) {
-      notifyTicketUpdate(schoolId, ticketToResolve.ticketNumber, 'resolved', ticketToResolve.createdByEmail || undefined, ticketToResolve.createdBy || undefined).catch(() => {});
+      notifyTicketUpdate(schoolId, ticketToResolve.ticketNumber, 'resolved', ticketToResolve.createdByEmail || undefined, ticketToResolve.createdBy || undefined).catch((e: any) => console.error("Async op failed:", e));
     }
     return new Response(JSON.stringify({ success: true }), { headers: { 'Content-Type': 'application/json' } });
   }
@@ -185,7 +185,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     db.update(schoolSupportTickets).set({ status: 'closed', closedAt: new Date().toISOString(), updatedAt: new Date() })
       .where(and(eq(schoolSupportTickets.id, data.ticketId), eq(schoolSupportTickets.schoolId, schoolId))).run();
     if (ticketToClose) {
-      notifyTicketUpdate(schoolId, ticketToClose.ticketNumber, 'closed', ticketToClose.createdByEmail || undefined, ticketToClose.createdBy || undefined).catch(() => {});
+      notifyTicketUpdate(schoolId, ticketToClose.ticketNumber, 'closed', ticketToClose.createdByEmail || undefined, ticketToClose.createdBy || undefined).catch((e: any) => console.error("Async op failed:", e));
     }
     return new Response(JSON.stringify({ success: true }), { headers: { 'Content-Type': 'application/json' } });
   }
@@ -255,7 +255,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     title: 'New Support Ticket',
     body: `Ticket ${ticket.ticketNumber}: "${ticket.title}" has been created by ${user.name}.`,
     link: '/dashboard/tickets',
-  }).catch(() => {});
+  }).catch((e: any) => console.error("Async op failed:", e));
 
   return new Response(JSON.stringify(ticket), { status: 201, headers: { 'Content-Type': 'application/json' } });
 };

@@ -86,7 +86,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
           source: 'manual', subscribedAt: new Date().toISOString(),
         } as any).run();
         added++;
-      } catch {}
+      } catch (e: any) { console.error("Parse error:", e); }
     }
     // Update count
     const count = db.select({ c: sql<number>`count(*)` }).from(emailSubscribers).where(eq(emailSubscribers.listId, listId)).get()?.c || 0;

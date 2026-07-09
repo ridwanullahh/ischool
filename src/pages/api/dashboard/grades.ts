@@ -160,7 +160,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const student = db.select().from(students).where(eq(students.id, data.studentId)).get();
     const course = data.courseId ? db.select().from(courses).where(eq(courses.id, data.courseId)).get() : null;
     if (student) {
-      notifyGradePosted(schoolId, `${student.firstName} ${student.lastName}`, course?.title || 'General', data.grade || data.score || 'N/A').catch(() => {});
+      notifyGradePosted(schoolId, `${student.firstName} ${student.lastName}`, course?.title || 'General', data.grade || data.score || 'N/A').catch((e: any) => console.error("Async op failed:", e));
     }
   }
 

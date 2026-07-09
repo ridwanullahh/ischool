@@ -1,0 +1,82 @@
+---
+/**
+ * Toast Notification Component (Phase 7.1)
+ * Provides success, error, warning, info toast notifications.
+ * Auto-injects into every dashboard page via DashboardLayout.
+ * 
+ * Usage from client-side JS:
+ *   window.toast.success('Saved successfully!');
+ *   window.toast.error('Failed to save');
+ *   window.toast.warning('This action cannot be undone');
+ *   window.toast.info('New message received');
+ */
+---
+
+<div id="toast-container" class="fixed top-4 right-4 z-[100] space-y-2 max-w-sm"></div>
+
+<script is:inline set:html={`(function(){
+  var container = document.getElementById('toast-container');
+  if (!container) return;
+
+  var icons = {
+    success: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>',
+    error: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>',
+    warning: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>',
+    info: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
+  };
+  var colors = {
+    success: 'bg-green-50 border-green-200 text-green-800',
+    error: 'bg-red-50 border-red-200 text-red-800',
+    warning: 'bg-amber-50 border-amber-200 text-amber-800',
+    info: 'bg-blue-50 border-blue-200 text-blue-800',
+  };
+  var iconColors = {
+    success: 'text-green-500',
+    error: 'text-red-500',
+    warning: 'text-amber-500',
+    info: 'text-blue-500',
+  };
+
+  function showToast(type, message, duration) {
+    duration = duration || 5000;
+    var toast = document.createElement('div');
+    toast.className = 'flex items-start gap-3 px-4 py-3 rounded-xl border shadow-lg ' + (colors[type] || colors.info) + ' transition-all duration-300 transform translate-x-full opacity-0';
+    toast.innerHTML = '<div class="shrink-0 ' + (iconColors[type] || iconColors.info) + '">' + (icons[type] || icons.info) + '</div>' +
+      '<div class="flex-1 text-sm font-medium">' + message + '</div>' +
+      '<button class="shrink-0 text-gray-400 hover:text-gray-600" onclick="this.parentElement.remove()">' +
+      '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>';
+    container.appendChild(toast);
+
+    // Animate in
+    requestAnimationFrame(function() {
+      toast.classList.remove('translate-x-full', 'opacity-0');
+    });
+
+    // Auto-dismiss
+    if (duration > 0) {
+      setTimeout(function() {
+        toast.classList.add('translate-x-full', 'opacity-0');
+        setTimeout(function() { toast.remove(); }, 300);
+      }, duration);
+    }
+  }
+
+  window.toast = {
+    success: function(msg, dur) { showToast('success', msg, dur); },
+    error: function(msg, dur) { showToast('error', msg, dur || 8000); },
+    warning: function(msg, dur) { showToast('warning', msg, dur); },
+    info: function(msg, dur) { showToast('info', msg, dur); },
+  };
+
+  // Override alert() globally so existing code benefits from toasts
+  var originalAlert = window.alert;
+  window.alert = function(message) {
+    if (typeof message === 'string' && (message.includes('success') || message.includes('Saved') || message.includes('Created') || message.includes('Updated') || message.includes('Deleted') || message.includes('Generated') || message.includes('complete') || message.includes('sent') || message.includes('Registered') || message.includes('hired') || message.includes('Schedule'))) {
+      showToast('success', message);
+    } else if (typeof message === 'string' && (message.includes('Failed') || message.includes('error') || message.includes('Error') || message.includes('Cannot'))) {
+      showToast('error', message);
+    } else {
+      showToast('info', message);
+    }
+  };
+})();`} />

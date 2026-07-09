@@ -143,7 +143,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         inserted++;
         if (r.status === 'absent') {
           const student = db.select().from(students).where(eq(students.id, r.studentId)).get();
-          if (student) notifyAttendanceAlert(schoolId, `${student.firstName} ${student.lastName}`, data.date).catch(() => {});
+          if (student) notifyAttendanceAlert(schoolId, `${student.firstName} ${student.lastName}`, data.date).catch((e: any) => console.error("Async op failed:", e));
         }
       }
     }
@@ -167,7 +167,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (data.status === 'absent' && result) {
     const student = db.select().from(students).where(eq(students.id, data.studentId)).get();
     if (student) {
-      notifyAttendanceAlert(schoolId, `${student.firstName} ${student.lastName}`, data.date).catch(() => {});
+      notifyAttendanceAlert(schoolId, `${student.firstName} ${student.lastName}`, data.date).catch((e: any) => console.error("Async op failed:", e));
     }
   }
 

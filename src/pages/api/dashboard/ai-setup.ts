@@ -86,7 +86,7 @@ Return ONLY valid JSON, no markdown.`;
         const suggestions = JSON.parse(jsonMatch[0]);
         return new Response(JSON.stringify({ suggestions }), { headers: { 'Content-Type': 'application/json' } });
       }
-    } catch {}
+    } catch (e: any) { console.error("Parse error:", e); }
     return new Response(JSON.stringify({ error: 'Failed to generate suggestions' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
   }
 
@@ -132,7 +132,7 @@ Return ONLY valid JSON, no markdown.`;
             published: true,
             publishedAt: new Date(),
           } as any).run();
-        } catch (e) {}
+        } catch (e: any) { console.error("Operation failed:", e); }
       }
       results.push(`${suggestions.announcements.length} announcements created`);
     }
@@ -150,7 +150,7 @@ Return ONLY valid JSON, no markdown.`;
             duration: p.duration || null,
             level: p.level || null,
           } as any).run();
-        } catch (e) {}
+        } catch (e: any) { console.error("Operation failed:", e); }
       }
       results.push(`${suggestions.programs.length} programs created`);
     }
@@ -169,7 +169,7 @@ Return ONLY valid JSON, no markdown.`;
             isPublished: true,
             publishedAt: new Date(),
           } as any).run();
-        } catch (e) {}
+        } catch (e: any) { console.error("Operation failed:", e); }
       }
       results.push(`${suggestions.blogPosts.length} blog posts created`);
     }
@@ -184,7 +184,7 @@ Return ONLY valid JSON, no markdown.`;
             answer: f.answer,
             category: f.category || 'General',
           } as any).run();
-        } catch (e) {}
+        } catch (e: any) { console.error("Operation failed:", e); }
       }
       results.push(`${suggestions.faqs.length} FAQs created`);
     }

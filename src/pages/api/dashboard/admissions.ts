@@ -36,9 +36,9 @@ export const POST: APIRoute = async ({ request }) => {
     let requirements: any[] = [];
     let processSteps: any[] = [];
     let importantDates: any[] = [];
-    try { requirements = JSON.parse(form.get('requirements')?.toString() || '[]'); } catch {}
-    try { processSteps = JSON.parse(form.get('processSteps')?.toString() || '[]'); } catch {}
-    try { importantDates = JSON.parse(form.get('importantDates')?.toString() || '[]'); } catch {}
+    try { requirements = JSON.parse(form.get('requirements')?.toString() || '[]'); } catch (e: any) { console.error("Parse error:", e); }
+    try { processSteps = JSON.parse(form.get('processSteps')?.toString() || '[]'); } catch (e: any) { console.error("Parse error:", e); }
+    try { importantDates = JSON.parse(form.get('importantDates')?.toString() || '[]'); } catch (e: any) { console.error("Parse error:", e); }
 
     // If requirementsText is provided (textarea), convert to array
     const requirementsText = form.get('requirementsText')?.toString();

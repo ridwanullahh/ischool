@@ -147,7 +147,7 @@ export const PUT: APIRoute = async ({ request, locals }) => {
   if (updated && (updateData.status === 'approved' || updateData.status === 'rejected')) {
     const staffMember = db.select().from(staff).where(eq(staff.id, updated.staffId)).get();
     if (staffMember) {
-      notifyLeaveStatusChanged(schoolId, `${staffMember.firstName} ${staffMember.lastName}`, updateData.status).catch(() => {});
+      notifyLeaveStatusChanged(schoolId, `${staffMember.firstName} ${staffMember.lastName}`, updateData.status).catch((e: any) => console.error("Async op failed:", e));
     }
   }
 

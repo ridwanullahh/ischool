@@ -16,8 +16,25 @@ export const POST: APIRoute = async ({ request }) => {
     return error('Name, email, and password are required');
   }
 
+  // Password policy (Phase 1.2.4)
   if (password.length < 8) {
     return error('Password must be at least 8 characters');
+  }
+  if (!/[A-Z]/.test(password)) {
+    return error('Password must contain at least 1 uppercase letter');
+  }
+  if (!/[a-z]/.test(password)) {
+    return error('Password must contain at least 1 lowercase letter');
+  }
+  if (!/[0-9]/.test(password)) {
+    return error('Password must contain at least 1 digit');
+  }
+  if (!/[^A-Za-z0-9]/.test(password)) {
+    return error('Password must contain at least 1 special character');
+  }
+  // Reject password matching name or email
+  if (password.toLowerCase().includes(name.toLowerCase()) || password.toLowerCase().includes(email.split('@')[0].toLowerCase())) {
+    return error('Password cannot contain your name or email');
   }
 
   const db = getDb();

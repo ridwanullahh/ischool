@@ -5,6 +5,7 @@ import { schools, schoolMembers } from '../lib/db/schema.js';
 import { eq } from 'drizzle-orm';
 import CreateSchoolModal from '../components/CreateSchoolModal.astro';
 import AIChatWidget from '../components/AIChatWidget.astro';
+import Toast from '../components/Toast.astro';
 
 interface Props {
   title?: string;
@@ -409,6 +410,7 @@ const isSectionActive = (items: Array<{href: string}>) => items.some(item => isA
 
     <CreateSchoolModal />
     <AIChatWidget />
+    <Toast />
     <div id="google_translate_el" style="display:none"></div>
     <style is:inline>
       .goog-te-banner-frame.skiptranslate { display: none !important; }

@@ -57,12 +57,13 @@ export async function deleteSession(sessionId: string): Promise<void> {
 
 export function setSessionCookie(headers: Headers, sessionId: string): void {
   const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
-  headers.append('Set-Cookie', `session=${sessionId}; Path=/; HttpOnly; SameSite=Lax${secure}; Max-Age=${SESSION_DURATION}`);
+  // SameSite=Strict prevents CSRF (Phase 1.3.3)
+  headers.append('Set-Cookie', `session=${sessionId}; Path=/; HttpOnly; SameSite=Strict${secure}; Max-Age=${SESSION_DURATION}`);
 }
 
 export function clearSessionCookie(headers: Headers): void {
   const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
-  headers.append('Set-Cookie', `session=; Path=/; HttpOnly; SameSite=Lax${secure}; Max-Age=0`);
+  headers.append('Set-Cookie', `session=; Path=/; HttpOnly; SameSite=Strict${secure}; Max-Age=0`);
 }
 
 export function getSessionIdFromCookie(request: Request): string | null {
