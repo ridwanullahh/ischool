@@ -561,6 +561,21 @@ export const timetableEntries = sqliteTable('timetable_entries', {
   ...timestamps,
 });
 
+// Substitute teacher scheduling — overrides a regular timetable entry for a specific date
+export const substituteTeachers = sqliteTable('substitute_teachers', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
+  timetableEntryId: integer('timetable_entry_id').references(() => timetableEntries.id, { onDelete: 'cascade' }),
+  originalTeacherId: integer('original_teacher_id').references(() => users.id),
+  substituteTeacherId: integer('substitute_teacher_id').references(() => users.id),
+  date: text('date').notNull(), // specific date for the substitution
+  reason: text('reason'), // e.g. sick leave, conference, personal
+  notes: text('notes'),
+  status: text('status', { enum: ['pending', 'approved', 'declined', 'completed'] }).notNull().default('pending'),
+  approvedBy: integer('approved_by').references(() => users.id),
+  ...timestamps,
+});
+
 // ═══════════════════════════════════════════════════════
 // MODULE 4: EXAMINATIONS & RESULTS
 // ═══════════════════════════════════════════════════════

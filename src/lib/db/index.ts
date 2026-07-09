@@ -779,6 +779,17 @@ function autoMigrate(sqlite: Database.Database) {
       created_at INTEGER,
       updated_at INTEGER
     );
+    CREATE TABLE IF NOT EXISTS substitute_teachers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+      timetable_entry_id INTEGER,
+      original_teacher_id INTEGER,
+      substitute_teacher_id INTEGER,
+      date TEXT NOT NULL,
+      reason TEXT, notes TEXT, status TEXT NOT NULL DEFAULT 'pending',
+      approved_by INTEGER,
+      created_at INTEGER, updated_at INTEGER
+    );
 
     CREATE TABLE IF NOT EXISTS exam_series (
       id INTEGER PRIMARY KEY AUTOINCREMENT,

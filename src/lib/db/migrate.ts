@@ -363,6 +363,13 @@ export function migrate() {
       teacher_id INTEGER REFERENCES users(id), day_of_week INTEGER NOT NULL, period_number INTEGER NOT NULL,
       start_time TEXT NOT NULL, end_time TEXT NOT NULL, room TEXT, created_at INTEGER, updated_at INTEGER
     );
+    CREATE TABLE IF NOT EXISTS substitute_teachers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT, school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      timetable_entry_id INTEGER REFERENCES timetable_entries(id) ON DELETE CASCADE,
+      original_teacher_id INTEGER REFERENCES users(id), substitute_teacher_id INTEGER REFERENCES users(id),
+      date TEXT NOT NULL, reason TEXT, notes TEXT, status TEXT NOT NULL DEFAULT 'pending',
+      approved_by INTEGER REFERENCES users(id), created_at INTEGER, updated_at INTEGER
+    );
     CREATE TABLE IF NOT EXISTS exam_series (
       id INTEGER PRIMARY KEY AUTOINCREMENT, school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
       name TEXT NOT NULL, type TEXT NOT NULL, academic_year TEXT, term TEXT,

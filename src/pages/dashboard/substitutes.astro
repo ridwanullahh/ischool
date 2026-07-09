@@ -1,67 +1,209 @@
 ---
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { getUserSchoolId } from '../../lib/school.js';
+import { getDb } from '../../lib/db/index.js';
+import { substituteTeachers, timetableEntries, classes, courses, users, schoolMembers, staff } from '../../lib/db/schema.js';
+import { eq, and, desc } from 'drizzle-orm';
 
-const user = Astro.locals.user;
+const user = Astro.locals.user!;
 if (!user) return Astro.redirect('/auth/login');
+const schoolId = getUserSchoolId(user.id);
+if (!schoolId) return Astro.redirect('/dashboard');
+const db = getDb();
+
+const subs = db.select({
+  id: substituteTeachers.id,
+  timetableEntryId: substituteTeachers.timetableEntryId,
+  originalTeacherId: substituteTeachers.originalTeacherId,
+  substituteTeacherId: substituteTeachers.substituteTeacherId,
+  date: substituteTeachers.date,
+  reason: substituteTeachers.reason,
+  notes: substituteTeachers.notes,
+  status: substituteTeachers.status,
+  createdAt: substituteTeachers.createdAt,
+  dayOfWeek: timetableEntries.dayOfWeek,
+  periodNumber: timetableEntries.periodNumber,
+  startTime: timetableEntries.startTime,
+  endTime: timetableEntries.endTime,
+  room: timetableEntries.room,
+  className: classes.name,
+  courseTitle: courses.title,
+  originalTeacherName: users.name,
+}).from(substituteTeachers)
+  .leftJoin(timetableEntries, eq(substituteTeachers.timetableEntryId, timetableEntries.id))
+  .leftJoin(classes, eq(timetableEntries.classId, classes.id))
+  .leftJoin(courses, eq(timetableEntries.courseId, courses.id))
+  .leftJoin(users, eq(substituteTeachers.originalTeacherId, users.id))
+  .where(eq(substituteTeachers.schoolId, schoolId))
+  .orderBy(desc(substituteTeachers.date)).all();
+
+const subTeacherIds = [...new Set(subs.map(s => s.substituteTeacherId).filter(Boolean))] as number[];
+const subTeacherMap = new Map<number, string>();
+for (const tid of subTeacherIds) {
+  const u = db.select().from(users).where(eq(users.id, tid)).get();
+  if (u) subTeacherMap.set(tid, u.name);
+}
+for (const s of subs) (s as any).substituteTeacherName = s.substituteTeacherId ? subTeacherMap.get(s.substituteTeacherId) || '—' : '—';
+
+// Available teachers (users with teacher role or staff records)
+const teachers = db.select().from(users).innerJoin(schoolMembers, eq(users.id, schoolMembers.userId))
+  .where(and(eq(schoolMembers.schoolId, schoolId), eq(users.role, 'teacher'))).all();
+const teacherList = teachers.map(t => ({ id: t.users.id, name: t.users.name }));
+
+// Timetable entries to choose from
+const entries = db.select({
+  id: timetableEntries.id, dayOfWeek: timetableEntries.dayOfWeek, periodNumber: timetableEntries.periodNumber,
+  startTime: timetableEntries.startTime, endTime: timetableEntries.endTime, room: timetableEntries.room,
+  className: classes.name, courseTitle: courses.title, teacherName: users.name, teacherId: timetableEntries.teacherId,
+}).from(timetableEntries)
+  .leftJoin(classes, eq(timetableEntries.classId, classes.id))
+  .leftJoin(courses, eq(timetableEntries.courseId, courses.id))
+  .leftJoin(users, eq(timetableEntries.teacherId, users.id))
+  .where(eq(timetableEntries.schoolId, schoolId))
+  .orderBy(timetableEntries.dayOfWeek, timetableEntries.periodNumber).all();
+
+const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const statusColors: Record<string, string> = {
+  pending: 'bg-amber-100 text-amber-700', approved: 'bg-green-100 text-green-700',
+  declined: 'bg-red-100 text-red-700', completed: 'bg-blue-100 text-blue-700',
+};
+const formatDate = (d: any) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
 ---
 
 <DashboardLayout title="Substitute Teachers - iSchool">
   <div class="space-y-6">
     <div class="flex items-center justify-between">
       <div>
-        <h2 class="text-2xl font-bold text-gray-900">Substitute Teachers</h2>
-        <p class="text-sm text-gray-500 mt-1">Manage teacher substitutions, assign coverage, and track substitute assignments.</p>
+        <h2 class="text-2xl font-bold text-gray-900">Substitute Teacher Scheduling</h2>
+        <p class="text-sm text-gray-500 mt-1">Schedule substitute teachers for specific dates when regular teachers are unavailable.</p>
       </div>
-      <div class="flex items-center gap-2">
-        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-          <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-          Module Active
-        </span>
-      </div>
+      <button onclick="openModal()" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">+ New Substitution</button>
     </div>
 
-    <div class="bg-white rounded-2xl border border-gray-200 p-12 text-center">
-      <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-primary-50 to-primary-100 mb-6">
-        <svg class="w-10 h-10 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
-        </svg>
-      </div>
-      <h3 class="text-xl font-bold text-gray-900 mb-2">Substitute Teachers Module</h3>
-      <p class="text-sm text-gray-500 max-w-md mx-auto mb-6">Manage teacher substitutions, assign coverage, and track substitute assignments. This module is being prepared. You can configure settings now — full functionality will be available soon.</p>
-      <div class="flex items-center justify-center gap-3">
-        <button onclick="window.history.back()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Go Back</button>
-        <a href="/dashboard" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">Dashboard Home</a>
-      </div>
+    {/* Stats */}
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="bg-white rounded-xl border border-gray-200 p-4"><div class="text-xs text-gray-500 uppercase">Total</div><div class="text-2xl font-bold text-gray-900">{subs.length}</div></div>
+      <div class="bg-white rounded-xl border border-gray-200 p-4"><div class="text-xs text-gray-500 uppercase">Pending</div><div class="text-2xl font-bold text-amber-600">{subs.filter(s => s.status === 'pending').length}</div></div>
+      <div class="bg-white rounded-xl border border-gray-200 p-4"><div class="text-xs text-gray-500 uppercase">Approved</div><div class="text-2xl font-bold text-green-600">{subs.filter(s => s.status === 'approved').length}</div></div>
+      <div class="bg-white rounded-xl border border-gray-200 p-4"><div class="text-xs text-gray-500 uppercase">Declined</div><div class="text-2xl font-bold text-red-600">{subs.filter(s => s.status === 'declined').length}</div></div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div class="bg-white rounded-xl border border-gray-200 p-5">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
-            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-          </div>
-          <h4 class="font-semibold text-gray-900 text-sm">Configuration Ready</h4>
+    {/* Substitutions table */}
+    <div class="bg-white rounded-xl border border-gray-200">
+      {subs.length === 0 ? (
+        <div class="p-12 text-center">
+          <div class="text-4xl mb-3">👥</div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-1">No substitutions scheduled</h3>
+          <p class="text-sm text-gray-500">When a teacher is absent, schedule a substitute for their classes here.</p>
         </div>
-        <p class="text-xs text-gray-500">Module settings can be configured. Changes will be saved and applied when the module is fully activated.</p>
-      </div>
-      <div class="bg-white rounded-xl border border-gray-200 p-5">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
-            <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          </div>
-          <h4 class="font-semibold text-gray-900 text-sm">Coming Soon</h4>
+      ) : (
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50"><tr class="text-left text-xs text-gray-500 uppercase">
+              <th class="px-4 py-3">Date</th><th class="px-4 py-3">Class / Period</th>
+              <th class="px-4 py-3">Original Teacher</th><th class="px-4 py-3">Substitute</th>
+              <th class="px-4 py-3">Reason</th><th class="px-4 py-3">Status</th><th class="px-4 py-3">Actions</th>
+            </tr></thead>
+            <tbody class="divide-y divide-gray-200">
+              {subs.map(s => (
+                <tr class="hover:bg-gray-50">
+                  <td class="px-4 py-3 font-medium text-gray-900">{formatDate(s.date)}</td>
+                  <td class="px-4 py-3 text-gray-700">
+                    <div className="font-medium">{s.className || '—'}</div>
+                    <div className="text-xs text-gray-500">
+                      {days[(s.dayOfWeek || 1) - 1]} · Period {s.periodNumber} · {s.startTime}–{s.endTime}
+                      {s.room && ` · Room ${s.room}`}
+                    </div>
+                    {s.courseTitle && <div className="text-xs text-gray-400">{s.courseTitle}</div>}
+                  </td>
+                  <td class="px-4 py-3 text-gray-700">{s.originalTeacherName || '—'}</td>
+                  <td class="px-4 py-3 text-gray-700">{(s as any).substituteTeacherName}</td>
+                  <td class="px-4 py-3 text-gray-600">{s.reason || '—'}</td>
+                  <td class="px-4 py-3"><span class={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${statusColors[s.status]}`}>{s.status}</span></td>
+                  <td class="px-4 py-3">
+                    {s.status === 'pending' && (
+                      <div class="flex gap-2">
+                        <button onclick={`approveSub(${s.id})`} class="text-xs text-green-600 font-medium">Approve</button>
+                        <button onclick={`declineSub(${s.id})`} class="text-xs text-red-600 font-medium">Decline</button>
+                      </div>
+                    )}
+                    <button onclick={`deleteSub(${s.id})`} class="text-xs text-gray-500 font-medium ml-2">Delete</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-        <p class="text-xs text-gray-500">Full module functionality is under development. Contact support if you need this feature urgently.</p>
-      </div>
-      <div class="bg-white rounded-xl border border-gray-200 p-5">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          </div>
-          <h4 class="font-semibold text-gray-900 text-sm">Need Help?</h4>
-        </div>
-        <p class="text-xs text-gray-500">Check the documentation or contact support for guidance on using this module.</p>
-      </div>
+      )}
     </div>
   </div>
+
+  {/* New Substitution Modal */}
+  <div id="subModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+      <h3 class="text-lg font-bold text-gray-900 mb-4">Schedule Substitute Teacher</h3>
+      <form id="subForm" class="space-y-3">
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">Timetable Entry *</label>
+          <select name="timetableEntryId" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+            <option value="">Select class period…</option>
+            {entries.map(e => <option value={e.id}>{days[(e.dayOfWeek || 1) - 1]} · P{e.periodNumber} · {e.startTime}–{e.endTime} · {e.className} {e.courseTitle ? `(${e.courseTitle})` : ''} · {e.teacherName || 'No teacher'}</option>)}
+          </select>
+        </div>
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">Date *</label><input name="date" type="date" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" value={new Date().toISOString().split('T')[0]} /></div>
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">Substitute Teacher *</label>
+          <select name="substituteTeacherId" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+            <option value="">Select teacher…</option>
+            {teacherList.map(t => <option value={t.id}>{t.name}</option>)}
+          </select>
+        </div>
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">Reason</label>
+          <select name="reason" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+            <option value="">—</option>
+            <option value="sick">Sick Leave</option>
+            <option value="personal">Personal Leave</option>
+            <option value="conference">Conference / Training</option>
+            <option value="emergency">Family Emergency</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">Notes</label><textarea name="notes" rows="2" placeholder="Optional notes…" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"></textarea></div>
+        <div class="flex gap-3 pt-2">
+          <button type="button" onclick="document.getElementById('subModal').classList.add('hidden')" class="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg">Cancel</button>
+          <button type="submit" class="flex-1 px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg">Schedule</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script is:inline set:html={`(function(){
+    window.openModal = function() { document.getElementById('subModal').classList.remove('hidden'); };
+    window.approveSub = async function(id) {
+      await fetch('/api/dashboard/substitutes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'approve', id: id }) });
+      window.location.reload();
+    };
+    window.declineSub = async function(id) {
+      await fetch('/api/dashboard/substitutes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'decline', id: id }) });
+      window.location.reload();
+    };
+    window.deleteSub = async function(id) {
+      if (!confirm('Delete this substitution record?')) return;
+      await fetch('/api/dashboard/substitutes', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id }) });
+      window.location.reload();
+    };
+    document.getElementById('subForm')?.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      var fd = new FormData(this);
+      var payload = {
+        timetableEntryId: parseInt(fd.get('timetableEntryId')),
+        substituteTeacherId: parseInt(fd.get('substituteTeacherId')),
+        date: fd.get('date'),
+        reason: fd.get('reason') || null,
+        notes: fd.get('notes') || null,
+        status: 'pending',
+      };
+      var res = await fetch('/api/dashboard/substitutes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      if (res.ok) window.location.reload();
+      else { var err = await res.json(); alert(err.error || 'Failed'); }
+    });
+  })();`} />
 </DashboardLayout>
