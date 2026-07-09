@@ -582,6 +582,20 @@ export function migrate() {
       title TEXT NOT NULL, week TEXT, objectives TEXT, materials TEXT, activities TEXT, assessment TEXT,
       status TEXT NOT NULL DEFAULT 'draft', created_at INTEGER, updated_at INTEGER
     );
+    CREATE TABLE IF NOT EXISTS seating_plans (
+      id INTEGER PRIMARY KEY AUTOINCREMENT, school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      class_id INTEGER NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+      name TEXT NOT NULL, layout TEXT NOT NULL, rows INTEGER DEFAULT 5, cols INTEGER DEFAULT 6,
+      is_default INTEGER DEFAULT 0, created_at INTEGER, updated_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS interactive_lessons (
+      id INTEGER PRIMARY KEY AUTOINCREMENT, school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+      teacher_id INTEGER NOT NULL REFERENCES users(id),
+      class_id INTEGER REFERENCES classes(id), course_id INTEGER REFERENCES courses(id),
+      title TEXT NOT NULL, description TEXT, slides TEXT NOT NULL,
+      mode TEXT NOT NULL DEFAULT 'live', status TEXT NOT NULL DEFAULT 'draft',
+      created_at INTEGER, updated_at INTEGER
+    );
     CREATE TABLE IF NOT EXISTS saved_reports (
       id INTEGER PRIMARY KEY AUTOINCREMENT, school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
       name TEXT NOT NULL, module TEXT NOT NULL, config TEXT NOT NULL,

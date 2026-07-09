@@ -1,67 +1,228 @@
 ---
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { getUserSchoolId } from '../../lib/school.js';
+import { getDb } from '../../lib/db/index.js';
+import { interactiveLessons, classes, courses, schoolMembers } from '../../lib/db/schema.js';
+import { eq, desc } from 'drizzle-orm';
 
-const user = Astro.locals.user;
+const user = Astro.locals.user!;
 if (!user) return Astro.redirect('/auth/login');
+const schoolId = getUserSchoolId(user.id);
+if (!schoolId) return Astro.redirect('/dashboard');
+const db = getDb();
+
+const lessons = db.select({
+  id: interactiveLessons.id, title: interactiveLessons.title, description: interactiveLessons.description,
+  mode: interactiveLessons.mode, status: interactiveLessons.status, createdAt: interactiveLessons.createdAt,
+  classId: interactiveLessons.classId, courseId: interactiveLessons.courseId,
+  className: classes.name, courseTitle: courses.title,
+}).from(interactiveLessons)
+  .leftJoin(classes, eq(interactiveLessons.classId, classes.id))
+  .leftJoin(courses, eq(interactiveLessons.courseId, courses.id))
+  .where(eq(interactiveLessons.schoolId, schoolId))
+  .orderBy(desc(interactiveLessons.createdAt)).all();
+
+const allClasses = db.select().from(classes).where(eq(classes.schoolId, schoolId)).all();
+const allCourses = db.select().from(courses).where(eq(courses.schoolId, schoolId)).all();
+
+const statusColors: Record<string, string> = { draft: 'bg-gray-100 text-gray-700', published: 'bg-green-100 text-green-700', archived: 'bg-amber-100 text-amber-700' };
+const modeColors: Record<string, string> = { live: 'bg-red-100 text-red-700', self_paced: 'bg-blue-100 text-blue-700' };
+const fmtDate = (d: any) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
 ---
 
-<DashboardLayout title="Interactive Content - iSchool">
+<DashboardLayout title="Interactive Lessons - iSchool">
   <div class="space-y-6">
     <div class="flex items-center justify-between">
       <div>
-        <h2 class="text-2xl font-bold text-gray-900">Interactive Content</h2>
-        <p class="text-sm text-gray-500 mt-1">Create interactive learning content — quizzes, polls, flashcards, and games.</p>
+        <h2 class="text-2xl font-bold text-gray-900">Interactive Lessons</h2>
+        <p class="text-sm text-gray-500 mt-1">Build slide-based interactive lessons with embedded polls and quizzes. Live mode paces slides for the class; self-paced mode lets students progress individually.</p>
       </div>
-      <div class="flex items-center gap-2">
-        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-          <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-          Module Active
-        </span>
-      </div>
+      <button onclick="openModal()" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">+ New Lesson</button>
     </div>
 
-    <div class="bg-white rounded-2xl border border-gray-200 p-12 text-center">
-      <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-primary-50 to-primary-100 mb-6">
-        <svg class="w-10 h-10 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-        </svg>
-      </div>
-      <h3 class="text-xl font-bold text-gray-900 mb-2">Interactive Content Module</h3>
-      <p class="text-sm text-gray-500 max-w-md mx-auto mb-6">Create interactive learning content — quizzes, polls, flashcards, and games. This module is being prepared. You can configure settings now — full functionality will be available soon.</p>
-      <div class="flex items-center justify-center gap-3">
-        <button onclick="window.history.back()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Go Back</button>
-        <a href="/dashboard" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">Dashboard Home</a>
-      </div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="bg-white rounded-xl border p-4"><div class="text-xs text-gray-500 uppercase">Total Lessons</div><div class="text-2xl font-bold">{lessons.length}</div></div>
+      <div class="bg-white rounded-xl border p-4"><div class="text-xs text-gray-500 uppercase">Published</div><div class="text-2xl font-bold text-green-600">{lessons.filter(l => l.status === 'published').length}</div></div>
+      <div class="bg-white rounded-xl border p-4"><div class="text-xs text-gray-500 uppercase">Drafts</div><div class="text-2xl font-bold text-gray-600">{lessons.filter(l => l.status === 'draft').length}</div></div>
+      <div class="bg-white rounded-xl border p-4"><div class="text-xs text-gray-500 uppercase">Live Mode</div><div class="text-2xl font-bold text-red-600">{lessons.filter(l => l.mode === 'live').length}</div></div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div class="bg-white rounded-xl border border-gray-200 p-5">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
-            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-          </div>
-          <h4 class="font-semibold text-gray-900 text-sm">Configuration Ready</h4>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {lessons.length === 0 ? (
+        <div class="md:col-span-2 lg:col-span-3 bg-white rounded-xl border p-12 text-center">
+          <div class="text-4xl mb-3">🎬</div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-1">No interactive lessons yet</h3>
+          <p class="text-sm text-gray-500">Create your first slide-based lesson with polls and quizzes.</p>
         </div>
-        <p class="text-xs text-gray-500">Module settings can be configured. Changes will be saved and applied when the module is fully activated.</p>
-      </div>
-      <div class="bg-white rounded-xl border border-gray-200 p-5">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
-            <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      ) : lessons.map(l => (
+        <div class="bg-white rounded-xl border border-gray-200 p-5">
+          <div class="flex items-start justify-between mb-2">
+            <h3 class="font-semibold text-gray-900">{l.title}</h3>
+            <span class={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${statusColors[l.status]}`}>{l.status}</span>
           </div>
-          <h4 class="font-semibold text-gray-900 text-sm">Coming Soon</h4>
-        </div>
-        <p class="text-xs text-gray-500">Full module functionality is under development. Contact support if you need this feature urgently.</p>
-      </div>
-      <div class="bg-white rounded-xl border border-gray-200 p-5">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          {l.description && <p class="text-sm text-gray-600 mb-2 line-clamp-2">{l.description}</p>}
+          <div class="flex flex-wrap gap-2 text-xs text-gray-500 mb-3">
+            <span class={`px-2 py-0.5 rounded ${modeColors[l.mode]}`}>{l.mode === 'live' ? '🔴 Live' : '📋 Self-paced'}</span>
+            {l.className && <span>🏫 {l.className}</span>}
+            {l.courseTitle && <span>📚 {l.courseTitle}</span>}
+            <span>📅 {fmtDate(l.createdAt)}</span>
           </div>
-          <h4 class="font-semibold text-gray-900 text-sm">Need Help?</h4>
+          <div class="flex gap-2 pt-3 border-t border-gray-100">
+            <button onclick={`editLesson(${l.id})`} class="text-xs text-amber-600 font-medium">Edit</button>
+            <button onclick={`deleteLesson(${l.id})`} class="text-xs text-red-600 font-medium ml-2">Delete</button>
+          </div>
         </div>
-        <p class="text-xs text-gray-500">Check the documentation or contact support for guidance on using this module.</p>
-      </div>
+      ))}
     </div>
   </div>
+
+  <div id="lessonModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-6 max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+      <h3 class="text-lg font-bold text-gray-900 mb-4" id="modalTitle">New Interactive Lesson</h3>
+      <form id="lessonForm" class="space-y-3">
+        <input type="hidden" name="id" />
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">Title *</label><input name="title" required placeholder="e.g. Introduction to Fractions" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /></div>
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">Description</label><textarea name="description" rows="2" placeholder="What will students learn?" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"></textarea></div>
+        <div class="grid grid-cols-3 gap-3">
+          <div><label class="block text-xs font-medium text-gray-700 mb-1">Class</label>
+            <select name="classId" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+              <option value="">—</option>
+              {allClasses.map(c => <option value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+          <div><label class="block text-xs font-medium text-gray-700 mb-1">Course</label>
+            <select name="courseId" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+              <option value="">—</option>
+              {allCourses.map(c => <option value={c.id}>{c.title}</option>)}
+            </select>
+          </div>
+          <div><label class="block text-xs font-medium text-gray-700 mb-1">Mode</label>
+            <select name="mode" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+              <option value="live">🔴 Live (teacher-paced)</option>
+              <option value="self_paced">📋 Self-paced</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-700 mb-1">Slides</label>
+          <div id="slideContainer" class="space-y-3"></div>
+          <div class="flex gap-2 mt-2">
+            <button type="button" onclick="addSlide('content')" class="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded">+ Content Slide</button>
+            <button type="button" onclick="addSlide('poll')" class="text-xs px-2 py-1 bg-amber-100 text-amber-700 rounded">+ Poll</button>
+            <button type="button" onclick="addSlide('quiz')" class="text-xs px-2 py-1 bg-green-100 text-green-700 rounded">+ Quiz</button>
+          </div>
+        </div>
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">Status</label>
+          <select name="status" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+            <option value="draft">Draft</option><option value="published">Published</option><option value="archived">Archived</option>
+          </select>
+        </div>
+        <div class="flex gap-3 pt-2">
+          <button type="button" onclick="document.getElementById('lessonModal').classList.add('hidden')" class="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg">Cancel</button>
+          <button type="submit" class="flex-1 px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg">Save Lesson</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script is:inline define:vars={{ lessons }} set:html={`(function(){
+    var allLessons = lessons;
+    var currentSlides = [];
+
+    window.openModal = function() {
+      var form = document.getElementById('lessonForm');
+      form.reset(); form.id.value = '';
+      currentSlides = [];
+      renderSlides();
+      document.getElementById('modalTitle').textContent = 'New Interactive Lesson';
+      document.getElementById('lessonModal').classList.remove('hidden');
+    };
+    window.editLesson = async function(id) {
+      var res = await fetch('/api/dashboard/interactive?id=' + id);
+      var l = await res.json();
+      if (!l) return;
+      var form = document.getElementById('lessonForm');
+      form.id.value = l.id; form.title.value = l.title;
+      form.description.value = l.description || '';
+      form.classId.value = l.classId || '';
+      form.courseId.value = l.courseId || '';
+      form.mode.value = l.mode;
+      form.status.value = l.status;
+      try { currentSlides = JSON.parse(l.slides || '[]'); } catch { currentSlides = []; }
+      renderSlides();
+      document.getElementById('modalTitle').textContent = 'Edit Lesson';
+      document.getElementById('lessonModal').classList.remove('hidden');
+    };
+    window.deleteLesson = async function(id) {
+      if (!confirm('Delete this interactive lesson?')) return;
+      await fetch('/api/dashboard/interactive', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id }) });
+      window.location.reload();
+    };
+    window.addSlide = function(type) {
+      var slide = { type: type, title: 'Slide ' + (currentSlides.length + 1) };
+      if (type === 'content') { slide.content = ''; }
+      else if (type === 'poll') { slide.question = ''; slide.options = ['', '']; }
+      else if (type === 'quiz') { slide.question = ''; slide.options = ['', '', '', '']; slide.correctAnswer = 0; }
+      currentSlides.push(slide);
+      renderSlides();
+    };
+    window.removeSlide = function(idx) {
+      if (!confirm('Remove this slide?')) return;
+      currentSlides.splice(idx, 1);
+      renderSlides();
+    };
+    function renderSlides() {
+      var container = document.getElementById('slideContainer');
+      container.innerHTML = '';
+      currentSlides.forEach(function(slide, idx) {
+        var div = document.createElement('div');
+        div.className = 'border rounded-lg p-3 bg-gray-50';
+        var typeLabels = { content: '📄 Content', poll: '📊 Poll', quiz: '✅ Quiz' };
+        var typeColors = { content: 'bg-blue-100 text-blue-700', poll: 'bg-amber-100 text-amber-700', quiz: 'bg-green-100 text-green-700' };
+        var html = '<div class="flex items-center justify-between mb-2"><span class="text-xs font-bold px-2 py-0.5 rounded ' + typeColors[slide.type] + '">' + typeLabels[slide.type] + ' · #' + (idx + 1) + '</span><button type="button" onclick="removeSlide(' + idx + ')" class="text-xs text-red-600 font-medium">×</button></div>';
+        html += '<input type="text" name="slideTitle" value="' + (slide.title || '').replace(/"/g, '&quot;') + '" placeholder="Slide title" class="w-full px-2 py-1 border rounded text-xs mb-2 slide-title" data-idx="' + idx + '" oninput="updateSlide(' + idx + ', \'title\', this.value)" />';
+        if (slide.type === 'content') {
+          html += '<textarea name="slideContent" rows="3" placeholder="Slide content (HTML allowed)" class="w-full px-2 py-1 border rounded text-xs slide-content" data-idx="' + idx + '" oninput="updateSlide(' + idx + ', \'content\', this.value)">' + (slide.content || '') + '</textarea>';
+        } else {
+          html += '<input type="text" name="slideQuestion" value="' + (slide.question || '').replace(/"/g, '&quot;') + '" placeholder="Question" class="w-full px-2 py-1 border rounded text-xs mb-2" oninput="updateSlide(' + idx + ', \'question\', this.value)" />';
+          html += '<div class="space-y-1">';
+          slide.options.forEach(function(opt, oi) {
+            html += '<div class="flex items-center gap-2"><input type="radio" name="correct_' + idx + '" ' + (slide.correctAnswer === oi ? 'checked' : '') + ' onchange="updateSlide(' + idx + ', \'correctAnswer\', ' + oi + ')" class="rounded" title="Mark as correct" /><input type="text" value="' + opt.replace(/"/g, '&quot;') + '" placeholder="Option ' + (oi + 1) + '" class="flex-1 px-2 py-1 border rounded text-xs" oninput="updateSlideOption(' + idx + ', ' + oi + ', this.value)" /><button type="button" onclick="removeOption(' + idx + ', ' + oi + ')" class="text-red-500 text-xs">×</button></div>';
+          });
+          html += '</div>';
+          html += '<button type="button" onclick="addOption(' + idx + ')" class="text-xs text-primary-600 font-medium mt-1">+ Add Option</button>';
+        }
+        div.innerHTML = html;
+        container.appendChild(div);
+      });
+    }
+    window.updateSlide = function(idx, field, value) { currentSlides[idx][field] = value; };
+    window.updateSlideOption = function(idx, oi, value) { currentSlides[idx].options[oi] = value; };
+    window.addOption = function(idx) { currentSlides[idx].options.push(''); renderSlides(); };
+    window.removeOption = function(idx, oi) {
+      if (currentSlides[idx].options.length <= 2) { alert('Need at least 2 options'); return; }
+      currentSlides[idx].options.splice(oi, 1);
+      if (currentSlides[idx].correctAnswer >= oi) currentSlides[idx].correctAnswer = Math.max(0, currentSlides[idx].correctAnswer - 1);
+      renderSlides();
+    };
+    document.getElementById('lessonForm')?.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      var fd = new FormData(this);
+      var id = fd.get('id');
+      var payload = {
+        title: fd.get('title'),
+        description: fd.get('description') || null,
+        classId: fd.get('classId') ? parseInt(fd.get('classId')) : null,
+        courseId: fd.get('courseId') ? parseInt(fd.get('courseId')) : null,
+        mode: fd.get('mode'),
+        status: fd.get('status'),
+        slides: currentSlides,
+      };
+      var method = id ? 'PUT' : 'POST';
+      if (id) payload.id = parseInt(id);
+      var res = await fetch('/api/dashboard/interactive', { method: method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      if (res.ok) window.location.reload();
+      else { var err = await res.json(); alert(err.error || 'Failed'); }
+    });
+  })();`} />
 </DashboardLayout>

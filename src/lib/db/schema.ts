@@ -1281,6 +1281,36 @@ export const lessonPlans = sqliteTable('lesson_plans', {
   ...timestamps,
 });
 
+// Seating plan per class — seat assignments stored as JSON grid
+export const seatingPlans = sqliteTable('seating_plans', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
+  classId: integer('class_id').notNull().references(() => classes.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(), // e.g. "Default Layout", "Exam Layout"
+  // layout: JSON with rows × cols grid; each cell has { studentId, label } or null
+  layout: text('layout', { mode: 'json' }).notNull(),
+  rows: integer('rows').default(5),
+  cols: integer('cols').default(6),
+  isDefault: integer('is_default', { mode: 'boolean' }).default(false),
+  ...timestamps,
+});
+
+// Interactive slide-based lesson builder
+export const interactiveLessons = sqliteTable('interactive_lessons', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  schoolId: integer('school_id').notNull().references(() => schools.id, { onDelete: 'cascade' }),
+  teacherId: integer('teacher_id').notNull().references(() => users.id),
+  classId: integer('class_id').references(() => classes.id),
+  courseId: integer('course_id').references(() => courses.id),
+  title: text('title').notNull(),
+  description: text('description'),
+  // slides: JSON array of slide objects: { type: 'content'|'poll'|'quiz', title, content, question, options, correctAnswer }
+  slides: text('slides', { mode: 'json' }).notNull(),
+  mode: text('mode', { enum: ['live', 'self_paced'] }).notNull().default('live'),
+  status: text('status', { enum: ['draft', 'published', 'archived'] }).notNull().default('draft'),
+  ...timestamps,
+});
+
 // ═══════════════════════════════════════════════════════
 // MODULE 14: REPORTING & ANALYTICS
 // ═══════════════════════════════════════════════════════

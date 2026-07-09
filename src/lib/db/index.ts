@@ -807,6 +807,21 @@ function autoMigrate(sqlite: Database.Database) {
       activities TEXT,
       assessment TEXT,
       updated_at INTEGER);
+    CREATE TABLE IF NOT EXISTS seating_plans (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+      class_id INTEGER NOT NULL, name TEXT NOT NULL,
+      layout TEXT NOT NULL, rows INTEGER DEFAULT 5, cols INTEGER DEFAULT 6,
+      is_default INTEGER DEFAULT 0, created_at INTEGER, updated_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS interactive_lessons (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+      teacher_id INTEGER NOT NULL, class_id INTEGER, course_id INTEGER,
+      title TEXT NOT NULL, description TEXT, slides TEXT NOT NULL,
+      mode TEXT DEFAULT 'live', status TEXT DEFAULT 'draft',
+      created_at INTEGER, updated_at INTEGER
+    );
 
     CREATE TABLE IF NOT EXISTS academic_periods (
       id INTEGER PRIMARY KEY AUTOINCREMENT,

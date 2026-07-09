@@ -1,67 +1,204 @@
 ---
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { getUserSchoolId } from '../../lib/school.js';
+import { getDb } from '../../lib/db/index.js';
+import { behaviorLogs, students, users, schoolMembers } from '../../lib/db/schema.js';
+import { eq, desc, sql } from 'drizzle-orm';
 
-const user = Astro.locals.user;
+const user = Astro.locals.user!;
 if (!user) return Astro.redirect('/auth/login');
+const schoolId = getUserSchoolId(user.id);
+if (!schoolId) return Astro.redirect('/dashboard');
+const db = getDb();
+
+const logs = db.select({
+  id: behaviorLogs.id, studentId: behaviorLogs.studentId, type: behaviorLogs.type,
+  category: behaviorLogs.category, description: behaviorLogs.description, points: behaviorLogs.points,
+  recordedBy: behaviorLogs.recordedBy, createdAt: behaviorLogs.createdAt,
+  studentName: students.firstName, studentLastName: students.lastName, studentCode: students.studentId,
+  recorderName: users.name,
+}).from(behaviorLogs)
+  .leftJoin(students, eq(behaviorLogs.studentId, students.id))
+  .leftJoin(users, eq(behaviorLogs.recordedBy, users.id))
+  .where(eq(behaviorLogs.schoolId, schoolId))
+  .orderBy(desc(behaviorLogs.createdAt)).all();
+
+const allStudents = db.select({ id: students.id, name: students.firstName, lastName: students.lastName, code: students.studentId })
+  .from(students).where(eq(students.schoolId, schoolId)).all();
+
+// Aggregate by student for leaderboard
+const leaderboard = new Map<number, { studentId: number; name: string; code: string; totalPoints: number; positive: number; negative: number }>();
+for (const l of logs) {
+  if (!leaderboard.has(l.studentId)) leaderboard.set(l.studentId, { studentId: l.studentId, name: `${l.studentName} ${l.studentLastName}`, code: l.studentCode, totalPoints: 0, positive: 0, negative: 0 });
+  const entry = leaderboard.get(l.studentId)!;
+  const pts = l.points || 0;
+  entry.totalPoints += l.type === 'positive' ? pts : -pts;
+  if (l.type === 'positive') entry.positive += pts; else entry.negative += pts;
+}
+const topStudents = Array.from(leaderboard.values()).sort((a, b) => b.totalPoints - a.totalPoints).slice(0, 10);
+
+const stats = {
+  total: logs.length,
+  positive: logs.filter(l => l.type === 'positive').length,
+  negative: logs.filter(l => l.type === 'negative').length,
+  totalPoints: logs.reduce((s, l) => s + (l.type === 'positive' ? (l.points || 0) : -(l.points || 0)), 0),
+};
+const typeColors: Record<string, string> = { positive: 'bg-green-100 text-green-700', negative: 'bg-red-100 text-red-700' };
+const fmtDate = (d: any) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
 ---
 
 <DashboardLayout title="Behavior Tracking - iSchool">
   <div class="space-y-6">
     <div class="flex items-center justify-between">
       <div>
-        <h2 class="text-2xl font-bold text-gray-900">Behavior Tracking</h2>
-        <p class="text-sm text-gray-500 mt-1">Record student behavior incidents, positive and negative, and generate behavior reports.</p>
+        <h2 class="text-2xl font-bold text-gray-900">Behavior & Engagement Tracking</h2>
+        <p class="text-sm text-gray-500 mt-1">Log positive and negative behavior points. View leaderboard and per-student trends for parent reports.</p>
       </div>
-      <div class="flex items-center gap-2">
-        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-          <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-          Module Active
-        </span>
-      </div>
+      <button onclick="openModal()" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">+ Log Behavior</button>
     </div>
 
-    <div class="bg-white rounded-2xl border border-gray-200 p-12 text-center">
-      <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-primary-50 to-primary-100 mb-6">
-        <svg class="w-10 h-10 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-        </svg>
-      </div>
-      <h3 class="text-xl font-bold text-gray-900 mb-2">Behavior Tracking Module</h3>
-      <p class="text-sm text-gray-500 max-w-md mx-auto mb-6">Record student behavior incidents, positive and negative, and generate behavior reports. This module is being prepared. You can configure settings now — full functionality will be available soon.</p>
-      <div class="flex items-center justify-center gap-3">
-        <button onclick="window.history.back()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Go Back</button>
-        <a href="/dashboard" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">Dashboard Home</a>
-      </div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="bg-white rounded-xl border p-4"><div class="text-xs text-gray-500 uppercase">Total Logs</div><div class="text-2xl font-bold">{stats.total}</div></div>
+      <div class="bg-white rounded-xl border p-4"><div class="text-xs text-gray-500 uppercase">Positive</div><div class="text-2xl font-bold text-green-600">{stats.positive}</div></div>
+      <div class="bg-white rounded-xl border p-4"><div class="text-xs text-gray-500 uppercase">Negative</div><div class="text-2xl font-bold text-red-600">{stats.negative}</div></div>
+      <div class="bg-white rounded-xl border p-4"><div class="text-xs text-gray-500 uppercase">Net Points</div><div class="text-2xl font-bold text-blue-600">{stats.totalPoints > 0 ? '+' : ''}{stats.totalPoints}</div></div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div class="bg-white rounded-xl border border-gray-200 p-5">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
-            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-          </div>
-          <h4 class="font-semibold text-gray-900 text-sm">Configuration Ready</h4>
+    {/* Leaderboard */}
+    {topStudents.length > 0 && (
+      <div class="bg-white rounded-xl border border-gray-200 p-6">
+        <h3 class="text-sm font-semibold text-gray-900 mb-4">🏆 Behavior Leaderboard (Top 10)</h3>
+        <div class="space-y-2">
+          {topStudents.map((s, i) => (
+            <div class="flex items-center gap-3 p-2 hover:bg-gray-50 rounded">
+              <span class={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${i === 0 ? 'bg-amber-100 text-amber-700' : i === 1 ? 'bg-gray-200 text-gray-700' : i === 2 ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-500'}`}>{i+1}</span>
+              <div class="flex-1">
+                <div class="text-sm font-medium text-gray-900">{s.name}</div>
+                <div class="text-xs text-gray-500">{s.code} · +{s.positive} / -{s.negative}</div>
+              </div>
+              <div class={`text-lg font-bold ${s.totalPoints >= 0 ? 'text-green-600' : 'text-red-600'}`}>{s.totalPoints > 0 ? '+' : ''}{s.totalPoints}</div>
+            </div>
+          ))}
         </div>
-        <p class="text-xs text-gray-500">Module settings can be configured. Changes will be saved and applied when the module is fully activated.</p>
       </div>
-      <div class="bg-white rounded-xl border border-gray-200 p-5">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
-            <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          </div>
-          <h4 class="font-semibold text-gray-900 text-sm">Coming Soon</h4>
+    )}
+
+    {/* Logs table */}
+    <div class="bg-white rounded-xl border border-gray-200">
+      <div class="p-4 border-b flex gap-3">
+        <input id="searchInput" type="text" placeholder="Search by student, category, or description…" class="flex-1 px-3 py-2 border rounded-lg text-sm" oninput="filterLogs()" />
+        <select id="typeFilter" class="px-3 py-2 border rounded-lg text-sm" onchange="filterLogs()">
+          <option value="">All Types</option>
+          <option value="positive">Positive</option>
+          <option value="negative">Negative</option>
+        </select>
+      </div>
+      {logs.length === 0 ? (
+        <div class="p-12 text-center">
+          <div class="text-4xl mb-3">⭐</div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-1">No behavior logs yet</h3>
+          <p class="text-sm text-gray-500">Log your first behavior entry to start tracking.</p>
         </div>
-        <p class="text-xs text-gray-500">Full module functionality is under development. Contact support if you need this feature urgently.</p>
-      </div>
-      <div class="bg-white rounded-xl border border-gray-200 p-5">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          </div>
-          <h4 class="font-semibold text-gray-900 text-sm">Need Help?</h4>
+      ) : (
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50"><tr class="text-left text-xs text-gray-500 uppercase">
+              <th class="px-4 py-3">Student</th><th class="px-4 py-3">Type</th>
+              <th class="px-4 py-3">Category</th><th class="px-4 py-3">Description</th>
+              <th class="px-4 py-3">Points</th><th class="px-4 py-3">Recorded By</th>
+              <th class="px-4 py-3">Date</th><th class="px-4 py-3">Actions</th>
+            </tr></thead>
+            <tbody class="divide-y divide-gray-200">
+              {logs.map(l => (
+                <tr class="hover:bg-gray-50 log-row" data-search={`${l.studentName} ${l.studentLastName} ${l.category || ''} ${l.description || ''}`.toLowerCase()} data-type={l.type}>
+                  <td class="px-4 py-3 font-medium text-gray-900">{l.studentName} {l.studentLastName}<div class="text-xs text-gray-500">{l.studentCode}</div></td>
+                  <td class="px-4 py-3"><span class={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${typeColors[l.type]}`}>{l.type}</span></td>
+                  <td class="px-4 py-3 text-gray-700">{l.category || '—'}</td>
+                  <td class="px-4 py-3 text-gray-600 text-xs">{l.description || '—'}</td>
+                  <td class="px-4 py-3 font-bold">{l.type === 'positive' ? '+' : '-'}{l.points}</td>
+                  <td class="px-4 py-3 text-gray-600 text-xs">{l.recorderName || '—'}</td>
+                  <td class="px-4 py-3 text-gray-600">{fmtDate(l.createdAt)}</td>
+                  <td class="px-4 py-3"><button onclick={`deleteLog(${l.id})`} class="text-xs text-red-600 font-medium">Delete</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-        <p class="text-xs text-gray-500">Check the documentation or contact support for guidance on using this module.</p>
-      </div>
+      )}
     </div>
   </div>
+
+  <div id="logModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-6 max-w-md w-full">
+      <h3 class="text-lg font-bold text-gray-900 mb-4">Log Behavior</h3>
+      <form id="logForm" class="space-y-3">
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">Student *</label>
+          <select name="studentId" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+            <option value="">Select student…</option>
+            {allStudents.map(s => <option value={s.id}>{s.name} {s.lastName} ({s.code})</option>)}
+          </select>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="block text-xs font-medium text-gray-700 mb-1">Type *</label>
+            <select name="behaviorType" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+              <option value="positive">Positive (+)</option>
+              <option value="negative">Negative (-)</option>
+            </select>
+          </div>
+          <div><label class="block text-xs font-medium text-gray-700 mb-1">Points</label><input name="points" type="number" value="1" min="1" max="10" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /></div>
+        </div>
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">Category</label>
+          <select name="category" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+            <option value="">—</option>
+            <option value="participation">Participation</option>
+            <option value="helpfulness">Helpfulness</option>
+            <option value="discipline">Discipline</option>
+            <option value="homework">Homework</option>
+            <option value="teamwork">Teamwork</option>
+            <option value="punctuality">Punctuality</option>
+            <option value="leadership">Leadership</option>
+            <option value="respect">Respect</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div><label class="block text-xs font-medium text-gray-700 mb-1">Description</label><textarea name="description" rows="3" placeholder="What did the student do?" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"></textarea></div>
+        <div class="flex gap-3 pt-2">
+          <button type="button" onclick="document.getElementById('logModal').classList.add('hidden')" class="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg">Cancel</button>
+          <button type="submit" class="flex-1 px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg">Log</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script is:inline set:html={`(function(){
+    window.openModal = function() { document.getElementById('logModal').classList.remove('hidden'); };
+    window.deleteLog = async function(id) {
+      if (!confirm('Delete this behavior log?')) return;
+      await fetch('/api/dashboard/classroom', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id, tableType: 'behavior_log' }) });
+      window.location.reload();
+    };
+    window.filterLogs = function() {
+      var q = document.getElementById('searchInput').value.toLowerCase();
+      var t = document.getElementById('typeFilter').value;
+      document.querySelectorAll('.log-row').forEach(function(row) {
+        var matchQ = !q || row.dataset.search.indexOf(q) >= 0;
+        var matchT = !t || row.dataset.type === t;
+        row.style.display = (matchQ && matchT) ? '' : 'none';
+      });
+    };
+    document.getElementById('logForm')?.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      var fd = new FormData(this);
+      var res = await fetch('/api/dashboard/classroom', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+        type: 'behavior_log',
+        studentId: parseInt(fd.get('studentId')),
+        behaviorType: fd.get('behaviorType'),
+        category: fd.get('category') || null,
+        description: fd.get('description') || null,
+        points: parseInt(fd.get('points')) || 1,
+      }) });
+      if (res.ok) window.location.reload();
+      else { var err = await res.json(); alert(err.error || 'Failed'); }
+    });
+  })();`} />
 </DashboardLayout>
