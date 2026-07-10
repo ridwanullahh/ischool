@@ -1,0 +1,114 @@
+---
+/**
+ * Student CBT Exam List — shows available exams and their status
+ */
+import StudentPortalLayout from '../../../../layouts/StudentPortalLayout.astro';
+import { getDb } from '../../../../lib/db/index.js';
+import { cbtExams, cbtCandidates, cbtAttempts, students, schoolMembers } from '../../../../lib/db/schema.js';
+import { eq, and, desc } from 'drizzle-orm';
+
+const user = Astro.locals.user;
+if (!user) return Astro.redirect('/auth/login');
+
+const db = getDb();
+const student = db.select().from(students).where(eq(students.userId, user.id)).get();
+const schoolId = student?.schoolId;
+if (!schoolId) return Astro.redirect('/portal/student');
+
+// Get all CBT exams for the school
+const exams = db.select().from(cbtExams).where(eq(cbtExams.schoolId, schoolId)).orderBy(desc(cbtExams.createdAt)).all();
+
+// Get candidate records for this student
+const candidates = db.select().from(cbtCandidates).where(eq(cbtCandidates.userId, user.id)).all();
+const candidateMap = new Map(candidates.map(c => [c.examId, c]));
+
+// Get attempts
+const attempts = db.select().from(cbtAttempts).all().filter(a => {
+  return candidates.some(c => c.id === a.candidateId);
+});
+const attemptMap = new Map(attempts.map(a => [a.examId, a]));
+
+const now = new Date();
+const fmtDate = (d: any) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—';
+const statusColors: Record<string, string> = { draft: 'bg-gray-100 text-gray-600', published: 'bg-green-100 text-green-700', closed: 'bg-red-100 text-red-700', archived: 'bg-gray-100 text-gray-600' };
+const candidateStatusColors: Record<string, string> = { registered: 'bg-blue-100 text-blue-700', started: 'bg-amber-100 text-amber-700', submitted: 'bg-green-100 text-green-700', absent: 'bg-gray-100 text-gray-600', disqualified: 'bg-red-100 text-red-700' };
+// Helper to determine exam status for display
+function getExamDisplayStatus(exam: any, candidate: any, attempt: any) {
+  const nowMs = Date.now();
+  const examStart = exam.scheduledStart ? new Date(exam.scheduledStart).getTime() : null;
+  const examEnd = exam.scheduledEnd ? new Date(exam.scheduledEnd).getTime() : null;
+  const isOpen = (examStart === null || nowMs >= examStart) && (examEnd === null || nowMs <= examEnd);
+  const hasSubmitted = attempt?.status === 'submitted';
+  const notYetOpen = examStart !== null && nowMs < examStart;
+  return { isOpen, hasSubmitted, notYetOpen };
+}
+---
+
+<StudentPortalLayout title="CBT Exams">
+  <div class="space-y-6">
+    <div>
+      <h2 class="text-2xl font-bold" style="color: var(--text);">Computer-Based Tests</h2>
+      <p class="text-sm mt-1" style="color: var(--text-muted);">Your assigned CBT exams and results</p>
+    </div>
+
+    {exams.filter(e => e.status === 'published').length === 0 ? (
+      <div class="rounded-2xl p-12 text-center" style="background: var(--surface); border: 1px solid var(--border);">
+        <div class="text-4xl mb-3">📝</div>
+        <h3 class="text-lg font-semibold" style="color: var(--text);">No exams available</h3>
+        <p class="text-sm mt-1" style="color: var(--text-muted);">You don't have any published CBT exams yet.</p>
+      </div>
+    ) : (
+      <div class="space-y-4">
+        {exams.filter(e => e.status === 'published').map(exam => {
+          const candidate = candidateMap.get(exam.id);
+          const attempt = attemptMap.get(exam.id);
+          const { isOpen, hasSubmitted, notYetOpen } = getExamDisplayStatus(exam, candidate, attempt);
+          
+          return (
+            <div class="rounded-2xl p-6 card-hover" style="background: var(--surface); border: 1px solid var(--border);">
+              <div class="flex items-start justify-between gap-4">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 mb-2">
+                    <h3 class="font-bold text-lg" style="color: var(--text);">{exam.title}</h3>
+                    <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded" style={`background: var(--hover); color: var(--text-muted);`}>{exam.status}</span>
+                    {candidate && <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded" style="background: var(--hover); color: var(--text-muted);">{candidate.status}</span>}
+                  </div>
+                  {exam.description && <p class="text-sm mb-3" style="color: var(--text-muted);">{exam.description}</p>}
+                  <div class="flex flex-wrap gap-4 text-xs" style="color: var(--text-muted);">
+                    <span>📋 {exam.totalMarks} marks</span>
+                    <span>⏱ {exam.duration} min</span>
+                    {exam.scheduledStart && <span>📅 Opens: {fmtDate(exam.scheduledStart)}</span>}
+                    {exam.scheduledEnd && <span>🔒 Closes: {fmtDate(exam.scheduledEnd)}</span>}
+                  </div>
+                </div>
+                <div class="shrink-0">
+                  {!candidate ? (
+                    <span class="text-sm px-4 py-2 rounded-xl" style="background: var(--hover); color: var(--text-muted);">Not registered</span>
+                  ) : hasSubmitted ? (
+                    <a href={`/portal/student/cbt/results?id=${attempt.id}`} class="px-4 py-2 rounded-xl text-sm font-semibold" style="background: var(--primary-light); color: var(--primary);">
+                      View Results →
+                    </a>
+                  ) : isOpen ? (
+                    <a href={`/portal/student/cbt/${exam.id}`} class="px-6 py-2 rounded-xl text-sm text-white font-semibold" style="background: linear-gradient(135deg, #05B34D 0%, #049940 100%);">
+                      Start Exam →
+                    </a>
+                  ) : (
+                    <span class="text-sm px-4 py-2 rounded-xl" style="background: var(--hover); color: var(--text-muted);">
+                      {notYetOpen ? 'Not yet open' : 'Exam closed'}
+                    </span>
+                  )}
+                </div>
+              </div>
+              {hasSubmitted && attempt && (
+                <div class="mt-4 pt-4 flex gap-6 text-sm" style="border-top: 1px solid var(--border);">
+                  <div><span style="color: var(--text-muted);">Score:</span> <span class="font-bold" style="color: var(--text);">{attempt.score}/{attempt.totalMarks}</span></div>
+                  <div><span style="color: var(--text-muted);">Percentage:</span> <span class="font-bold" style="color: var(--primary);">{attempt.totalMarks ? Math.round((attempt.score / attempt.totalMarks) * 100) : 0}%</span></div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    )}
+  </div>
+</StudentPortalLayout>

@@ -1,0 +1,354 @@
+---
+/**
+ * Student CBT Exam Interface
+ * 
+ * Full-screen exam-taking with:
+ * - Question navigation panel
+ * - Flag for review
+ * - Auto-save answers
+ * - Countdown timer with warnings
+ * - Auto-submit on timeout
+ * - Tab switch detection + proctoring flags
+ */
+import StudentPortalLayout from '../../../../layouts/StudentPortalLayout.astro';
+import { getDb } from '../../../../lib/db/index.js';
+import { cbtExams, cbtCandidates, cbtAttempts, cbtProctoringLogs, students, schoolMembers } from '../../../../lib/db/schema.js';
+import { eq, and } from 'drizzle-orm';
+
+const user = Astro.locals.user;
+if (!user) return Astro.redirect('/auth/login');
+
+const examId = parseInt(Astro.params.examId);
+const db = getDb();
+
+// Get exam
+const exam = db.select().from(cbtExams).where(eq(cbtExams.id, examId)).get();
+if (!exam) return Astro.redirect('/portal/student');
+
+// Get student
+const student = db.select().from(students).where(eq(students.userId, user.id)).get();
+if (!student) return Astro.redirect('/portal/student');
+
+// Get candidate record
+const candidate = db.select().from(cbtCandidates).where(and(
+  eq(cbtCandidates.examId, examId),
+  eq(cbtCandidates.userId, user.id),
+)).get();
+
+if (!candidate) return Astro.redirect('/portal/student?error=Not+registered+for+this+exam');
+
+// Check if already submitted
+const existingAttempt = db.select().from(cbtAttempts).where(and(
+  eq(cbtAttempts.examId, examId),
+  eq(cbtAttempts.candidateId, candidate.id),
+  eq(cbtAttempts.status, 'submitted'),
+)).get();
+
+if (existingAttempt) return Astro.redirect('/portal/student/cbt/results?id=' + existingAttempt.id);
+
+// Parse sections and questions
+let sections: any[] = [];
+try { sections = typeof exam.sections === 'string' ? JSON.parse(exam.sections) : (exam.sections || []); } catch {}
+
+// Check exam window
+const now = new Date();
+const examStart = exam.scheduledStart ? new Date(exam.scheduledStart) : null;
+const examEnd = exam.scheduledEnd ? new Date(exam.scheduledEnd) : null;
+if (examStart && now < examStart) return Astro.redirect('/portal/student?error=Exam+not+yet+open');
+if (examEnd && now > examEnd) return Astro.redirect('/portal/student?error=Exam+window+closed');
+
+// Create or get in-progress attempt
+let attempt = db.select().from(cbtAttempts).where(and(
+  eq(cbtAttempts.examId, examId),
+  eq(cbtAttempts.candidateId, candidate.id),
+  eq(cbtAttempts.status, 'in_progress'),
+)).get();
+
+if (!attempt) {
+  attempt = db.insert(cbtAttempts).values({
+    examId, candidateId: candidate.id,
+    answers: '{}', score: null, totalMarks: exam.totalMarks,
+    flags: '[]', proctorNotes: null,
+    ipAddress: Astro.clientAddress,
+    startedAt: new Date(), submittedAt: null,
+    status: 'in_progress', createdAt: new Date(),
+  }).returning().get();
+  
+  // Update candidate status
+  db.update(cbtCandidates).set({ status: 'started', updatedAt: new Date() }).where(eq(cbtCandidates.id, candidate.id)).run();
+}
+
+// Calculate remaining time
+const startTime = new Date(attempt.startedAt);
+const elapsed = Math.floor((now.getTime() - startTime.getTime()) / 1000);
+const totalDuration = (exam.duration || 60) * 60; // seconds
+const remaining = Math.max(0, totalDuration - elapsed);
+
+// Flatten all questions for navigation
+const allQuestions: any[] = [];
+sections.forEach((section: any, sIdx: number) => {
+  (section.questions || []).forEach((q: any, qIdx: number) => {
+    allQuestions.push({ ...q, sectionIdx: sIdx, questionIdx: qIdx, globalIdx: allQuestions.length });
+  });
+});
+
+// Parse existing answers
+let answers: any = {};
+try { answers = typeof attempt.answers === 'string' ? JSON.parse(attempt.answers) : (attempt.answers || {}); } catch {}
+---
+
+<StudentPortalLayout title={exam.title + ' — CBT Exam'}>
+  <div id="cbt-exam-container" class="min-h-[calc(100vh-4rem)] -m-4 lg:-m-8" data-exam-id={examId} data-attempt-id={attempt.id} data-duration={totalDuration} data-remaining={remaining}>
+    {/* Exam Header */}
+    <div class="sticky top-0 z-10 glass-header px-6 py-4 flex items-center justify-between">
+      <div>
+        <h1 class="text-lg font-bold" style="color: var(--text);">{exam.title}</h1>
+        <p class="text-xs" style="color: var(--text-muted);">{exam.totalMarks} marks · {allQuestions.length} questions · {exam.duration} min</p>
+      </div>
+      <div class="flex items-center gap-4">
+        <div id="timer" class="text-2xl font-bold tabular-nums px-4 py-2 rounded-xl" style="background: var(--primary-light); color: var(--primary);">
+          {String(Math.floor(remaining / 3600)).padStart(2, '0')}:{String(Math.floor((remaining % 3600) / 60)).padStart(2, '0')}:{String(remaining % 60).padStart(2, '0')}
+        </div>
+        <button id="submit-btn" class="px-6 py-2 rounded-xl text-white font-semibold" style="background: linear-gradient(135deg, #05B34D 0%, #049940 100%);">
+          Submit Exam
+        </button>
+      </div>
+    </div>
+
+    {/* Exam Body */}
+    <div class="flex" style="min-height: calc(100vh - 8rem);">
+      {/* Question Navigation Sidebar */}
+      <aside class="w-64 hidden md:block p-4 overflow-y-auto" style="border-right: 1px solid var(--border); background: var(--bg-subtle);">
+        <h3 class="text-sm font-semibold mb-3" style="color: var(--text);">Questions</h3>
+        <div class="grid grid-cols-5 gap-2 mb-4">
+          {allQuestions.map((q, i) => (
+            <button class="q-nav-btn w-9 h-9 rounded-lg text-xs font-bold transition-all" data-q-idx={i} style="background: var(--surface); border: 1px solid var(--border); color: var(--text);">
+              {i + 1}
+            </button>
+          ))}
+        </div>
+        <div class="space-y-2 text-xs" style="color: var(--text-muted);">
+          <div class="flex items-center gap-2"><span class="w-3 h-3 rounded" style="background: var(--primary);"></span> Answered</div>
+          <div class="flex items-center gap-2"><span class="w-3 h-3 rounded" style="background: var(--accent);"></span> Flagged</div>
+          <div class="flex items-center gap-2"><span class="w-3 h-3 rounded border" style="border-color: var(--border);"></span> Not answered</div>
+        </div>
+      </aside>
+
+      {/* Question Display */}
+      <div class="flex-1 p-6 overflow-y-auto" style="background: var(--bg);">
+        <div id="question-container">
+          {/* Questions rendered by JS */}
+        </div>
+        
+        {/* Navigation buttons */}
+        <div class="flex justify-between mt-8">
+          <button id="prev-btn" class="px-6 py-2 rounded-xl font-medium transition-all" style="background: var(--surface); border: 1px solid var(--border); color: var(--text-muted);" disabled>
+            ← Previous
+          </button>
+          <div class="flex gap-2">
+            <button id="flag-btn" class="px-4 py-2 rounded-xl font-medium transition-all" style="background: var(--accent-light); color: var(--accent);">
+              🚩 Flag for review
+            </button>
+            <button id="next-btn" class="px-6 py-2 rounded-xl text-white font-medium" style="background: linear-gradient(135deg, #05B34D 0%, #049940 100%);">
+              Next →
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {/* Submit Confirmation Modal */}
+  <div id="submit-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4" style="background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);">
+    <div class="rounded-2xl p-8 max-w-md w-full" style="background: var(--surface);">
+      <h3 class="text-xl font-bold mb-4" style="color: var(--text);">Submit Exam?</h3>
+      <div id="submit-summary" class="mb-6 text-sm" style="color: var(--text-muted);"></div>
+      <div class="flex gap-3">
+        <button id="cancel-submit" class="flex-1 px-4 py-2 rounded-xl font-medium" style="background: var(--hover); color: var(--text);">Cancel</button>
+        <button id="confirm-submit" class="flex-1 px-4 py-2 rounded-xl text-white font-semibold" style="background: linear-gradient(135deg, #05B34D 0%, #049940 100%);">Submit Now</button>
+      </div>
+    </div>
+  </div>
+
+  <script is:inline define:vars={{
+    sections: sections.map((s: any) => ({
+      title: s.title || `Section ${s.sectionIdx + 1}`,
+      questions: (s.questions || []).map((q: any) => ({
+        id: q.id || q.globalIdx,
+        type: q.type || 'multiple_choice',
+        question: q.question || q.text || '',
+        options: q.options || [],
+        points: q.points || 1,
+        correctAnswer: q.correctAnswer,
+      })),
+    })),
+    existingAnswers: answers,
+    attemptId: attempt.id,
+    remainingTime: remaining,
+  }}>
+    (function() {
+      var allQuestions = [];
+      sections.forEach(function(s) { s.questions.forEach(function(q) { allQuestions.push(q); }); });
+      var currentIdx = 0;
+      var answers = existingAnswers || {};
+      var flagged = {};
+      var timeLeft = remainingTime;
+      var timerInterval;
+
+      // Render question
+      function renderQuestion(idx) {
+        currentIdx = idx;
+        var q = allQuestions[idx];
+        if (!q) return;
+        var container = document.getElementById('question-container');
+        var html = '<div class="mb-2 text-sm font-medium" style="color: var(--text-muted);">Question ' + (idx + 1) + ' of ' + allQuestions.length + ' · ' + q.points + ' point' + (q.points !== 1 ? 's' : '') + '</div>';
+        html += '<div class="text-lg font-semibold mb-4" style="color: var(--text);">' + q.question + '</div>';
+        
+        if (q.type === 'multiple_choice' || q.type === 'true_false') {
+          html += '<div class="space-y-3">';
+          (q.options || []).forEach(function(opt, oi) {
+            var isSelected = answers[idx] === oi;
+            html += '<label class="flex items-center gap-3 p-4 rounded-xl cursor-pointer transition-all" style="background: ' + (isSelected ? 'var(--primary-light)' : 'var(--surface)') + '; border: 2px solid ' + (isSelected ? 'var(--primary)' : 'var(--border)') + ';">';
+            html += '<input type="radio" name="q' + idx + '" value="' + oi + '" ' + (isSelected ? 'checked' : '') + ' class="w-5 h-5" onchange="saveAnswer(' + idx + ', ' + oi + ')" style="accent-color: var(--primary);" />';
+            html += '<span class="text-sm" style="color: var(--text);">' + opt + '</span>';
+            html += '</label>';
+          });
+          html += '</div>';
+        } else if (q.type === 'short_answer' || q.type === 'essay') {
+          var val = answers[idx] || '';
+          html += '<textarea id="q' + idx + '_text" rows="6" class="w-full p-4 rounded-xl text-sm" style="background: var(--surface); border: 2px solid var(--border); color: var(--text);" placeholder="Type your answer here..." oninput="saveAnswer(' + idx + ', this.value)">' + val + '</textarea>';
+        }
+        
+        container.innerHTML = html;
+        
+        // Update nav buttons
+        document.getElementById('prev-btn').disabled = idx === 0;
+        document.getElementById('next-btn').style.display = idx === allQuestions.length - 1 ? 'none' : '';
+        
+        // Update flag button
+        var flagBtn = document.getElementById('flag-btn');
+        if (flagged[idx]) { flagBtn.textContent = '🚩 Flagged'; flagBtn.style.opacity = '1'; }
+        else { flagBtn.textContent = '🚩 Flag for review'; flagBtn.style.opacity = '0.6'; }
+        
+        // Update nav sidebar
+        document.querySelectorAll('.q-nav-btn').forEach(function(btn, bi) {
+          var answered = answers[bi] !== undefined && answers[bi] !== '';
+          var isFlagged = flagged[bi];
+          var isCurrent = bi === idx;
+          var bg = 'var(--surface)';
+          var color = 'var(--text)';
+          var border = 'var(--border)';
+          if (answered) { bg = 'var(--primary)'; color = '#fff'; border = 'var(--primary)'; }
+          if (isFlagged) { bg = 'var(--accent)'; color = '#fff'; border = 'var(--accent)'; }
+          if (isCurrent) { border = 'var(--primary)'; }
+          btn.style.background = bg; btn.style.color = color; btn.style.borderColor = border;
+          if (isCurrent) btn.style.boxShadow = '0 0 0 3px rgba(5,179,77,0.2)'; else btn.style.boxShadow = '';
+        });
+      }
+
+      window.saveAnswer = function(idx, value) {
+        answers[idx] = value;
+        renderQuestion(idx);
+        // Auto-save
+        fetch('/api/portal/student/quiz-save', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ attemptId: attemptId, answers: answers })
+        }).catch(function() {});
+      };
+
+      // Navigation
+      document.getElementById('next-btn')?.addEventListener('click', function() {
+        if (currentIdx < allQuestions.length - 1) renderQuestion(currentIdx + 1);
+      });
+      document.getElementById('prev-btn')?.addEventListener('click', function() {
+        if (currentIdx > 0) renderQuestion(currentIdx - 1);
+      });
+      document.getElementById('flag-btn')?.addEventListener('click', function() {
+        flagged[currentIdx] = !flagged[currentIdx];
+        renderQuestion(currentIdx);
+      });
+      document.querySelectorAll('.q-nav-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() { renderQuestion(parseInt(this.dataset.qIdx)); });
+      });
+
+      // Timer
+      function updateTimer() {
+        timeLeft--;
+        if (timeLeft <= 0) { clearInterval(timerInterval); submitExam(true); return; }
+        var h = String(Math.floor(timeLeft / 3600)).padStart(2, '0');
+        var m = String(Math.floor((timeLeft % 3600) / 60)).padStart(2, '0');
+        var s = String(timeLeft % 60).padStart(2, '0');
+        var timerEl = document.getElementById('timer');
+        timerEl.textContent = h + ':' + m + ':' + s;
+        if (timeLeft < 300) { timerEl.style.background = '#fee2e2'; timerEl.style.color = '#dc2626'; } // 5 min warning
+        if (timeLeft < 60) { timerEl.style.animation = 'pulse 1s infinite'; } // 1 min critical
+      }
+      timerInterval = setInterval(updateTimer, 1000);
+
+      // Submit
+      function submitExam(auto) {
+        if (!auto) {
+          var answered = Object.keys(answers).filter(function(k) { return answers[k] !== undefined && answers[k] !== ''; }).length;
+          var summary = 'You have answered ' + answered + ' of ' + allQuestions.length + ' questions. ';
+          var unanswered = allQuestions.length - answered;
+          if (unanswered > 0) summary += unanswered + ' question(s) unanswered. ';
+          summary += 'Are you sure you want to submit?';
+          document.getElementById('submit-summary').textContent = summary;
+          document.getElementById('submit-modal').classList.remove('hidden');
+          return;
+        }
+        // Actual submit
+        fetch('/api/portal/student/quiz-submit', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ attemptId: attemptId, answers: answers, autoSubmit: auto })
+        }).then(function(r) { return r.json(); }).then(function(data) {
+          if (data.ok || data.success) window.location.href = '/portal/student/cbt/results?id=' + attemptId;
+          else alert(data.error || 'Submit failed');
+        }).catch(function() { alert('Network error during submit'); });
+      }
+
+      document.getElementById('submit-btn')?.addEventListener('click', function() { submitExam(false); });
+      document.getElementById('confirm-submit')?.addEventListener('click', function() { submitExam(true); });
+      document.getElementById('cancel-submit')?.addEventListener('click', function() { document.getElementById('submit-modal').classList.add('hidden'); });
+
+      // Tab switch detection
+      document.addEventListener('visibilitychange', function() {
+        if (document.hidden) {
+          fetch('/api/portal/student/quiz-flag', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ attemptId: attemptId, flag: 'tab_switch', severity: 'warning' })
+          }).catch(function() {});
+        }
+      });
+
+      // Fullscreen exit detection
+      document.addEventListener('fullscreenchange', function() {
+        if (!document.fullscreenElement) {
+          fetch('/api/portal/student/quiz-flag', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ attemptId: attemptId, flag: 'fullscreen_exit', severity: 'warning' })
+          }).catch(function() {});
+        }
+      });
+
+      // Copy/paste detection
+      document.addEventListener('copy', function(e) {
+        e.preventDefault();
+        fetch('/api/portal/student/quiz-flag', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ attemptId: attemptId, flag: 'copy_attempt', severity: 'warning' })
+        }).catch(function() {});
+      });
+      document.addEventListener('paste', function(e) {
+        e.preventDefault();
+        fetch('/api/portal/student/quiz-flag', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ attemptId: attemptId, flag: 'paste_attempt', severity: 'warning' })
+        }).catch(function() {});
+      });
+
+      // Initialize
+      renderQuestion(0);
+    })();
+  </script>
+</StudentPortalLayout>
