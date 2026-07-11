@@ -61,23 +61,17 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   if (action === 'ai_generate') {
     try {
-      const { aiApiKeys, aiModels, aiProviders } = await import('../../../lib/db/schema.js');
-      const keyRow = db.select().from(aiApiKeys).where(eq(aiApiKeys.isActive, true)).get();
-      const modelRow = db.select().from(aiModels).where(eq(aiModels.isActive, true)).get();
-      const providerRow = keyRow ? db.select().from(aiProviders).where(eq(aiProviders.id, keyRow.providerId)).get() : null;
-      if (!keyRow || !providerRow) return new Response(JSON.stringify({ error: 'AI not configured' }), { status: 503, headers: { 'Content-Type': 'application/json' } });
+      const { getAIConfig } = await import('../../../lib/ai-config.js');
+      const aiConfig = getAIConfig();
+      if (!aiConfig) return new Response(JSON.stringify({ error: 'AI not configured. Set AI_API_KEY and AI_BASE_URL in .env' }), { status: 503, headers: { 'Content-Type': 'application/json' } });
 
-      const { decrypt } = await import('../../../lib/security.js');
-      const apiKey = decrypt(keyRow.encryptedKey);
-      const baseUrl = providerRow.apiUrl || 'https://api.openai.com/v1';
-      const modelId = modelRow?.modelId || 'gpt-4o-mini';
       const prompt = data.prompt || 'Write a social media post for a school';
 
-      const aiResponse = await fetch(`${baseUrl}/chat/completions`, {
+      const aiResponse = await fetch(`${aiConfig.baseUrl}/chat/completions`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${aiConfig.apiKey}` },
         body: JSON.stringify({
-          model: modelId,
+          model: aiConfig.modelId,
           messages: [
             { role: 'system', content: 'You are a social media manager for schools. Write engaging social media posts with relevant hashtags. Return ONLY the post text.' },
             { role: 'user', content: prompt }

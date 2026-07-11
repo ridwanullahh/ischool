@@ -8,17 +8,28 @@ import { eq } from 'drizzle-orm';
 import { decrypt } from '../../../lib/security.js';
 
 function getAIConfig(db: any) {
+  // First try database
   try {
     const keyRow = db.select().from(aiApiKeys).where(eq(aiApiKeys.isActive, true)).get();
     const modelRow = db.select().from(aiModels).where(eq(aiModels.isActive, true)).get();
     const providerRow = keyRow ? db.select().from(aiProviders).where(eq(aiProviders.id, keyRow.providerId)).get() : null;
-    if (!keyRow || !providerRow) return null;
-    return {
-      apiKey: decrypt(keyRow.encryptedKey),
-      baseUrl: providerRow.apiUrl || 'https://api.openai.com/v1',
-      modelId: modelRow?.modelId || 'gpt-4o-mini',
-    };
-  } catch { return null; }
+    if (keyRow && providerRow) {
+      return {
+        apiKey: decrypt(keyRow.apiKey),
+        baseUrl: providerRow.baseUrl || 'https://api.openai.com/v1',
+        modelId: modelRow?.modelId || 'gpt-4o-mini',
+      };
+    }
+  } catch {}
+
+  // Fallback to env
+  const envKey = import.meta.env.AI_API_KEY || process.env.AI_API_KEY;
+  const envBaseUrl = import.meta.env.AI_BASE_URL || process.env.AI_BASE_URL;
+  const envModel = import.meta.env.AI_MODEL || process.env.AI_MODEL;
+  if (envKey && envBaseUrl) {
+    return { apiKey: envKey, baseUrl: envBaseUrl, modelId: envModel || 'gpt-4o-mini' };
+  }
+  return null;
 }
 
 const ACTION_PROMPTS: Record<string, string> = {

@@ -167,23 +167,16 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (action === 'ai_generate') {
     // AI generate email content
     try {
-      const { aiApiKeys, aiModels, aiProviders } = await import('../../../lib/db/schema.js');
-      const keyRow = db.select().from(aiApiKeys).where(eq(aiApiKeys.isActive, true)).get();
-      const modelRow = db.select().from(aiModels).where(eq(aiModels.isActive, true)).get();
-      const providerRow = keyRow ? db.select().from(aiProviders).where(eq(aiProviders.id, keyRow.providerId)).get() : null;
-      if (!keyRow || !providerRow) return new Response(JSON.stringify({ error: 'AI not configured' }), { status: 503, headers: { 'Content-Type': 'application/json' } });
-
-      const { decrypt } = await import('../../../lib/security.js');
-      const apiKey = decrypt(keyRow.encryptedKey);
-      const baseUrl = providerRow.apiUrl || 'https://api.openai.com/v1';
-      const modelId = modelRow?.modelId || 'gpt-4o-mini';
+      const { getAIConfig } = await import('../../../lib/ai-config.js');
+      const aiConfig = getAIConfig();
+      if (!aiConfig) return new Response(JSON.stringify({ error: 'AI not configured. Set AI_API_KEY and AI_BASE_URL in .env' }), { status: 503, headers: { 'Content-Type': 'application/json' } });
 
       const prompt = data.prompt || 'Write a school newsletter email';
-      const aiResponse = await fetch(`${baseUrl}/chat/completions`, {
+      const aiResponse = await fetch(`${aiConfig.baseUrl}/chat/completions`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${aiConfig.apiKey}` },
         body: JSON.stringify({
-          model: modelId,
+          model: aiConfig.modelId,
           messages: [
             { role: 'system', content: 'You are a professional email marketing writer for schools. Write engaging HTML email content. Return ONLY the HTML content.' },
             { role: 'user', content: `Write an email for ${school?.name || 'a school'}. Topic: ${prompt}` }
@@ -197,11 +190,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
       const content = result.choices?.[0]?.message?.content || '';
 
       // Also generate subject line
-      const subjectResponse = await fetch(`${baseUrl}/chat/completions`, {
+      const subjectResponse = await fetch(`${aiConfig.baseUrl}/chat/completions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
         body: JSON.stringify({
-          model: modelId,
+          model: aiConfig.modelId,
           messages: [
             { role: 'system', content: 'Write a compelling email subject line for a school email. Return ONLY the subject line.' },
             { role: 'user', content: `Topic: ${prompt}` }
@@ -279,15 +272,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   if (action === 'ai_subject') {
     try {
-      const { aiApiKeys, aiModels, aiProviders } = await import('../../../lib/db/schema.js');
-      const keyRow = db.select().from(aiApiKeys).where(eq(aiApiKeys.isActive, true)).get();
-      const modelRow = db.select().from(aiModels).where(eq(aiModels.isActive, true)).get();
-      const providerRow = keyRow ? db.select().from(aiProviders).where(eq(aiProviders.id, keyRow.providerId)).get() : null;
-      if (!keyRow || !providerRow) return new Response(JSON.stringify({ error: 'AI not configured' }), { status: 503, headers: { 'Content-Type': 'application/json' } });
-      const { decrypt } = await import('../../../lib/security.js');
-      const aiResponse = await fetch(`${providerRow.apiUrl || 'https://api.openai.com/v1'}/chat/completions`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${decrypt(keyRow.encryptedKey)}` },
-        body: JSON.stringify({ model: modelRow?.modelId || 'gpt-4o-mini', messages: [{ role: 'system', content: 'Write a compelling email subject line for a school email. Return ONLY the subject line.' }, { role: 'user', content: data.prompt || 'school newsletter' }], max_tokens: 100, temperature: 0.8 }),
+      const { getAIConfig } = await import('../../../lib/ai-config.js');
+      const aiConfig = getAIConfig();
+      if (!aiConfig) return new Response(JSON.stringify({ error: 'AI not configured. Set AI_API_KEY and AI_BASE_URL in .env' }), { status: 503, headers: { 'Content-Type': 'application/json' } });
+      const aiResponse = await fetch(`${aiConfig.baseUrl}/chat/completions`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${aiConfig.apiKey}` },
+        body: JSON.stringify({ model: aiConfig.modelId, messages: [{ role: 'system', content: 'Write a compelling email subject line for a school email. Return ONLY the subject line.' }, { role: 'user', content: data.prompt || 'school newsletter' }], max_tokens: 100, temperature: 0.8 }),
       });
       const result = await aiResponse.json();
       return new Response(JSON.stringify({ subject: result.choices?.[0]?.message?.content?.trim() || 'School Update' }), { headers: { 'Content-Type': 'application/json' } });

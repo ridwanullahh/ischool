@@ -19,21 +19,35 @@ function getUserSchoolId(userId: number): number | null {
 }
 
 function getActiveApiKey(): { key: string; baseUrl: string; modelId: string } | null {
+  // First try database-configured provider
   const db = getDb();
-  const activeKey = db.select({
-    key: aiApiKeys.apiKey, baseUrl: aiProviders.baseUrl, modelId: aiModels.modelId,
-  }).from(aiApiKeys)
-    .innerJoin(aiProviders, eq(aiApiKeys.providerId, aiProviders.id))
-    .leftJoin(aiModels, eq(aiModels.providerId, aiProviders.id))
-    .where(and(eq(aiApiKeys.isActive, true), eq(aiProviders.isActive, true)))
-    .orderBy(aiApiKeys.usageCount)
-    .get();
-  if (!activeKey) return null;
   try {
-    return { key: decrypt(activeKey.key), baseUrl: activeKey.baseUrl, modelId: activeKey.modelId };
-  } catch {
-    return { key: activeKey.key, baseUrl: activeKey.baseUrl, modelId: activeKey.modelId };
+    const activeKey = db.select({
+      key: aiApiKeys.apiKey, baseUrl: aiProviders.baseUrl, modelId: aiModels.modelId,
+    }).from(aiApiKeys)
+      .innerJoin(aiProviders, eq(aiApiKeys.providerId, aiProviders.id))
+      .leftJoin(aiModels, eq(aiModels.providerId, aiProviders.id))
+      .where(and(eq(aiApiKeys.isActive, true), eq(aiProviders.isActive, true)))
+      .orderBy(aiApiKeys.usageCount)
+      .get();
+    if (activeKey) {
+      try {
+        return { key: decrypt(activeKey.key), baseUrl: activeKey.baseUrl, modelId: activeKey.modelId };
+      } catch {
+        return { key: activeKey.key, baseUrl: activeKey.baseUrl, modelId: activeKey.modelId };
+      }
+    }
+  } catch {}
+
+  // Fallback to environment variables
+  const envKey = import.meta.env.AI_API_KEY || process.env.AI_API_KEY;
+  const envBaseUrl = import.meta.env.AI_BASE_URL || process.env.AI_BASE_URL;
+  const envModel = import.meta.env.AI_MODEL || process.env.AI_MODEL;
+  if (envKey && envBaseUrl) {
+    return { key: envKey, baseUrl: envBaseUrl, modelId: envModel || 'gpt-4o-mini' };
   }
+
+  return null;
 }
 
 const SYSTEM_PROMPT = `You are the iSchool AI Assistant — a helpful school management agent. You help school administrators manage their school efficiently. You can search students, check attendance, manage fees, send messages, create announcements, and more. Always be concise, professional, and helpful. When performing actions that modify data, confirm with the user first. You have access to tools that let you interact with the school's database.`;
