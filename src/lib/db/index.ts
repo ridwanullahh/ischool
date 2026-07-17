@@ -2233,6 +2233,18 @@ function autoMigrate(sqlite: Database.Database) {
 }
 
 export function getDb() {
+  // Check if Lightbase is the configured provider
+  const provider = import.meta.env.DB_PROVIDER || process.env.DB_PROVIDER || 'sqlite';
+
+  if (provider === 'lightbase') {
+    // Return the Lightbase adapter (async)
+    // Note: Lightbase adapter has different method signatures (async .all(), .get())
+    // All call sites need to use `await` when DB_PROVIDER=lightbase
+    const { getLightbaseDb } = require('./lightbase-adapter.js');
+    return getLightbaseDb();
+  }
+
+  // Default: SQLite (better-sqlite3) — synchronous
   if (!_db) {
     const sqlite = new Database(DB_PATH);
     autoMigrate(sqlite);
@@ -2242,3 +2254,9 @@ export function getDb() {
 }
 
 export type DB = ReturnType<typeof getDb>;
+
+// Check if we're using Lightbase (for conditional async handling)
+export function isLightbase(): boolean {
+  const provider = import.meta.env.DB_PROVIDER || process.env.DB_PROVIDER || 'sqlite';
+  return provider === 'lightbase';
+}
