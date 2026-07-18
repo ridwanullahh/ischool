@@ -1,8 +1,27 @@
-import Database from 'better-sqlite3';
-import { drizzle } from 'drizzle-orm/better-sqlite3';
 import * as schema from './schema.js';
 import { resolve } from 'path';
 import { existsSync } from 'fs';
+import { createRequire } from 'module';
+import { getLightbaseDb } from './lightbase-adapter.js';
+
+// Create require for loading CommonJS native modules (better-sqlite3)
+const require = createRequire(import.meta.url);
+
+// Lazy-load better-sqlite3 only when SQLite is the provider
+let Database: any = null;
+let drizzle: any = null;
+function loadSqliteSync() {
+  if (Database) return;
+  try {
+    Database = require('better-sqlite3');
+    drizzle = require('drizzle-orm/better-sqlite3').drizzle;
+  } catch (e: any) {
+    // If better-sqlite3 is not available, fall back to Lightbase automatically
+    console.warn('[DB] better-sqlite3 not available, falling back to Lightbase. Set DB_PROVIDER=lightbase explicitly to silence this warning.');
+    Database = null;
+    throw e;
+  }
+}
 
 const DB_PATH = resolve(process.cwd(), 'ischool.db');
 
@@ -2234,21 +2253,24 @@ function autoMigrate(sqlite: Database.Database) {
 
 export function getDb() {
   // Check if Lightbase is the configured provider
-  const provider = import.meta.env.DB_PROVIDER || process.env.DB_PROVIDER || 'sqlite';
+  const provider = process.env.DB_PROVIDER || 'sqlite';
 
   if (provider === 'lightbase') {
-    // Return the Lightbase adapter (async)
-    // Note: Lightbase adapter has different method signatures (async .all(), .get())
-    // All call sites need to use `await` when DB_PROVIDER=lightbase
-    const { getLightbaseDb } = require('./lightbase-adapter.js');
     return getLightbaseDb();
   }
 
   // Default: SQLite (better-sqlite3) — synchronous
   if (!_db) {
-    const sqlite = new Database(DB_PATH);
-    autoMigrate(sqlite);
-    _db = drizzle(sqlite, { schema });
+    try {
+      loadSqliteSync();
+      const sqlite = new Database(DB_PATH);
+      autoMigrate(sqlite);
+      _db = drizzle(sqlite, { schema });
+    } catch (e: any) {
+      // SQLite not available — fall back to Lightbase
+      console.warn('[DB] SQLite failed, falling back to Lightbase:', e.message);
+      return getLightbaseDb();
+    }
   }
   return _db;
 }
@@ -2257,6 +2279,17 @@ export type DB = ReturnType<typeof getDb>;
 
 // Check if we're using Lightbase (for conditional async handling)
 export function isLightbase(): boolean {
-  const provider = import.meta.env.DB_PROVIDER || process.env.DB_PROVIDER || 'sqlite';
-  return provider === 'lightbase';
+  const provider = process.env.DB_PROVIDER || 'sqlite';
+  if (provider === 'lightbase') return true;
+  // Also true if we fell back to Lightbase due to SQLite not being available
+  if (provider === 'sqlite' && !Database) {
+    // Check if we've already tried and failed to load SQLite
+    try {
+      require('better-sqlite3');
+      return false;
+    } catch {
+      return true;
+    }
+  }
+  return false;
 }

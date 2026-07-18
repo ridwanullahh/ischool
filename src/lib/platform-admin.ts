@@ -6,7 +6,7 @@ interface PlatformAdmin {
 }
 
 function getPlatformAdmins(): PlatformAdmin[] {
-  const raw = import.meta.env.PLATFORM_ADMINS || '';
+  const raw = process.env.PLATFORM_ADMINS || '';
   if (!raw) return [];
   return raw.split(',').map(entry => {
     const [email, ...passwordParts] = entry.trim().split(':');

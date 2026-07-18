@@ -49,9 +49,9 @@ export class LightbaseClient {
 
   constructor(config?: Partial<LightbaseConfig>) {
     this.config = {
-      apiKey: config?.apiKey || import.meta.env.LIGHTBASE_API_KEY || process.env.LIGHTBASE_API_KEY || '',
-      project: config?.project || import.meta.env.LIGHTBASE_PROJECT || process.env.LIGHTBASE_PROJECT || 'edulink',
-      baseUrl: config?.baseUrl || import.meta.env.LIGHTBASE_BASE_URL || process.env.LIGHTBASE_BASE_URL || 'http://lightbase.80.225.189.74.sslip.io',
+      apiKey: config?.apiKey || process.env.LIGHTBASE_API_KEY || '',
+      project: config?.project || process.env.LIGHTBASE_PROJECT || 'edulink',
+      baseUrl: config?.baseUrl || process.env.LIGHTBASE_BASE_URL || 'http://lightbase.80.225.189.74.sslip.io',
     };
     this.headers = {
       'apikey': this.config.apiKey,

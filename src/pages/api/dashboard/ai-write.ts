@@ -23,9 +23,9 @@ function getAIConfig(db: any) {
   } catch {}
 
   // Fallback to env
-  const envKey = import.meta.env.AI_API_KEY || process.env.AI_API_KEY;
-  const envBaseUrl = import.meta.env.AI_BASE_URL || process.env.AI_BASE_URL;
-  const envModel = import.meta.env.AI_MODEL || process.env.AI_MODEL;
+  const envKey = process.env.AI_API_KEY;
+  const envBaseUrl = process.env.AI_BASE_URL;
+  const envModel = process.env.AI_MODEL;
   if (envKey && envBaseUrl) {
     return { apiKey: envKey, baseUrl: envBaseUrl, modelId: envModel || 'gpt-4o-mini' };
   }
