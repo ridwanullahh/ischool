@@ -20,18 +20,20 @@ const schoolId = getUserSchoolId(user.id);
 const db = getDb();
 
 const boards = schoolId
-  ? db.select().from(discussionBoards).where(eq(discussionBoards.schoolId, schoolId)).orderBy(desc(discussionBoards.createdAt)).all()
+  ? await db.select().from(discussionBoards).where(eq(discussionBoards.schoolId, schoolId)).orderBy(desc(discussionBoards.createdAt)).all()
   : [];
+const allCourses = schoolId ? await db.select().from(courses).where(eq(courses.schoolId, schoolId)).all() : [];
+const allUsers = await db.select().from(users).all();
+const allPosts = await db.select().from(discussionPosts).all();
 
 const enrichedBoards = boards.map(b => {
-  const course = b.courseId ? db.select().from(courses).where(eq(courses.id, b.courseId)).get() : null;
-  const postCount = db.select().from(discussionPosts).where(eq(discussionPosts.boardId, b.id)).all().length;
-  const lastPost = db.select().from(discussionPosts).where(eq(discussionPosts.boardId, b.id)).orderBy(desc(discussionPosts.createdAt)).limit(1).get();
-  const lastAuthor = lastPost ? db.select().from(users).where(eq(users.id, lastPost.authorId)).get() : null;
+  const course = b.courseId ? allCourses.find(c => c.id === b.courseId) : null;
+  const boardPosts = allPosts.filter(p => p.boardId === b.id);
+  const postCount = boardPosts.length;
+  const lastPost = boardPosts.sort((a, b2) => new Date(b2.createdAt).getTime() - new Date(a.createdAt).getTime())[0] || null;
+  const lastAuthor = lastPost ? allUsers.find(u => u.id === lastPost.authorId) : null;
   return { ...b, courseName: course?.title || 'General', postCount, lastPost, lastAuthorName: lastAuthor?.name };
 });
-
-const allCourses = schoolId ? db.select().from(courses).where(eq(courses.schoolId, schoolId)).all() : [];
 const canManage = pageGuard(user, 'courses.create');
 
 const formatDate = (d: string | Date | null) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';

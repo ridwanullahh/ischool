@@ -11,13 +11,13 @@ const schoolId = getUserSchoolId(user.id);
 if (!schoolId) return Astro.redirect('/dashboard');
 const db = getDb();
 
-const allClasses = db.select().from(classes).where(eq(classes.schoolId, schoolId)).orderBy(asc(classes.sortOrder)).all();
-const allStaff = db.select({ id: staff.id, firstName: staff.firstName, lastName: staff.lastName, designation: staff.designation }).from(staff).where(eq(staff.schoolId, schoolId)).all();
-const allCourses = db.select({ id: courses.id, title: courses.title }).from(courses).where(eq(courses.schoolId, schoolId)).all();
-const allSubjects = db.select().from(classSubjects).where(eq(classSubjects.schoolId, schoolId)).all();
+const allClasses = await db.select().from(classes).where(eq(classes.schoolId, schoolId)).orderBy(asc(classes.sortOrder)).all();
+const allStaff = await db.select({ id: staff.id, firstName: staff.firstName, lastName: staff.lastName, designation: staff.designation }).from(staff).where(eq(staff.schoolId, schoolId)).all();
+const allCourses = await db.select({ id: courses.id, title: courses.title }).from(courses).where(eq(courses.schoolId, schoolId)).all();
+const allSubjects = await db.select().from(classSubjects).where(eq(classSubjects.schoolId, schoolId)).all();
 
 // Enrollment counts per class
-const enrollmentCounts = db.select({
+const enrollmentCounts = await db.select({
   classId: enrollments.classId,
   count: sql<number>`count(*)`,
 }).from(enrollments)
@@ -26,7 +26,7 @@ const enrollmentCounts = db.select({
 const countMap = new Map(enrollmentCounts.map(e => [e.classId, e.count]));
 
 // Waitlist counts per class
-const waitlistCounts = db.select({
+const waitlistCounts = await db.select({
   classId: enrollments.classId,
   count: sql<number>`count(*)`,
 }).from(enrollments)

@@ -32,48 +32,50 @@ if (!studentId) return Astro.redirect('/dashboard/students');
 const schoolId = getUserSchoolId(user.id);
 const db = getDb();
 
-const student = db.select().from(students)
+const student = await db.select().from(students)
   .where(and(eq(students.id, studentId), eq(students.schoolId, schoolId || 0)))
   .get();
 
 if (!student) return Astro.redirect('/dashboard/students');
 
 // Documents
-const documents = db.select().from(studentDocuments)
+const documents = await db.select().from(studentDocuments)
   .where(eq(studentDocuments.studentId, student.id))
   .orderBy(desc(studentDocuments.createdAt)).all();
 
 // Medical records
-const medicalRecords = db.select().from(studentMedicalRecords)
+const medicalRecords = await db.select().from(studentMedicalRecords)
   .where(eq(studentMedicalRecords.studentId, student.id))
   .orderBy(desc(studentMedicalRecords.date)).all();
 
 // Emergency contacts
-const emergencyContacts = db.select().from(studentEmergencyContacts)
+const emergencyContacts = await db.select().from(studentEmergencyContacts)
   .where(eq(studentEmergencyContacts.studentId, student.id)).all();
 
 // Family / siblings
 const siblings = student.familyGroupId
-  ? db.select().from(students)
+  ? await db.select().from(students)
     .where(and(eq(students.familyGroupId, student.familyGroupId), eq(students.schoolId, student.schoolId)))
     .all().filter(s => s.id !== student.id)
   : [];
 const familyGroup = student.familyGroupId
-  ? db.select().from(familyGroups).where(eq(familyGroups.id, student.familyGroupId)).get()
+  ? await db.select().from(familyGroups).where(eq(familyGroups.id, student.familyGroupId)).get()
   : null;
 
 // Enrollment history
-const enrollmentHistory = db.select().from(enrollments)
+const enrollmentHistory = await db.select().from(enrollments)
   .where(eq(enrollments.studentId, student.id))
   .orderBy(desc(enrollments.createdAt)).all();
+const allClasses = await db.select().from(classes).all();
+const allPeriods = await db.select().from(academicPeriods).all();
 const enrichedEnrollments = enrollmentHistory.map(e => {
-  const cls = e.classId ? db.select().from(classes).where(eq(classes.id, e.classId)).get() : null;
-  const period = e.academicPeriodId ? db.select().from(academicPeriods).where(eq(academicPeriods.id, e.academicPeriodId)).get() : null;
+  const cls = e.classId ? allClasses.find(c => c.id === e.classId) : null;
+  const period = e.academicPeriodId ? allPeriods.find(p => p.id === e.academicPeriodId) : null;
   return { ...e, className: cls ? cls.name + (cls.section ? ' - ' + cls.section : '') : 'N/A', periodName: period?.name || 'N/A' };
 });
 
 // Attendance summary
-const attendanceRecords = db.select().from(attendance).where(eq(attendance.studentId, student.id)).all();
+const attendanceRecords = await db.select().from(attendance).where(eq(attendance.studentId, student.id)).all();
 const presentCount = attendanceRecords.filter(a => a.status === 'present').length;
 const attendanceRate = attendanceRecords.length > 0 ? Math.round((presentCount / attendanceRecords.length) * 100) : 100;
 

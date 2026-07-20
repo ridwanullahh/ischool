@@ -11,19 +11,19 @@ const user = Astro.locals.user;
 if (!user) return Astro.redirect('/auth/login');
 
 const db = getDb();
-const student = db.select().from(students).where(eq(students.userId, user.id)).get();
+const student = await db.select().from(students).where(eq(students.userId, user.id)).get();
 const schoolId = student?.schoolId;
 if (!schoolId) return Astro.redirect('/portal/student');
 
 // Get all CBT exams for the school
-const exams = db.select().from(cbtExams).where(eq(cbtExams.schoolId, schoolId)).orderBy(desc(cbtExams.createdAt)).all();
+const exams = await db.select().from(cbtExams).where(eq(cbtExams.schoolId, schoolId)).orderBy(desc(cbtExams.createdAt)).all();
 
 // Get candidate records for this student
-const candidates = db.select().from(cbtCandidates).where(eq(cbtCandidates.userId, user.id)).all();
+const candidates = await db.select().from(cbtCandidates).where(eq(cbtCandidates.userId, user.id)).all();
 const candidateMap = new Map(candidates.map(c => [c.examId, c]));
 
 // Get attempts
-const attempts = db.select().from(cbtAttempts).all().filter(a => {
+const attempts = await db.select().from(cbtAttempts).all().filter(a => {
   return candidates.some(c => c.id === a.candidateId);
 });
 const attemptMap = new Map(attempts.map(a => [a.examId, a]));

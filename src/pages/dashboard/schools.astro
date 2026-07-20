@@ -6,9 +6,10 @@ import { eq } from 'drizzle-orm';
 
 const user = Astro.locals.user!;
 const db = getDb();
-const memberships = db.select().from(schoolMembers).where(eq(schoolMembers.userId, user.id)).all();
+const memberships = await db.select().from(schoolMembers).where(eq(schoolMembers.userId, user.id)).all();
+const allSchools = await db.select().from(schools).all();
 const memberSchools = memberships.map(m => {
-  const s = db.select().from(schools).where(eq(schools.id, m.schoolId)).get();
+  const s = allSchools.find(sc => sc.id === m.schoolId);
   return s ? { ...s, memberRole: m.role, isActive: m.active } : null;
 }).filter(Boolean);
 ---

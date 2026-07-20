@@ -13,9 +13,9 @@ const tab = Astro.url.searchParams.get('tab') || 'items';
 const success = Astro.url.searchParams.get('success');
 const editId = Astro.url.searchParams.get('edit');
 
-const albums = schoolId ? db.select().from(galleryAlbums).where(eq(galleryAlbums.schoolId, schoolId)).orderBy(asc(galleryAlbums.sortOrder)).all() : [];
-const items = schoolId ? db.select().from(galleryItems).where(eq(galleryItems.schoolId, schoolId)).orderBy(asc(galleryItems.sortOrder)).all() : [];
-const tours = schoolId ? db.select().from(virtualTours).where(eq(virtualTours.schoolId, schoolId)).orderBy(asc(virtualTours.sortOrder)).all() : [];
+const albums = schoolId ? await db.select().from(galleryAlbums).where(eq(galleryAlbums.schoolId, schoolId)).orderBy(asc(galleryAlbums.sortOrder)).all() : [];
+const items = schoolId ? await db.select().from(galleryItems).where(eq(galleryItems.schoolId, schoolId)).orderBy(asc(galleryItems.sortOrder)).all() : [];
+const tours = schoolId ? await db.select().from(virtualTours).where(eq(virtualTours.schoolId, schoolId)).orderBy(asc(virtualTours.sortOrder)).all() : [];
 
 const editingItem = editId && tab === 'items' ? items.find(i => i.id === Number(editId)) : null;
 const editingAlbum = editId && tab === 'albums' ? albums.find(a => a.id === Number(editId)) : null;

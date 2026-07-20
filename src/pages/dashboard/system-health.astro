@@ -29,11 +29,11 @@ try { const st = fs.statSync(dbPath); dbSize = st.size; dbMtime = st.mtime; } ca
 const dbSizeMB = (dbSize / (1024 * 1024)).toFixed(2);
 
 // Counts
-const totalUsers = db.select({ c: sql<number>`count(*)` }).from(users).all()[0]?.c || 0;
-const activeSessions = db.select({ c: sql<number>`count(*)` }).from(sessions).all()[0]?.c || 0;
-const totalStudents = db.select({ c: sql<number>`count(*)` }).from(students).where(eq(students.schoolId, schoolId)).all()[0]?.c || 0;
-const totalStaff = db.select({ c: sql<number>`count(*)` }).from(staff).where(eq(staff.schoolId, schoolId)).all()[0]?.c || 0;
-const recentLogs = db.select().from(auditLogs).orderBy(desc(auditLogs.createdAt)).limit(5).all();
+const totalUsers = await db.select({ c: sql<number>`count(*)` }).from(users).all()[0]?.c || 0;
+const activeSessions = await db.select({ c: sql<number>`count(*)` }).from(sessions).all()[0]?.c || 0;
+const totalStudents = await db.select({ c: sql<number>`count(*)` }).from(students).where(eq(students.schoolId, schoolId)).all()[0]?.c || 0;
+const totalStaff = await db.select({ c: sql<number>`count(*)` }).from(staff).where(eq(staff.schoolId, schoolId)).all()[0]?.c || 0;
+const recentLogs = await db.select().from(auditLogs).orderBy(desc(auditLogs.createdAt)).limit(5).all();
 
 const nodeVersion = process.version;
 const platform = `${process.platform} ${process.arch}`;

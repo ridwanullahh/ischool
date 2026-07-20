@@ -4,7 +4,7 @@ import { getDb } from '../../lib/db/index.js';
 import { platformFaqs } from '../../lib/db/schema.js';
 
 const db = getDb();
-const faqs = db.select().from(platformFaqs).orderBy(platformFaqs.sortOrder).all();
+const faqs = await db.select().from(platformFaqs).orderBy(platformFaqs.sortOrder).all();
 const categories = [...new Set(faqs.map(f => f.category))];
 ---
 

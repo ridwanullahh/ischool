@@ -18,14 +18,14 @@ if (!student) return Astro.redirect('/portal/no-profile');
 const schoolId = getUserSchoolId(user.id) ?? student.schoolId;
 const db = getDb();
 
-const allGrades = db.select().from(grades)
+const allGrades = await db.select().from(grades)
   .where(eq(grades.studentId, student.id))
   .orderBy(desc(grades.createdAt)).all();
 
 // Group by course
 const byCourse: Record<string, any[]> = {};
 for (const g of allGrades) {
-  const course = g.courseId ? db.select().from(courses).where(eq(courses.id, g.courseId)).get() : null;
+  const course = g.courseId ? await db.select().from(courses).where(eq(courses.id, g.courseId)).get() : null;
   const key = course?.title || 'General';
   if (!byCourse[key]) byCourse[key] = [];
   byCourse[key].push({ ...g, courseName: key });

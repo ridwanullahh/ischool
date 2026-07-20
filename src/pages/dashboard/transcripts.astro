@@ -11,12 +11,12 @@ const schoolId = getUserSchoolId(user.id);
 if (!schoolId) return Astro.redirect('/dashboard');
 const db = getDb();
 
-const school = db.select().from(schools).where(eq(schools.id, schoolId)).get();
-const allStudents = db.select({ id: students.id, name: students.firstName, lastName: students.lastName, code: students.studentId, status: students.status })
+const school = await db.select().from(schools).where(eq(schools.id, schoolId)).get();
+const allStudents = await db.select({ id: students.id, name: students.firstName, lastName: students.lastName, code: students.studentId, status: students.status })
   .from(students).where(eq(students.schoolId, schoolId)).all();
 
 // All report cards grouped by student
-const allCards = db.select().from(reportCards).where(eq(reportCards.schoolId, schoolId)).orderBy(desc(reportCards.academicYear)).all();
+const allCards = await db.select().from(reportCards).where(eq(reportCards.schoolId, schoolId)).orderBy(desc(reportCards.academicYear)).all();
 const cardsByStudent = new Map<number, typeof allCards>();
 for (const c of allCards) {
   if (!cardsByStudent.has(c.studentId)) cardsByStudent.set(c.studentId, []);

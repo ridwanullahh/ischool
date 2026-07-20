@@ -13,12 +13,12 @@ if (!schoolId) return Astro.redirect('/dashboard');
 const school = getUserSchool(user.id);
 const db = getDb();
 
-const lists = db.select().from(emailLists).where(eq(emailLists.schoolId, schoolId)).all();
-const templates = db.select().from(emailTemplates).where(eq(emailTemplates.schoolId, schoolId)).all();
+const lists = await db.select().from(emailLists).where(eq(emailLists.schoolId, schoolId)).all();
+const templates = await db.select().from(emailTemplates).where(eq(emailTemplates.schoolId, schoolId)).all();
 const editId = Astro.url.searchParams.get('edit');
 let editing: any = null;
 if (editId) {
-  editing = db.select().from(emailCampaigns).where(eq(emailCampaigns.id, Number(editId))).get();
+  editing = await db.select().from(emailCampaigns).where(eq(emailCampaigns.id, Number(editId))).get();
 }
 ---
 

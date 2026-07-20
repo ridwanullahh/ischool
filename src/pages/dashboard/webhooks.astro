@@ -21,11 +21,11 @@ const schoolId = getUserSchoolId(user.id);
 const db = getDb();
 
 const myWebhooks = schoolId
-  ? db.select().from(webhooks).where(eq(webhooks.schoolId, schoolId)).orderBy(desc(webhooks.createdAt)).all()
+  ? await db.select().from(webhooks).where(eq(webhooks.schoolId, schoolId)).orderBy(desc(webhooks.createdAt)).all()
   : [];
 
 const recentDeliveries = schoolId
-  ? db.select().from(webhookDeliveries)
+  ? await db.select().from(webhookDeliveries)
     .orderBy(desc(webhookDeliveries.createdAt)).limit(20).all()
   : [];
 

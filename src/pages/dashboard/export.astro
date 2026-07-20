@@ -12,15 +12,15 @@ if (!schoolId) return Astro.redirect('/dashboard');
 const db = getDb();
 
 // Counts for each export option
-const studentCount = db.select({ count: sql<number>`count(*)` }).from(students).where(eq(students.schoolId, schoolId)).all()[0]?.count || 0;
-const staffCount = db.select({ count: sql<number>`count(*)` }).from(staff).where(eq(staff.schoolId, schoolId)).all()[0]?.count || 0;
-const attendanceCount = db.select({ count: sql<number>`count(*)` }).from(attendance).where(eq(attendance.schoolId, schoolId)).all()[0]?.count || 0;
-const invoiceCount = db.select({ count: sql<number>`count(*)` }).from(invoices).where(eq(invoices.schoolId, schoolId)).all()[0]?.count || 0;
-const paymentCount = db.select({ count: sql<number>`count(*)` }).from(payments).where(eq(payments.schoolId, schoolId)).all()[0]?.count || 0;
-const gradeCount = db.select({ count: sql<number>`count(*)` }).from(grades).where(eq(grades.schoolId, schoolId)).all()[0]?.count || 0;
-const enrollmentCount = db.select({ count: sql<number>`count(*)` }).from(enrollments).where(eq(enrollments.schoolId, schoolId)).all()[0]?.count || 0;
-const classCount = db.select({ count: sql<number>`count(*)` }).from(classes).where(eq(classes.schoolId, schoolId)).all()[0]?.count || 0;
-const courseCount = db.select({ count: sql<number>`count(*)` }).from(courses).where(eq(courses.schoolId, schoolId)).all()[0]?.count || 0;
+const studentCount = await db.select({ count: sql<number>`count(*)` }).from(students).where(eq(students.schoolId, schoolId)).all()[0]?.count || 0;
+const staffCount = await db.select({ count: sql<number>`count(*)` }).from(staff).where(eq(staff.schoolId, schoolId)).all()[0]?.count || 0;
+const attendanceCount = await db.select({ count: sql<number>`count(*)` }).from(attendance).where(eq(attendance.schoolId, schoolId)).all()[0]?.count || 0;
+const invoiceCount = await db.select({ count: sql<number>`count(*)` }).from(invoices).where(eq(invoices.schoolId, schoolId)).all()[0]?.count || 0;
+const paymentCount = await db.select({ count: sql<number>`count(*)` }).from(payments).where(eq(payments.schoolId, schoolId)).all()[0]?.count || 0;
+const gradeCount = await db.select({ count: sql<number>`count(*)` }).from(grades).where(eq(grades.schoolId, schoolId)).all()[0]?.count || 0;
+const enrollmentCount = await db.select({ count: sql<number>`count(*)` }).from(enrollments).where(eq(enrollments.schoolId, schoolId)).all()[0]?.count || 0;
+const classCount = await db.select({ count: sql<number>`count(*)` }).from(classes).where(eq(classes.schoolId, schoolId)).all()[0]?.count || 0;
+const courseCount = await db.select({ count: sql<number>`count(*)` }).from(courses).where(eq(courses.schoolId, schoolId)).all()[0]?.count || 0;
 
 const exportOptions = [
   { slug: 'students', label: 'Students', icon: '👨‍🎓', count: studentCount, desc: 'All student records with personal and contact details', api: '/api/dashboard/students?action=export' },

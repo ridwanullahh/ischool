@@ -11,8 +11,8 @@ const user = Astro.locals.user!;
 const schoolId = getUserSchoolId(user.id);
 const db = getDb();
 
-const contacts = schoolId ? db.select().from(contactInfo).where(eq(contactInfo.schoolId, schoolId)).orderBy(asc(contactInfo.sortOrder)).all() : [];
-const submissions = schoolId ? db.select().from(contactSubmissions).where(eq(contactSubmissions.schoolId, schoolId)).orderBy(desc(contactSubmissions.createdAt)).limit(10).all().map(sub => ({
+const contacts = schoolId ? await db.select().from(contactInfo).where(eq(contactInfo.schoolId, schoolId)).orderBy(asc(contactInfo.sortOrder)).all() : [];
+const submissions = schoolId ? await db.select().from(contactSubmissions).where(eq(contactSubmissions.schoolId, schoolId)).orderBy(desc(contactSubmissions.createdAt)).limit(10).all().map(sub => ({
   ...sub,
   parsedData: sub.data as Record<string, string>,
 })) : [];

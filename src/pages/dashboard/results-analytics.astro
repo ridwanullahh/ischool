@@ -12,7 +12,7 @@ if (!schoolId) return Astro.redirect('/dashboard');
 const db = getDb();
 
 // Subject performance summary
-const subjectPerf = db.select({
+const subjectPerf = await db.select({
   subject: exams.subject,
   totalMarks: exams.totalMarks,
   avgMarks: sql<number>`avg(${examResults.marksObtained})`,
@@ -32,7 +32,7 @@ const subjectAnalytics = subjectPerf.map(s => {
 }).sort((a, b) => b.avgPct - a.avgPct);
 
 // Top performers (highest avg marks across exams)
-const topPerformers = db.select({
+const topPerformers = await db.select({
   studentId: examResults.studentId,
   studentName: students.firstName,
   studentLastName: students.lastName,
@@ -47,7 +47,7 @@ const topPerformers = db.select({
   .limit(10).all();
 
 // Bottom performers
-const bottomPerformers = db.select({
+const bottomPerformers = await db.select({
   studentId: examResults.studentId,
   studentName: students.firstName,
   studentLastName: students.lastName,
@@ -62,13 +62,13 @@ const bottomPerformers = db.select({
   .limit(5).all();
 
 // Total counts
-const totalExams = db.select({ count: sql<number>`count(*)` }).from(exams).all()[0]?.count || 0;
-const totalResults = db.select({ count: sql<number>`count(*)` }).from(examResults).where(eq(examResults.schoolId, schoolId)).all()[0]?.count || 0;
-const totalAbsent = db.select({ count: sql<number>`count(*)` }).from(examResults).where(and(eq(examResults.schoolId, schoolId), eq(examResults.status, 'absent'))).all()[0]?.count || 0;
-const overallAvg = db.select({ avg: sql<number>`avg(${examResults.marksObtained})` }).from(examResults).where(and(eq(examResults.schoolId, schoolId), eq(examResults.status, 'present'))).all()[0]?.avg || 0;
+const totalExams = await db.select({ count: sql<number>`count(*)` }).from(exams).all()[0]?.count || 0;
+const totalResults = await db.select({ count: sql<number>`count(*)` }).from(examResults).where(eq(examResults.schoolId, schoolId)).all()[0]?.count || 0;
+const totalAbsent = await db.select({ count: sql<number>`count(*)` }).from(examResults).where(and(eq(examResults.schoolId, schoolId), eq(examResults.status, 'absent'))).all()[0]?.count || 0;
+const overallAvg = await db.select({ avg: sql<number>`avg(${examResults.marksObtained})` }).from(examResults).where(and(eq(examResults.schoolId, schoolId), eq(examResults.status, 'present'))).all()[0]?.avg || 0;
 
 // Grade distribution
-const gradeDist = db.select({
+const gradeDist = await db.select({
   grade: examResults.grade,
   count: sql<number>`count(*)`,
 }).from(examResults)

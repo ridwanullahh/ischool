@@ -10,7 +10,7 @@ if (!user) return Astro.redirect('/auth/login');
 const schoolId = getUserSchoolId(user.id);
 if (!schoolId) return Astro.redirect('/dashboard');
 const db = getDb();
-const posts = db.select().from(socialPosts).where(eq(socialPosts.schoolId, schoolId)).orderBy(desc(socialPosts.createdAt)).all();
+const posts = await db.select().from(socialPosts).where(eq(socialPosts.schoolId, schoolId)).orderBy(desc(socialPosts.createdAt)).all();
 
 const today = new Date();
 const month = today.getMonth();

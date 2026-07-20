@@ -5,7 +5,7 @@ import { platformDocs } from '../../lib/db/schema.js';
 import { eq, asc, and } from 'drizzle-orm';
 
 const db = getDb();
-const docs = db.select().from(platformDocs)
+const docs = await db.select().from(platformDocs)
   .where(eq(platformDocs.isPublished, true))
   .orderBy(asc(platformDocs.sortOrder)).all();
 

@@ -10,9 +10,9 @@ if (!user) return Astro.redirect('/auth/login');
 const schoolId = getUserSchoolId(user.id);
 if (!schoolId) return Astro.redirect('/dashboard');
 const db = getDb();
-const connection = db.select().from(gmbConnections).where(eq(gmbConnections.schoolId, schoolId)).get();
-const reviews = db.select().from(gmbReviews).where(eq(gmbReviews.schoolId, schoolId)).all();
-const posts = db.select().from(gmbPosts).where(eq(gmbPosts.schoolId, schoolId)).all();
+const connection = await db.select().from(gmbConnections).where(eq(gmbConnections.schoolId, schoolId)).get();
+const reviews = await db.select().from(gmbReviews).where(eq(gmbReviews.schoolId, schoolId)).all();
+const posts = await db.select().from(gmbPosts).where(eq(gmbPosts.schoolId, schoolId)).all();
 const avgRating = reviews.length > 0 ? (reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length).toFixed(1) : 'N/A';
 const ratingDistribution = [5, 4, 3, 2, 1].map(stars => ({
   stars,

@@ -22,22 +22,22 @@ const selectedClassId = Astro.url.searchParams.get('class');
 
 // Get assignments for the dropdown
 const myAssignments = schoolId
-  ? db.select().from(assignments).where(eq(assignments.schoolId, schoolId)).orderBy(desc(assignments.createdAt)).all()
+  ? await db.select().from(assignments).where(eq(assignments.schoolId, schoolId)).orderBy(desc(assignments.createdAt)).all()
   : [];
 
 // Get classes
-const allClasses = schoolId ? db.select().from(classes).where(eq(classes.schoolId, schoolId)).all() : [];
+const allClasses = schoolId ? await db.select().from(classes).where(eq(classes.schoolId, schoolId)).all() : [];
 
 let submissionsToGrade: any[] = [];
 let selectedAssignment: any = null;
 
 if (selectedAssignmentId) {
   const aid = parseInt(selectedAssignmentId);
-  selectedAssignment = db.select().from(assignments).where(eq(assignments.id, aid)).get();
+  selectedAssignment = await db.select().from(assignments).where(eq(assignments.id, aid)).get();
 
   if (selectedAssignment) {
     // Get all submissions for this assignment
-    submissionsToGrade = db.select({
+    submissionsToGrade = await db.select({
       id: submissions.id,
       content: submissions.content,
       fileUrl: submissions.fileUrl,

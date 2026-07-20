@@ -19,15 +19,16 @@ if (!boardId) return Astro.redirect('/dashboard/discussions');
 const schoolId = getUserSchoolId(user.id);
 const db = getDb();
 
-const board = db.select().from(discussionBoards).where(and(eq(discussionBoards.id, boardId), eq(discussionBoards.schoolId, schoolId || 0))).get();
+const board = await db.select().from(discussionBoards).where(and(eq(discussionBoards.id, boardId), eq(discussionBoards.schoolId, schoolId || 0))).get();
 if (!board) return Astro.redirect('/dashboard/discussions');
 
-const course = board.courseId ? db.select().from(courses).where(eq(courses.id, board.courseId)).get() : null;
-const allPosts = db.select().from(discussionPosts).where(eq(discussionPosts.boardId, boardId)).orderBy(desc(discussionPosts.createdAt)).all();
+const course = board.courseId ? await db.select().from(courses).where(eq(courses.id, board.courseId)).get() : null;
+const allPosts = await db.select().from(discussionPosts).where(eq(discussionPosts.boardId, boardId)).orderBy(desc(discussionPosts.createdAt)).all();
+const allUsers = await db.select().from(users).all();
 
 // Enrich with author info
 const enrichedPosts = allPosts.map(p => {
-  const author = db.select().from(users).where(eq(users.id, p.authorId)).get();
+  const author = allUsers.find(u => u.id === p.authorId);
   return { ...p, authorName: author?.name || 'Unknown', authorAvatar: author?.avatarUrl, authorRole: author?.role };
 });
 

@@ -19,12 +19,12 @@ const schoolId = getUserSchoolId(user.id);
 const db = getDb();
 
 const allForms = schoolId
-  ? db.select().from(forms).where(eq(forms.schoolId, schoolId)).orderBy(desc(forms.createdAt)).all()
+  ? await db.select().from(forms).where(eq(forms.schoolId, schoolId)).orderBy(desc(forms.createdAt)).all()
   : [];
 
 const submissionCounts: Record<number, number> = {};
 if (schoolId) {
-  const allSubs = db.select().from(formSubmissions).where(eq(formSubmissions.schoolId, schoolId)).all();
+  const allSubs = await db.select().from(formSubmissions).where(eq(formSubmissions.schoolId, schoolId)).all();
   for (const s of allSubs) {
     submissionCounts[s.formId] = (submissionCounts[s.formId] || 0) + 1;
   }

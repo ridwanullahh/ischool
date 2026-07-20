@@ -11,8 +11,8 @@ const schoolId = getUserSchoolId(user.id);
 if (!schoolId) return Astro.redirect('/dashboard');
 const db = getDb();
 
-const periods = schoolId ? db.select().from(academicPeriods).where(eq(academicPeriods.schoolId, schoolId)).orderBy(desc(academicPeriods.createdAt)).all() : [];
-const prayers = schoolId ? db.select().from(prayerSchedules).where(eq(prayerSchedules.schoolId, schoolId)).all() : [];
+const periods = schoolId ? await db.select().from(academicPeriods).where(eq(academicPeriods.schoolId, schoolId)).orderBy(desc(academicPeriods.createdAt)).all() : [];
+const prayers = schoolId ? await db.select().from(prayerSchedules).where(eq(prayerSchedules.schoolId, schoolId)).all() : [];
 const formatDate = (d: any) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
 const statusColors: Record<string, string> = { draft: 'bg-gray-100 text-gray-600', active: 'bg-green-100 text-green-700', completed: 'bg-blue-100 text-blue-700', scheduled: 'bg-amber-100 text-amber-700' };
 const appliesToLabels: Record<string, string> = { weekday: 'Weekday', friday: 'Friday (Jumu\'ah)', weekend: 'Weekend', ramadan: 'Ramadan', exam: 'Exam Day', custom: 'Custom' };

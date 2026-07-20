@@ -6,7 +6,7 @@ import { desc } from 'drizzle-orm';
 import { formatDate } from '../../lib/utils.js';
 
 const db = getDb();
-const posts = db.select().from(platformBlogPosts).orderBy(desc(platformBlogPosts.createdAt)).all();
+const posts = await db.select().from(platformBlogPosts).orderBy(desc(platformBlogPosts.createdAt)).all();
 ---
 
 <AdminLayout title="Blog - iSchool">

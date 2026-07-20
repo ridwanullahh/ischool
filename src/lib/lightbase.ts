@@ -130,6 +130,22 @@ export class LightbaseClient {
       body: JSON.stringify(document),
     });
     if (!res.ok) {
+      if (res.status === 404) {
+        // Collection doesn't exist — try to create it with basic fields, then retry
+        console.warn(`[Lightbase] Collection '${collection}' not found, creating...`);
+        await this.createCollection(collection, [
+          { name: 'data', type: 'json' },
+        ]).catch(() => {});
+        const retryRes = await fetch(`${this.baseCollectionUrl}/${collection}`, {
+          method: 'POST',
+          headers: this.headers,
+          body: JSON.stringify(document),
+        });
+        if (retryRes.ok) {
+          const data = await retryRes.json();
+          return data.document || data;
+        }
+      }
       const err = await res.json().catch(() => ({}));
       throw new Error(`Lightbase insert(${collection}) failed: ${res.status} ${JSON.stringify(err)}`);
     }
@@ -203,6 +219,10 @@ export class LightbaseClient {
     const url = `${this.baseCollectionUrl}/${collection}?${params.toString()}`;
     const res = await fetch(url, { headers: this.headers });
     if (!res.ok) {
+      // Gracefully handle 404 (collection not found) — return empty result
+      if (res.status === 404) {
+        return { data: [], nextCursor: null, total: 0, hasMore: false };
+      }
       const err = await res.json().catch(() => ({}));
       throw new Error(`Lightbase query(${collection}) failed: ${res.status} ${JSON.stringify(err)}`);
     }

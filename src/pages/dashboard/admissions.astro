@@ -12,8 +12,8 @@ const schoolId = getUserSchoolId(user.id);
 if (!schoolId) return Astro.redirect('/dashboard');
 
 const db = getDb();
-const periods = db.select().from(admissionPeriods).where(eq(admissionPeriods.schoolId, schoolId)).orderBy(desc(admissionPeriods.createdAt)).all();
-const applications = db.select().from(admissionApplications).where(eq(admissionApplications.schoolId, schoolId)).orderBy(desc(admissionApplications.createdAt)).all();
+const periods = await db.select().from(admissionPeriods).where(eq(admissionPeriods.schoolId, schoolId)).orderBy(desc(admissionPeriods.createdAt)).all();
+const applications = await db.select().from(admissionApplications).where(eq(admissionApplications.schoolId, schoolId)).orderBy(desc(admissionApplications.createdAt)).all();
 const programs = getSchoolPrograms(schoolId);
 const success = Astro.url.searchParams.get('success');
 

@@ -11,13 +11,13 @@ const schoolId = getUserSchoolId(user.id);
 if (!schoolId) return Astro.redirect('/dashboard');
 const db = getDb();
 
-const totalSubs = db.select({ c: sql<number>`count(*)` }).from(emailSubscribers).where(eq(emailSubscribers.schoolId, schoolId)).get()?.c || 0;
-const activeSubs = db.select({ c: sql<number>`count(*)` }).from(emailSubscribers).where(and(eq(emailSubscribers.schoolId, schoolId), eq(emailSubscribers.status, 'active'))).get()?.c || 0;
-const campaigns = db.select().from(emailCampaigns).where(eq(emailCampaigns.schoolId, schoolId)).orderBy(desc(emailCampaigns.createdAt)).limit(5).all();
+const totalSubs = await db.select({ c: sql<number>`count(*)` }).from(emailSubscribers).where(eq(emailSubscribers.schoolId, schoolId)).get()?.c || 0;
+const activeSubs = await db.select({ c: sql<number>`count(*)` }).from(emailSubscribers).where(and(eq(emailSubscribers.schoolId, schoolId), eq(emailSubscribers.status, 'active'))).get()?.c || 0;
+const campaigns = await db.select().from(emailCampaigns).where(eq(emailCampaigns.schoolId, schoolId)).orderBy(desc(emailCampaigns.createdAt)).limit(5).all();
 const totalSent = campaigns.filter(c => c.status === 'sent').length;
-const lists = db.select().from(emailLists).where(eq(emailLists.schoolId, schoolId)).all();
-const automations = db.select().from(emailAutomations).where(eq(emailAutomations.schoolId, schoolId)).all();
-const templates = db.select().from(emailTemplates).where(eq(emailTemplates.schoolId, schoolId)).all();
+const lists = await db.select().from(emailLists).where(eq(emailLists.schoolId, schoolId)).all();
+const automations = await db.select().from(emailAutomations).where(eq(emailAutomations.schoolId, schoolId)).all();
+const templates = await db.select().from(emailTemplates).where(eq(emailTemplates.schoolId, schoolId)).all();
 
 import { and } from 'drizzle-orm';
 const formatDate = (d: any) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';

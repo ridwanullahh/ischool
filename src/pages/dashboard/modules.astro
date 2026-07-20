@@ -11,7 +11,7 @@ const schoolId = getUserSchoolId(user.id);
 if (!schoolId) return Astro.redirect('/dashboard');
 const db = getDb();
 
-const settings = db.select().from(moduleSettings).where(eq(moduleSettings.schoolId, schoolId)).all();
+const settings = await db.select().from(moduleSettings).where(eq(moduleSettings.schoolId, schoolId)).all();
 const settingsMap = new Map(settings.map(s => [s.moduleKey, s]));
 
 const specModules = [

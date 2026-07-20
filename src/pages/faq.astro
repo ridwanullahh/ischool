@@ -5,7 +5,7 @@ import { platformFaqs } from '../lib/db/schema.js';
 import { eq } from 'drizzle-orm';
 
 const db = getDb();
-const faqs = db.select().from(platformFaqs).where(eq(platformFaqs.isPublished, true)).orderBy(platformFaqs.sortOrder).all();
+const faqs = await db.select().from(platformFaqs).where(eq(platformFaqs.isPublished, true)).orderBy(platformFaqs.sortOrder).all();
 const categories = [...new Set(faqs.map(f => f.category))];
 ---
 

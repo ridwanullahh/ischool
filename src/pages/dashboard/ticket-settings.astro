@@ -6,20 +6,20 @@ import { eq, asc } from 'drizzle-orm';
 
 const user = Astro.locals.user!;
 const db = getDb();
-const membership = db.select().from(schoolMembers).where(eq(schoolMembers.userId, user.id)).get();
+const membership = await db.select().from(schoolMembers).where(eq(schoolMembers.userId, user.id)).get();
 const schoolId = membership?.schoolId;
 if (!schoolId) return Astro.redirect('/dashboard');
 
-const categories = db.select().from(schoolTicketCategories)
+const categories = await db.select().from(schoolTicketCategories)
   .where(eq(schoolTicketCategories.schoolId, schoolId))
   .orderBy(asc(schoolTicketCategories.sortOrder)).all();
 
-const slaSetting = db.select().from(aiSettings)
+const slaSetting = await db.select().from(aiSettings)
   .where(eq(aiSettings.schoolId, schoolId))
   .all()
   .find(s => s.key === 'ticket_sla_hours');
 
-const retentionSetting = db.select().from(aiSettings)
+const retentionSetting = await db.select().from(aiSettings)
   .where(eq(aiSettings.schoolId, schoolId))
   .all()
   .find(s => s.key === 'conversation_retention_days');

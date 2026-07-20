@@ -18,20 +18,22 @@ const db = getDb();
 
 // Get all assignments for the school
 const myAssignments = schoolId
-  ? db.select().from(assignments).where(eq(assignments.schoolId, schoolId)).orderBy(desc(assignments.createdAt)).all()
+  ? await db.select().from(assignments).where(eq(assignments.schoolId, schoolId)).orderBy(desc(assignments.createdAt)).all()
   : [];
+const allCourses = schoolId ? await db.select().from(courses).where(eq(courses.schoolId, schoolId)).all() : [];
+const allSubmissions = await db.select().from(submissions).all();
 
 // For each assignment, get submission count
 const enriched = myAssignments.map(a => {
-  const course = a.courseId ? db.select().from(courses).where(eq(courses.id, a.courseId)).get() : null;
-  const submissionCount = db.select({ c: sql<number>`count(*)` }).from(submissions).where(eq(submissions.assignmentId, a.id)).get()?.c || 0;
-  const gradedCount = db.select({ c: sql<number>`count(*)` }).from(submissions).where(and(eq(submissions.assignmentId, a.id), sql`${submissions.gradedAt} IS NOT NULL`)).get()?.c || 0;
+  const course = a.courseId ? allCourses.find(c => c.id === a.courseId) : null;
+  const subs = allSubmissions.filter(s => s.assignmentId === a.id);
+  const submissionCount = subs.length;
+  const gradedCount = subs.filter(s => s.gradedAt).length;
   return { ...a, courseName: course?.title || 'General', submissionCount, gradedCount };
 });
 
-// Get classes and courses for the create form
-const allClasses = schoolId ? db.select().from(classes).where(eq(classes.schoolId, schoolId)).all() : [];
-const allCourses = schoolId ? db.select().from(courses).where(eq(courses.schoolId, schoolId)).all() : [];
+// Get classes for the create form
+const allClasses = schoolId ? await db.select().from(classes).where(eq(classes.schoolId, schoolId)).all() : [];
 
 const formatDate = (d: string | Date | null) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
 ---

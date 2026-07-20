@@ -20,7 +20,7 @@ const db = getDb();
 
 // Get all class_subjects assigned to this teacher
 const myAssignments = staff
-  ? db.select().from(classSubjects)
+  ? await db.select().from(classSubjects)
     .where(and(eq(classSubjects.teacherId, staff.id), eq(classSubjects.schoolId, schoolId || 0)))
     .all()
   : [];
@@ -29,8 +29,8 @@ const myAssignments = staff
 const classMap: Record<number, { classInfo: any; subjects: any[] }> = {};
 for (const a of myAssignments) {
   if (!classMap[a.classId]) {
-    const cls = db.select().from(classes).where(eq(classes.id, a.classId)).get();
-    const studentCount = db.select().from(enrollments).where(eq(enrollments.classId, a.classId)).all().length;
+    const cls = await db.select().from(classes).where(eq(classes.id, a.classId)).get();
+    const studentCount = await db.select().from(enrollments).where(eq(enrollments.classId, a.classId)).all().length;
     classMap[a.classId] = { classInfo: cls, subjects: [] };
     if (cls) (classMap[a.classId] as any).studentCount = studentCount;
   }

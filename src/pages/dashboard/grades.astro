@@ -16,9 +16,9 @@ let stats = { total: 0, avgScore: 0 };
 
 if (schoolId) {
   const db = getDb();
-  allStudents = db.select().from(students).where(eq(students.schoolId, schoolId)).all();
-  allCourses = db.select().from(courses).where(eq(courses.schoolId, schoolId)).all();
-  records = db.select({
+  allStudents = await db.select().from(students).where(eq(students.schoolId, schoolId)).all();
+  allCourses = await db.select().from(courses).where(eq(courses.schoolId, schoolId)).all();
+  records = await db.select({
     id: grades.id, studentId: grades.studentId, courseId: grades.courseId,
     term: grades.term, academicYear: grades.academicYear, category: grades.category,
     score: grades.score, maxScore: grades.maxScore, grade: grades.grade, comment: grades.comment,

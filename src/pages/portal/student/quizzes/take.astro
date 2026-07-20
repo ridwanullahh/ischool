@@ -33,17 +33,17 @@ if (!student) return Astro.redirect('/portal/no-profile');
 const schoolId = getUserSchoolId(user.id) ?? student.schoolId;
 const db = getDb();
 
-const quiz = db.select().from(quizzes).where(and(eq(quizzes.id, quizId), eq(quizzes.schoolId, schoolId))).get();
+const quiz = await db.select().from(quizzes).where(and(eq(quizzes.id, quizId), eq(quizzes.schoolId, schoolId))).get();
 if (!quiz) return Astro.redirect('/portal/student/quizzes');
 
 // Get quiz questions
-const quizQuestions = db.select().from(questions).where(eq(questions.quizId, quizId)).orderBy(questions.sortOrder).all();
+const quizQuestions = await db.select().from(questions).where(eq(questions.quizId, quizId)).orderBy(questions.sortOrder).all();
 if (quizQuestions.length === 0) {
   return Astro.redirect('/portal/student/quizzes?error=no_questions');
 }
 
 // Check for in-progress attempt
-const inProgress = db.select().from(quizAttempts)
+const inProgress = await db.select().from(quizAttempts)
   .where(and(eq(quizAttempts.quizId, quizId), eq(quizAttempts.studentId, student.id)))
   .orderBy(quizAttempts.startedAt).all().reverse().find(a => !a.completedAt);
 
@@ -55,7 +55,7 @@ if (inProgress) {
   existingAnswers = (inProgress.answers as Record<number, any>) || {};
 } else {
   // Check attempt limit
-  const allAttempts = db.select().from(quizAttempts)
+  const allAttempts = await db.select().from(quizAttempts)
     .where(and(eq(quizAttempts.quizId, quizId), eq(quizAttempts.studentId, student.id)))
     .all();
   if (quiz.maxAttempts && allAttempts.length >= quiz.maxAttempts) {
@@ -63,7 +63,7 @@ if (inProgress) {
   }
 
   // Create new attempt
-  const newAttempt = db.insert(quizAttempts).values({
+  const newAttempt = await db.insert(quizAttempts).values({
     quizId,
     studentId: student.id,
     schoolId,
@@ -73,7 +73,7 @@ if (inProgress) {
   attemptId = newAttempt.id;
 }
 
-const course = quiz.courseId ? db.select().from(courses).where(eq(courses.id, quiz.courseId)).get() : null;
+const course = quiz.courseId ? await db.select().from(courses).where(eq(courses.id, quiz.courseId)).get() : null;
 const durationMinutes = quiz.duration || 30;
 const startTime = inProgress?.startedAt || new Date();
 ---

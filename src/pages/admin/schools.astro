@@ -6,7 +6,7 @@ import { eq } from 'drizzle-orm';
 
 const db = getDb();
 
-const allSchools = db.select({
+const allSchools = await db.select({
   id: schools.id,
   name: schools.name,
   slug: schools.slug,

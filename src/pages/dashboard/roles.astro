@@ -30,7 +30,7 @@ const db = getDb();
 
 // Fetch existing overrides for this school
 const overrides = schoolId
-  ? db.select().from(roleOverrides).where(eq(roleOverrides.schoolId, schoolId)).all()
+  ? await db.select().from(roleOverrides).where(eq(roleOverrides.schoolId, schoolId)).all()
   : [];
 
 // Build override lookup: { role: { permission: 'grant'|'revoke' } }

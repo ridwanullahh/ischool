@@ -20,18 +20,19 @@ const schoolId = getUserSchoolId(user.id) ?? student.schoolId;
 const db = getDb();
 
 // All assignments for the school, ordered by due date
-const allAssignments = db.select().from(assignments)
+const allAssignments = await db.select().from(assignments)
   .where(eq(assignments.schoolId, schoolId))
   .orderBy(desc(assignments.dueDate)).all();
+const allCourses = await db.select().from(courses).where(eq(courses.schoolId, schoolId)).all();
 
 // Student's submissions
-const mySubmissions = db.select().from(submissions)
+const mySubmissions = await db.select().from(submissions)
   .where(eq(submissions.studentId, student.id)).all();
 const submissionMap = new Map(mySubmissions.map(s => [s.assignmentId, s]));
 
 // Enrich assignments with course name and submission status
 const enriched = allAssignments.map(a => {
-  const course = a.courseId ? db.select().from(courses).where(eq(courses.id, a.courseId)).get() : null;
+  const course = a.courseId ? allCourses.find(c => c.id === a.courseId) : null;
   const submission = submissionMap.get(a.id);
   let status = 'pending';
   if (submission) {

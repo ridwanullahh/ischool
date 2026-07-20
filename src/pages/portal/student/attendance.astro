@@ -18,7 +18,7 @@ if (!student) return Astro.redirect('/portal/no-profile');
 const schoolId = getUserSchoolId(user.id) ?? student.schoolId;
 const db = getDb();
 
-const records = db.select().from(attendance)
+const records = await db.select().from(attendance)
   .where(eq(attendance.studentId, student.id))
   .orderBy(desc(attendance.date)).limit(60).all();
 

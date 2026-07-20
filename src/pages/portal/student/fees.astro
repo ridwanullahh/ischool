@@ -18,11 +18,11 @@ if (!student) return Astro.redirect('/portal/no-profile');
 const schoolId = getUserSchoolId(user.id) ?? student.schoolId;
 const db = getDb();
 
-const myInvoices = db.select().from(invoices)
+const myInvoices = await db.select().from(invoices)
   .where(eq(invoices.studentId, student.id))
   .orderBy(desc(invoices.issuedAt)).all();
 
-const myPayments = db.select().from(payments)
+const myPayments = await db.select().from(payments)
   .where(eq(payments.schoolId, schoolId))
   .orderBy(desc(payments.paidAt)).limit(20).all()
   .filter(p => {

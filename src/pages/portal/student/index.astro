@@ -22,20 +22,20 @@ const schoolId = getUserSchoolId(user.id) ?? student.schoolId;
 const db = getDb();
 
 // Attendance rate
-const totalDays = db.select({ c: sql<number>`count(*)` }).from(attendance).where(eq(attendance.studentId, student.id)).get()?.c || 0;
-const presentDays = db.select({ c: sql<number>`count(*)` }).from(attendance).where(and(eq(attendance.studentId, student.id), eq(attendance.status, 'present'))).get()?.c || 0;
+const totalDays = await db.select({ c: sql<number>`count(*)` }).from(attendance).where(eq(attendance.studentId, student.id)).get()?.c || 0;
+const presentDays = await db.select({ c: sql<number>`count(*)` }).from(attendance).where(and(eq(attendance.studentId, student.id), eq(attendance.status, 'present'))).get()?.c || 0;
 const attendanceRate = totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 100;
 
 // Today's schedule (timetable entries for today)
 const today = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
 const dayMap: Record<string, number> = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
 const todayDow = dayMap[today] ?? new Date().getDay();
-const todaysSchedule = db.select().from(timetableEntries)
+const todaysSchedule = await db.select().from(timetableEntries)
   .where(and(eq(timetableEntries.schoolId, schoolId), eq(timetableEntries.dayOfWeek, todayDow)))
   .orderBy(timetableEntries.startTime).all().slice(0, 6);
 
 // Pending assignments (due in the future, not yet submitted)
-const allAssignments = db.select().from(assignments)
+const allAssignments = await db.select().from(assignments)
   .where(and(eq(assignments.schoolId, schoolId), sql`${assignments.dueDate} >= date('now')`))
   .orderBy(assignments.dueDate).limit(10).all();
 
@@ -45,22 +45,22 @@ const submittedIds = new Set(
 const pendingAssignments = allAssignments.filter(a => !submittedIds.has(a.id)).slice(0, 5);
 
 // Recent grades
-const recentGrades = db.select().from(grades)
+const recentGrades = await db.select().from(grades)
   .where(eq(grades.studentId, student.id))
   .orderBy(desc(grades.createdAt)).limit(5).all();
 
 // Outstanding fees
-const outstandingInvoices = db.select().from(invoices)
+const outstandingInvoices = await db.select().from(invoices)
   .where(and(eq(invoices.studentId, student.id), sql`${invoices.status} != 'paid'`))
   .all();
 const outstandingFees = outstandingInvoices.reduce((sum, inv) => sum + (inv.balance || 0), 0);
 
 // Course count
-const courseCount = db.select({ c: sql<number>`count(*)` }).from(courses)
+const courseCount = await db.select({ c: sql<number>`count(*)` }).from(courses)
   .where(eq(courses.schoolId, schoolId)).get()?.c || 0;
 
 // Recent quiz attempts
-const recentQuizAttempts = db.select().from(quizAttempts)
+const recentQuizAttempts = await db.select().from(quizAttempts)
   .where(eq(quizAttempts.studentId, student.id))
   .orderBy(desc(quizAttempts.startedAt)).limit(3).all();
 

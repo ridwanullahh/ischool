@@ -22,15 +22,15 @@ const examId = parseInt(Astro.params.examId);
 const db = getDb();
 
 // Get exam
-const exam = db.select().from(cbtExams).where(eq(cbtExams.id, examId)).get();
+const exam = await db.select().from(cbtExams).where(eq(cbtExams.id, examId)).get();
 if (!exam) return Astro.redirect('/portal/student');
 
 // Get student
-const student = db.select().from(students).where(eq(students.userId, user.id)).get();
+const student = await db.select().from(students).where(eq(students.userId, user.id)).get();
 if (!student) return Astro.redirect('/portal/student');
 
 // Get candidate record
-const candidate = db.select().from(cbtCandidates).where(and(
+const candidate = await db.select().from(cbtCandidates).where(and(
   eq(cbtCandidates.examId, examId),
   eq(cbtCandidates.userId, user.id),
 )).get();
@@ -38,7 +38,7 @@ const candidate = db.select().from(cbtCandidates).where(and(
 if (!candidate) return Astro.redirect('/portal/student?error=Not+registered+for+this+exam');
 
 // Check if already submitted
-const existingAttempt = db.select().from(cbtAttempts).where(and(
+const existingAttempt = await db.select().from(cbtAttempts).where(and(
   eq(cbtAttempts.examId, examId),
   eq(cbtAttempts.candidateId, candidate.id),
   eq(cbtAttempts.status, 'submitted'),
@@ -65,7 +65,7 @@ let attempt = db.select().from(cbtAttempts).where(and(
 )).get();
 
 if (!attempt) {
-  attempt = db.insert(cbtAttempts).values({
+  attempt = await db.insert(cbtAttempts).values({
     examId, candidateId: candidate.id,
     answers: '{}', score: null, totalMarks: exam.totalMarks,
     flags: '[]', proctorNotes: null,

@@ -17,7 +17,7 @@ let activeModules: string[] = [];
 
 if (schoolId) {
   const db = getDb();
-  schoolData = db.select().from(schools).where(eq(schools.id, schoolId)).get();
+  schoolData = await db.select().from(schools).where(eq(schools.id, schoolId)).get();
   activeModules = (schoolData?.activeModules as string[]) || ['cms', 'sis', 'lms', 'finance', 'communication'];
 
   const allModuleList = [
@@ -39,14 +39,14 @@ if (schoolId) {
     { key: 'cbt', label: 'e-Exam / CBT', desc: 'Computer-based testing, question banks, and online exams' },
   ];
 
-  const dbSettings = db.select().from(moduleSettings).where(eq(moduleSettings.schoolId, schoolId)).all();
+  const dbSettings = await db.select().from(moduleSettings).where(eq(moduleSettings.schoolId, schoolId)).all();
   modules = allModuleList.map(m => ({
     ...m,
     enabled: activeModules.includes(m.key),
     settingsId: dbSettings.find(s => s.module === m.key)?.id || null,
   }));
 
-  logs = db.select({
+  logs = await db.select({
     id: auditLogs.id,
     action: auditLogs.action,
     entity: auditLogs.entity,
@@ -61,7 +61,7 @@ if (schoolId) {
     .orderBy(desc(auditLogs.createdAt))
     .limit(50).all();
 
-  members = db.select({
+  members = await db.select({
     id: schoolMembers.id,
     userId: schoolMembers.userId,
     role: schoolMembers.role,

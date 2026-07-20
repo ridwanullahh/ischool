@@ -20,11 +20,11 @@ const childIds = children.map(c => c.id);
 const childMap = new Map(children.map(c => [c.id, c]));
 
 const allInvoices = childIds.length > 0
-  ? db.select().from(invoices).where(inArray(invoices.studentId, childIds)).orderBy(desc(invoices.issuedAt)).all()
+  ? await db.select().from(invoices).where(inArray(invoices.studentId, childIds)).orderBy(desc(invoices.issuedAt)).all()
   : [];
 
 const allPayments = childIds.length > 0
-  ? db.select().from(payments).where(inArray(payments.invoiceId, allInvoices.map(i => i.id))).orderBy(desc(payments.paidAt)).all()
+  ? await db.select().from(payments).where(inArray(payments.invoiceId, allInvoices.map(i => i.id))).orderBy(desc(payments.paidAt)).all()
   : [];
 
 const totalBilled = allInvoices.reduce((s, i) => s + (i.amount || 0), 0);

@@ -15,8 +15,8 @@ let stats = { total: 0, totalNetPay: 0, draft: 0, paid: 0 };
 
 if (schoolId) {
   const db = getDb();
-  allStaff = db.select().from(staff).where(eq(staff.schoolId, schoolId)).all();
-  records = db.select({
+  allStaff = await db.select().from(staff).where(eq(staff.schoolId, schoolId)).all();
+  records = await db.select({
     id: payroll.id, staffId: payroll.staffId, month: payroll.month, year: payroll.year,
     basicSalary: payroll.basicSalary, grossPay: payroll.grossPay, netPay: payroll.netPay,
     status: payroll.status, paidAt: payroll.paidAt, createdAt: payroll.createdAt,

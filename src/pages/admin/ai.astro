@@ -8,13 +8,13 @@ const user = Astro.locals.user!;
 if (!user || user.role !== 'super_admin') return Astro.redirect('/auth/login');
 
 const db = getDb();
-const providers = db.select().from(aiProviders).all();
-const keys = db.select({
+const providers = await db.select().from(aiProviders).all();
+const keys = await db.select({
   id: aiApiKeys.id, providerId: aiApiKeys.providerId, keyName: aiApiKeys.keyName,
   isActive: aiApiKeys.isActive, usageCount: aiApiKeys.usageCount,
   rateLimitPerMinute: aiApiKeys.rateLimitPerMinute, providerName: aiProviders.name,
 }).from(aiApiKeys).leftJoin(aiProviders, eq(aiApiKeys.providerId, aiProviders.id)).all();
-const models = db.select({
+const models = await db.select({
   id: aiModels.id, providerId: aiModels.providerId, modelId: aiModels.modelId,
   displayName: aiModels.displayName, maxTokens: aiModels.maxTokens,
   supportsTools: aiModels.supportsTools, isActive: aiModels.isActive,

@@ -13,7 +13,7 @@ const db = getDb();
 
 let about = null;
 if (schoolId) {
-  about = db.select().from(aboutPages).where(eq(aboutPages.schoolId, schoolId)).get();
+  about = await db.select().from(aboutPages).where(eq(aboutPages.schoolId, schoolId)).get();
 }
 
 // Gracefully parse features/stats — handle both array (correct) and

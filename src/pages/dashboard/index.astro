@@ -45,17 +45,17 @@ if (schoolId) {
   };
 
   const today = new Date().toISOString().split('T')[0];
-  moduleStats.todayAttendance = db.select({ count: sql<number>`count(*)` }).from(attendance).where(sql`${attendance.schoolId} = ${schoolId} AND ${attendance.date} = ${today}`).get()?.count || 0;
+  moduleStats.todayAttendance = await db.select({ count: sql<number>`count(*)` }).from(attendance).where(sql`${attendance.schoolId} = ${schoolId} AND ${attendance.date} = ${today}`).get()?.count || 0;
 
-  const allSeries = db.select().from(examSeries).where(eq(examSeries.schoolId, schoolId)).all();
+  const allSeries = await db.select().from(examSeries).where(eq(examSeries.schoolId, schoolId)).all();
   if (allSeries.length > 0) {
     const seriesIds = allSeries.map(s => s.id);
-    moduleStats.exams = db.select({ count: sql<number>`count(*)` }).from(exams).where(sql`${exams.seriesId} IN (${sql.join(seriesIds.map(id => sql`${id}`), sql`, `)})`).get()?.count || 0;
+    moduleStats.exams = await db.select({ count: sql<number>`count(*)` }).from(exams).where(sql`${exams.seriesId} IN (${sql.join(seriesIds.map(id => sql`${id}`), sql`, `)})`).get()?.count || 0;
   }
 
-  const recentStudents = db.select({ type: sql`'student'`, name: sql`${students.firstName} || ' ' || ${students.lastName}`, date: students.createdAt }).from(students).where(eq(students.schoolId, schoolId)).orderBy(desc(students.createdAt)).limit(3).all();
-  const recentEvents = db.select({ type: sql`'event'`, name: events.title, date: events.createdAt }).from(events).where(eq(events.schoolId, schoolId)).orderBy(desc(events.createdAt)).limit(3).all();
-  const recentCourses = db.select({ type: sql`'course'`, name: courses.title, date: courses.createdAt }).from(courses).where(eq(courses.schoolId, schoolId)).orderBy(desc(courses.createdAt)).limit(3).all();
+  const recentStudents = await db.select({ type: sql`'student'`, name: sql`${students.firstName} || ' ' || ${students.lastName}`, date: students.createdAt }).from(students).where(eq(students.schoolId, schoolId)).orderBy(desc(students.createdAt)).limit(3).all();
+  const recentEvents = await db.select({ type: sql`'event'`, name: events.title, date: events.createdAt }).from(events).where(eq(events.schoolId, schoolId)).orderBy(desc(events.createdAt)).limit(3).all();
+  const recentCourses = await db.select({ type: sql`'course'`, name: courses.title, date: courses.createdAt }).from(courses).where(eq(courses.schoolId, schoolId)).orderBy(desc(courses.createdAt)).limit(3).all();
   recentActivity = [...recentStudents, ...recentEvents, ...recentCourses]
     .sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime())
     .slice(0, 8);

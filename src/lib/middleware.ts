@@ -1,6 +1,6 @@
 import { defineMiddleware } from 'astro:middleware';
 import { getSessionIdFromCookie, validateSession } from './auth.js';
-import { getDb } from './db/index.js';
+import { getDb, isLightbase } from './db/index.js';
 import { schools, schoolMembers, schoolSubscriptions, subscriptionPlans } from './db/schema.js';
 import { eq } from 'drizzle-orm';
 import { checkRateLimit } from './security.js';
@@ -9,8 +9,17 @@ import { isStudentBlockedFromModule } from './fee-access.js';
 
 const authPaths = ['/api/auth/login', '/api/auth/register', '/api/auth/password-reset'];
 
+// Auto-seed flag — runs once on first request
+let _autoSeedTriggered = false;
+
 export const onRequest = defineMiddleware(async (context, next) => {
   const { pathname } = context.url;
+
+  // Trigger auto-seed for Lightbase on first request
+  if (!_autoSeedTriggered && isLightbase()) {
+    _autoSeedTriggered = true;
+    import('./db/auto-seed.js').then(m => m.autoSeedLightbase()).catch(() => {});
+  }
 
   if (authPaths.some(p => pathname.startsWith(p))) {
     const ip = context.request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || context.clientAddress?.address || 'unknown';

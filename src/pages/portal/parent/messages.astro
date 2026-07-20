@@ -19,7 +19,7 @@ const db = getDb();
 // Get teachers of the parent's children (via enrollments -> classes -> teacher assignments)
 const childIds = children.map(c => c.id);
 const childEnrollments = childIds.length > 0
-  ? db.select().from(enrollments).where(inArray(enrollments.studentId, childIds)).all()
+  ? await db.select().from(enrollments).where(inArray(enrollments.studentId, childIds)).all()
   : [];
 const classIds = [...new Set(childEnrollments.map(e => e.classId).filter(Boolean))];
 
@@ -27,7 +27,7 @@ const classIds = [...new Set(childEnrollments.map(e => e.classId).filter(Boolean
 // For now, get all teachers in the school
 const schoolId = children[0]?.schoolId;
 const teachers = schoolId
-  ? db.select({
+  ? await db.select({
       id: users.id, name: users.name, email: users.email,
       staffRole: staff.role, staffId: staff.id,
     }).from(staff)
@@ -37,7 +37,7 @@ const teachers = schoolId
   : [];
 
 // Get messages between this parent and any teacher
-const myMessages = db.select().from(messages)
+const myMessages = await db.select().from(messages)
   .where(or(eq(messages.senderId, user.id), eq(messages.receiverId, user.id)))
   .orderBy(desc(messages.sentAt)).limit(50).all();
 
@@ -46,7 +46,7 @@ const conversations: Record<number, { partner: any, lastMessage: any, unread: nu
 for (const msg of myMessages) {
   const partnerId = msg.senderId === user.id ? msg.receiverId : msg.senderId;
   if (!conversations[partnerId]) {
-    const partner = db.select().from(users).where(eq(users.id, partnerId)).get();
+    const partner = await db.select().from(users).where(eq(users.id, partnerId)).get();
     conversations[partnerId] = { partner, lastMessage: msg, unread: 0 };
   }
   if (msg.receiverId === user.id && !msg.readAt) {

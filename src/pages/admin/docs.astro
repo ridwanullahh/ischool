@@ -6,7 +6,7 @@ import { asc } from 'drizzle-orm';
 import { formatDate } from '../../lib/utils.js';
 
 const db = getDb();
-const docs = db.select().from(platformDocs).orderBy(asc(platformDocs.sortOrder)).all();
+const docs = await db.select().from(platformDocs).orderBy(asc(platformDocs.sortOrder)).all();
 ---
 
 <AdminLayout title="Docs - iSchool">

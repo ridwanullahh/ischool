@@ -5,8 +5,8 @@ import { coupons, couponRedemptions } from '../../lib/db/schema.js';
 import { sql } from 'drizzle-orm';
 
 const db = getDb();
-const allCoupons = db.select().from(coupons).orderBy(sql`created_at DESC`).all();
-const totalRedemptions = db.select({ count: sql<number>`COALESCE(SUM(current_uses), 0)` }).from(coupons).get()?.count || 0;
+const allCoupons = await db.select().from(coupons).orderBy(sql`created_at DESC`).all();
+const totalRedemptions = await db.select({ count: sql<number>`COALESCE(SUM(current_uses), 0)` }).from(coupons).get()?.count || 0;
 ---
 
 <AdminLayout title="Coupons - iSchool">

@@ -16,9 +16,9 @@ let allStudents: any[] = [];
 
 if (schoolId) {
   const db = getDb();
-  allCourses = db.select().from(courses).where(eq(courses.schoolId, schoolId)).all();
-  allStudents = db.select().from(students).where(eq(students.schoolId, schoolId)).all();
-  plans = db.select({
+  allCourses = await db.select().from(courses).where(eq(courses.schoolId, schoolId)).all();
+  allStudents = await db.select().from(students).where(eq(students.schoolId, schoolId)).all();
+  plans = await db.select({
     id: lessonPlans.id, title: lessonPlans.title, week: lessonPlans.week,
     objectives: lessonPlans.objectives, status: lessonPlans.status, createdAt: lessonPlans.createdAt,
     courseTitle: courses.title, teacherName: users.name,
@@ -27,7 +27,7 @@ if (schoolId) {
     .leftJoin(users, eq(lessonPlans.teacherId, users.id))
     .where(eq(lessonPlans.schoolId, schoolId))
     .orderBy(desc(lessonPlans.createdAt)).all();
-  logs = db.select({
+  logs = await db.select({
     id: behaviorLogs.id, studentId: behaviorLogs.studentId, type: behaviorLogs.type,
     category: behaviorLogs.category, description: behaviorLogs.description,
     points: behaviorLogs.points, createdAt: behaviorLogs.createdAt,

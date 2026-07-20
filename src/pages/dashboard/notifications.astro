@@ -14,7 +14,7 @@ let stats = { total: 0, unread: 0, alerts: 0 };
 
 if (schoolId) {
   const db = getDb();
-  records = db.select().from(notifications).where(eq(notifications.schoolId, schoolId)).orderBy(desc(notifications.createdAt)).limit(100).all();
+  records = await db.select().from(notifications).where(eq(notifications.schoolId, schoolId)).orderBy(desc(notifications.createdAt)).limit(100).all();
   stats = { total: records.length, unread: records.filter(r => !r.isRead).length, alerts: records.filter(r => r.type === 'alert').length };
 }
 ---

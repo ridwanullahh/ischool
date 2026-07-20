@@ -12,7 +12,7 @@ if (!schoolId) return Astro.redirect('/dashboard');
 const db = getDb();
 
 // Loans with fines
-const fineLoans = db.select({
+const fineLoans = await db.select({
   id: libraryLoans.id, bookId: libraryLoans.bookId, borrowerId: libraryLoans.borrowerId,
   issueDate: libraryLoans.issueDate, dueDate: libraryLoans.dueDate, returnDate: libraryLoans.returnDate,
   fine: libraryLoans.fine, finePaid: libraryLoans.finePaid, status: libraryLoans.status,

@@ -24,42 +24,42 @@ const subjectId = parseInt(Astro.params.subjectId);
 const db = getDb();
 
 // Get the subject assignment
-const assignment = db.select().from(classSubjects)
+const assignment = await db.select().from(classSubjects)
   .where(and(eq(classSubjects.id, subjectId), eq(classSubjects.classId, classId)))
   .get();
 if (!assignment) return Astro.redirect('/portal/student/classroom');
 
-const classInfo = db.select().from(classes).where(eq(classes.id, classId)).get();
+const classInfo = await db.select().from(classes).where(eq(classes.id, classId)).get();
 
 // Get data for each tab
 const allLessons = assignment.courseId
-  ? db.select().from(lessons).where(eq(lessons.courseId, assignment.courseId)).orderBy(lessons.sortOrder).all()
+  ? await db.select().from(lessons).where(eq(lessons.courseId, assignment.courseId)).orderBy(lessons.sortOrder).all()
   : [];
 
 const subjectAssignments = assignment.courseId
-  ? db.select().from(assignments).where(and(eq(assignments.courseId, assignment.courseId), eq(assignments.classId, classId))).orderBy(desc(assignments.createdAt)).all()
+  ? await db.select().from(assignments).where(and(eq(assignments.courseId, assignment.courseId), eq(assignments.classId, classId))).orderBy(desc(assignments.createdAt)).all()
   : [];
 
 const subjectQuizzes = assignment.courseId
-  ? db.select().from(quizzes).where(eq(quizzes.courseId, assignment.courseId)).orderBy(desc(quizzes.createdAt)).all()
+  ? await db.select().from(quizzes).where(eq(quizzes.courseId, assignment.courseId)).orderBy(desc(quizzes.createdAt)).all()
   : [];
 
-const mySubmissions = db.select().from(submissions).where(eq(submissions.studentId, student.id)).all();
+const mySubmissions = await db.select().from(submissions).where(eq(submissions.studentId, student.id)).all();
 const submissionMap = new Map(mySubmissions.map(s => [s.assignmentId, s]));
 
-const myQuizAttempts = db.select().from(quizAttempts).where(eq(quizAttempts.studentId, student.id)).all();
+const myQuizAttempts = await db.select().from(quizAttempts).where(eq(quizAttempts.studentId, student.id)).all();
 const attemptMap = new Map(myQuizAttempts.map(a => [a.quizId, a]));
 
 const myGrades = assignment.courseId
-  ? db.select().from(grades).where(and(eq(grades.studentId, student.id), eq(grades.courseId, assignment.courseId))).all()
+  ? await db.select().from(grades).where(and(eq(grades.studentId, student.id), eq(grades.courseId, assignment.courseId))).all()
   : [];
 
-const liveClasses = db.select().from(liveClassRooms)
+const liveClasses = await db.select().from(liveClassRooms)
   .where(eq(liveClassRooms.classId, classId))
   .orderBy(desc(liveClassRooms.createdAt)).all();
 
 const discussionBoard = assignment.courseId
-  ? db.select().from(discussionBoards).where(eq(discussionBoards.courseId, assignment.courseId)).get()
+  ? await db.select().from(discussionBoards).where(eq(discussionBoards.courseId, assignment.courseId)).get()
   : null;
 
 const formatDate = (d: string | Date | null) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';

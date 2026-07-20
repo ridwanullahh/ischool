@@ -16,12 +16,12 @@ let campaign: any = null;
 let stats: any = null;
 
 if (campaignId) {
-  campaign = db.select().from(emailCampaigns).where(eq(emailCampaigns.id, Number(campaignId))).get();
-  stats = db.select().from(emailCampaignStats).where(eq(emailCampaignStats.campaignId, Number(campaignId))).get();
+  campaign = await db.select().from(emailCampaigns).where(eq(emailCampaigns.id, Number(campaignId))).get();
+  stats = await db.select().from(emailCampaignStats).where(eq(emailCampaignStats.campaignId, Number(campaignId))).get();
 }
 
-const allCampaigns = db.select().from(emailCampaigns).where(eq(emailCampaigns.schoolId, schoolId)).orderBy(desc(emailCampaigns.createdAt)).all();
-const allStats = db.select().from(emailCampaignStats).all();
+const allCampaigns = await db.select().from(emailCampaigns).where(eq(emailCampaigns.schoolId, schoolId)).orderBy(desc(emailCampaigns.createdAt)).all();
+const allStats = await db.select().from(emailCampaignStats).all();
 const totalSent = allStats.reduce((sum, s) => sum + (s.sent || 0), 0);
 const totalOpens = allStats.reduce((sum, s) => sum + (s.uniqueOpens || 0), 0);
 const totalClicks = allStats.reduce((sum, s) => sum + (s.uniqueClicks || 0), 0);

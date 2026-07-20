@@ -8,11 +8,11 @@ const user = Astro.locals.user;
 if (!user) return Astro.redirect('/auth/login');
 
 const db = getDb();
-const membership = db.select().from(schoolMembers).where(eq(schoolMembers.userId, user.id)).get();
+const membership = await db.select().from(schoolMembers).where(eq(schoolMembers.userId, user.id)).get();
 const schoolId = membership?.schoolId;
 
-const allBooks = schoolId ? db.select().from(libraryBooks).where(eq(libraryBooks.schoolId, schoolId)).all() : [];
-const allLoans = schoolId ? db.select().from(libraryLoans).where(eq(libraryLoans.schoolId, schoolId)).all() : [];
+const allBooks = schoolId ? await db.select().from(libraryBooks).where(eq(libraryBooks.schoolId, schoolId)).all() : [];
+const allLoans = schoolId ? await db.select().from(libraryLoans).where(eq(libraryLoans.schoolId, schoolId)).all() : [];
 ---
 
 <DashboardLayout title="Library - iSchool">

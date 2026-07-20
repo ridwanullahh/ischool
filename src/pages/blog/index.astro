@@ -6,7 +6,7 @@ import { eq, desc, and } from 'drizzle-orm';
 import { formatDate } from '../../lib/utils.js';
 
 const db = getDb();
-const posts = db.select().from(platformBlogPosts)
+const posts = await db.select().from(platformBlogPosts)
   .where(eq(platformBlogPosts.isPublished, true))
   .orderBy(desc(platformBlogPosts.publishedAt)).all();
 ---

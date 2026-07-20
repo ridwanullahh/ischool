@@ -6,7 +6,7 @@ import { sql, eq, desc } from 'drizzle-orm';
 
 const db = getDb();
 const statusFilter = Astro.url.searchParams.get('status') || 'all';
-const tickets = db.select({
+const tickets = await db.select({
   id: supportTickets.id,
   ticketNumber: supportTickets.ticketNumber,
   subject: supportTickets.subject,
@@ -19,9 +19,9 @@ const tickets = db.select({
   userName: users.name,
 }).from(supportTickets).leftJoin(users, eq(supportTickets.userId, users.id)).orderBy(desc(supportTickets.createdAt)).limit(50).all();
 
-const openCount = db.select({ count: sql<number>`count(*)` }).from(supportTickets).where(sql`status = 'open'`).get()?.count || 0;
-const inProgressCount = db.select({ count: sql<number>`count(*)` }).from(supportTickets).where(sql`status = 'in_progress'`).get()?.count || 0;
-const resolvedCount = db.select({ count: sql<number>`count(*)` }).from(supportTickets).where(sql`status = 'resolved'`).get()?.count || 0;
+const openCount = await db.select({ count: sql<number>`count(*)` }).from(supportTickets).where(sql`status = 'open'`).get()?.count || 0;
+const inProgressCount = await db.select({ count: sql<number>`count(*)` }).from(supportTickets).where(sql`status = 'in_progress'`).get()?.count || 0;
+const resolvedCount = await db.select({ count: sql<number>`count(*)` }).from(supportTickets).where(sql`status = 'resolved'`).get()?.count || 0;
 ---
 
 <AdminLayout title="Support Tickets - iSchool">

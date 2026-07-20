@@ -14,7 +14,7 @@ let quickStats: any = {};
 
 if (schoolId) {
   const db = getDb();
-  reports = db.select().from(savedReports).where(eq(savedReports.schoolId, schoolId)).orderBy(desc(savedReports.createdAt)).all();
+  reports = await db.select().from(savedReports).where(eq(savedReports.schoolId, schoolId)).orderBy(desc(savedReports.createdAt)).all();
   quickStats = {
     students: db.select({ count: sql<number>`count(*)` }).from(students).where(eq(students.schoolId, schoolId)).get()?.count || 0,
     staff: db.select({ count: sql<number>`count(*)` }).from(staff).where(eq(staff.schoolId, schoolId)).get()?.count || 0,

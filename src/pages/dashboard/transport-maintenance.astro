@@ -11,7 +11,7 @@ const schoolId = getUserSchoolId(user.id);
 if (!schoolId) return Astro.redirect('/dashboard');
 const db = getDb();
 
-const maintenance = db.select({
+const maintenance = await db.select({
   id: vehicleMaintenance.id, vehicleId: vehicleMaintenance.vehicleId,
   serviceType: vehicleMaintenance.serviceType, description: vehicleMaintenance.description,
   serviceDate: vehicleMaintenance.serviceDate, nextServiceDate: vehicleMaintenance.nextServiceDate,
@@ -24,7 +24,7 @@ const maintenance = db.select({
   .where(eq(vehicleMaintenance.schoolId, schoolId))
   .orderBy(desc(vehicleMaintenance.serviceDate)).all();
 
-const documents = db.select({
+const documents = await db.select({
   id: vehicleDocuments.id, vehicleId: vehicleDocuments.vehicleId, driverId: vehicleDocuments.driverId,
   documentType: vehicleDocuments.documentType, documentNumber: vehicleDocuments.documentNumber,
   issueDate: vehicleDocuments.issueDate, expiryDate: vehicleDocuments.expiryDate,
@@ -35,7 +35,7 @@ const documents = db.select({
   .where(eq(vehicleDocuments.schoolId, schoolId))
   .orderBy(desc(vehicleDocuments.expiryDate)).all();
 
-const allVehicles = db.select().from(vehicles).where(eq(vehicles.schoolId, schoolId)).all();
+const allVehicles = await db.select().from(vehicles).where(eq(vehicles.schoolId, schoolId)).all();
 
 // Today + 30 days for "expiring soon"
 const today = new Date().toISOString().split('T')[0];

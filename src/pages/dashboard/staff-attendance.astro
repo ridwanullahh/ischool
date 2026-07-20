@@ -28,20 +28,20 @@ const myStaff = getStaffForUser(user.id);
 // Today's attendance for current user
 let myToday: any = null;
 if (myStaff) {
-  myToday = db.select().from(staffAttendance)
+  myToday = await db.select().from(staffAttendance)
     .where(and(eq(staffAttendance.staffId, myStaff.id), eq(staffAttendance.date, today)))
     .get();
 }
 
 // Recent attendance history for current user
 const myHistory = myStaff
-  ? db.select().from(staffAttendance).where(eq(staffAttendance.staffId, myStaff.id)).orderBy(desc(staffAttendance.date)).limit(14).all()
+  ? await db.select().from(staffAttendance).where(eq(staffAttendance.staffId, myStaff.id)).orderBy(desc(staffAttendance.date)).limit(14).all()
   : [];
 
 // Admin view: all staff attendance today
 const canViewAll = pageGuard(user, 'staff.view');
 const allToday = canViewAll && schoolId
-  ? db.select({
+  ? await db.select({
       id: staffAttendance.id, staffName: staff.firstName + ' ' + staff.lastName,
       staffId: staff.staffId, department: staff.department,
       clockIn: staffAttendance.clockIn, clockOut: staffAttendance.clockOut,

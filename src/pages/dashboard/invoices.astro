@@ -11,7 +11,7 @@ const schoolId = getUserSchoolId(user.id);
 if (!schoolId) return Astro.redirect('/dashboard');
 const db = getDb();
 
-const allInvoices = db.select({
+const allInvoices = await db.select({
   id: invoices.id, invoiceNumber: invoices.invoiceNumber, studentId: invoices.studentId,
   feeStructureId: invoices.feeStructureId, amount: invoices.amount, discount: invoices.discount,
   fine: invoices.fine, paidAmount: invoices.paidAmount, balance: invoices.balance,
@@ -22,9 +22,9 @@ const allInvoices = db.select({
   .where(eq(invoices.schoolId, schoolId))
   .orderBy(desc(invoices.issuedAt)).all();
 
-const allStudents = db.select({ id: students.id, name: students.firstName, lastName: students.lastName, code: students.studentId })
+const allStudents = await db.select({ id: students.id, name: students.firstName, lastName: students.lastName, code: students.studentId })
   .from(students).where(eq(students.schoolId, schoolId)).all();
-const allFeeStructures = db.select().from(feeStructures).where(eq(feeStructures.schoolId, schoolId)).all();
+const allFeeStructures = await db.select().from(feeStructures).where(eq(feeStructures.schoolId, schoolId)).all();
 
 const stats = {
   total: allInvoices.length,

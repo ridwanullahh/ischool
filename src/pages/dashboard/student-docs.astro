@@ -11,7 +11,7 @@ const schoolId = getUserSchoolId(user.id);
 if (!schoolId) return Astro.redirect('/dashboard');
 const db = getDb();
 
-const docs = db.select({
+const docs = await db.select({
   id: studentDocuments.id,
   studentId: studentDocuments.studentId,
   studentName: students.firstName,
@@ -27,7 +27,7 @@ const docs = db.select({
   .leftJoin(students, eq(studentDocuments.studentId, students.id))
   .where(eq(studentDocuments.schoolId, schoolId)).all();
 
-const allStudents = db.select({ id: students.id, name: students.firstName, lastName: students.lastName, sid: students.studentId })
+const allStudents = await db.select({ id: students.id, name: students.firstName, lastName: students.lastName, sid: students.studentId })
   .from(students).where(eq(students.schoolId, schoolId)).all();
 
 const categoryLabels: Record<string, string> = {

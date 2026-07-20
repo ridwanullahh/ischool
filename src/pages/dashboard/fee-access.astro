@@ -19,7 +19,7 @@ if (!pageGuard(user, 'fees.manage')) return Astro.redirect('/dashboard');
 const schoolId = getUserSchoolId(user.id);
 const db = getDb();
 
-const existingRule = schoolId ? db.select().from(feeAccessRules).where(eq(feeAccessRules.schoolId, schoolId)).get() : null;
+const existingRule = schoolId ? await db.select().from(feeAccessRules).where(eq(feeAccessRules.schoolId, schoolId)).get() : null;
 
 const moduleOptions = [
   { key: 'lms', label: 'LMS (Assignments, Quizzes, Grades)' },

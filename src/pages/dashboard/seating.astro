@@ -11,10 +11,10 @@ const schoolId = getUserSchoolId(user.id);
 if (!schoolId) return Astro.redirect('/dashboard');
 const db = getDb();
 
-const plans = db.select().from(seatingPlans).where(eq(seatingPlans.schoolId, schoolId)).orderBy(desc(seatingPlans.createdAt)).all();
-const allClasses = db.select().from(classes).where(eq(classes.schoolId, schoolId)).all();
-const allEnrollments = db.select().from(enrollments).where(and(eq(enrollments.schoolId, schoolId), eq(enrollments.status, 'accepted'))).all();
-const allStudents = db.select({ id: students.id, name: students.firstName, lastName: students.lastName, code: students.studentId }).from(students).where(eq(students.schoolId, schoolId)).all();
+const plans = await db.select().from(seatingPlans).where(eq(seatingPlans.schoolId, schoolId)).orderBy(desc(seatingPlans.createdAt)).all();
+const allClasses = await db.select().from(classes).where(eq(classes.schoolId, schoolId)).all();
+const allEnrollments = await db.select().from(enrollments).where(and(eq(enrollments.schoolId, schoolId), eq(enrollments.status, 'accepted'))).all();
+const allStudents = await db.select({ id: students.id, name: students.firstName, lastName: students.lastName, code: students.studentId }).from(students).where(eq(students.schoolId, schoolId)).all();
 
 const classMap = new Map(allClasses.map(c => [c.id, c.name]));
 const studentsByClass = new Map<number, typeof allStudents>();

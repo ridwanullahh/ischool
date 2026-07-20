@@ -12,13 +12,13 @@ if (!schoolId) return Astro.redirect('/dashboard');
 const db = getDb();
 
 // Recent audit logs
-const recentLogs = db.select().from(auditLogs).where(eq(auditLogs.schoolId, schoolId)).orderBy(desc(auditLogs.createdAt)).limit(50).all();
+const recentLogs = await db.select().from(auditLogs).where(eq(auditLogs.schoolId, schoolId)).orderBy(desc(auditLogs.createdAt)).limit(50).all();
 
 // Active sessions
-const activeSessions = db.select({ count: sql<number>`count(*)` }).from(sessions).all()[0]?.count || 0;
+const activeSessions = await db.select({ count: sql<number>`count(*)` }).from(sessions).all()[0]?.count || 0;
 
 // Total users
-const schoolUserIds = db.select({ userId: schoolMembers.userId }).from(schoolMembers).where(eq(schoolMembers.schoolId, schoolId)).all().map(m => m.userId);
+const schoolUserIds = await db.select({ userId: schoolMembers.userId }).from(schoolMembers).where(eq(schoolMembers.schoolId, schoolId)).all().map(m => m.userId);
 const totalUsers = schoolUserIds.length;
 
 // Failed logins (from audit logs filtered by action containing 'login_failed')

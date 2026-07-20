@@ -11,7 +11,7 @@ const schoolId = getUserSchoolId(user.id);
 if (!schoolId) return Astro.redirect('/dashboard');
 const db = getDb();
 
-const items = db.select().from(inventoryItems).where(eq(inventoryItems.schoolId, schoolId)).orderBy(desc(inventoryItems.createdAt)).all();
+const items = await db.select().from(inventoryItems).where(eq(inventoryItems.schoolId, schoolId)).orderBy(desc(inventoryItems.createdAt)).all();
 const lowStock = items.filter(i => (i.quantity || 0) <= (i.reorderLevel || 0));
 const outOfStock = items.filter(i => (i.quantity || 0) === 0);
 const totalValue = items.reduce((s, i) => s + (i.quantity || 0), 0);

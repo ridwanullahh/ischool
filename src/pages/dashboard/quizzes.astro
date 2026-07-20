@@ -15,8 +15,8 @@ let stats = { total: 0, draft: 0, published: 0 };
 
 if (schoolId) {
   const db = getDb();
-  allCourses = db.select().from(courses).where(eq(courses.schoolId, schoolId)).all();
-  records = db.select().from(quizzes).where(eq(quizzes.schoolId, schoolId)).orderBy(desc(quizzes.createdAt)).all();
+  allCourses = await db.select().from(courses).where(eq(courses.schoolId, schoolId)).all();
+  records = await db.select().from(quizzes).where(eq(quizzes.schoolId, schoolId)).orderBy(desc(quizzes.createdAt)).all();
   stats = { total: records.length, draft: records.filter(r => r.status === 'draft').length, published: records.filter(r => r.status === 'published').length };
 }
 ---

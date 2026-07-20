@@ -8,18 +8,18 @@ const user = Astro.locals.user;
 if (!user) return Astro.redirect('/auth/login');
 
 const db = getDb();
-const membership = db.select().from(schoolMembers).where(eq(schoolMembers.userId, user.id)).get();
+const membership = await db.select().from(schoolMembers).where(eq(schoolMembers.userId, user.id)).get();
 const schoolId = membership?.schoolId;
 
-const totalStudents = schoolId ? db.select().from(students).where(eq(students.schoolId, schoolId)).all().length : 0;
-const totalStaff = schoolId ? db.select().from(staff).where(eq(staff.schoolId, schoolId)).all().length : 0;
-const totalCourses = schoolId ? db.select().from(courses).where(eq(courses.schoolId, schoolId)).all().length : 0;
-const totalEvents = schoolId ? db.select().from(events).where(eq(events.schoolId, schoolId)).all().length : 0;
-const totalBooks = schoolId ? db.select().from(libraryBooks).where(eq(libraryBooks.schoolId, schoolId)).all().length : 0;
-const allInvoices = schoolId ? db.select().from(invoices).where(eq(invoices.schoolId, schoolId)).all() : [];
+const totalStudents = schoolId ? await db.select().from(students).where(eq(students.schoolId, schoolId)).all().length : 0;
+const totalStaff = schoolId ? await db.select().from(staff).where(eq(staff.schoolId, schoolId)).all().length : 0;
+const totalCourses = schoolId ? await db.select().from(courses).where(eq(courses.schoolId, schoolId)).all().length : 0;
+const totalEvents = schoolId ? await db.select().from(events).where(eq(events.schoolId, schoolId)).all().length : 0;
+const totalBooks = schoolId ? await db.select().from(libraryBooks).where(eq(libraryBooks.schoolId, schoolId)).all().length : 0;
+const allInvoices = schoolId ? await db.select().from(invoices).where(eq(invoices.schoolId, schoolId)).all() : [];
 const totalRevenue = allInvoices.filter((i: any) => i.status === 'paid').reduce((sum: number, i: any) => sum + (i.paidAmount || 0), 0);
 const pendingRevenue = allInvoices.filter((i: any) => i.status === 'pending' || i.status === 'partial').reduce((sum: number, i: any) => sum + (i.balance || 0), 0);
-const activeStudents = schoolId ? db.select().from(students).where(eq(students.schoolId, schoolId)).all().filter((s: any) => s.status === 'active').length : 0;
+const activeStudents = schoolId ? await db.select().from(students).where(eq(students.schoolId, schoolId)).all().filter((s: any) => s.status === 'active').length : 0;
 ---
 
 <DashboardLayout title="Analytics - iSchool">

@@ -12,7 +12,7 @@ if (!schoolId) return Astro.redirect('/dashboard');
 const db = getDb();
 
 // All exams with series info
-const allExams = db.select({
+const allExams = await db.select({
   id: exams.id, title: exams.title, subject: exams.subject, totalMarks: exams.totalMarks,
   passingMarks: exams.passingMarks, classId: exams.classId, date: exams.date,
   seriesName: examSeries.name, seriesType: examSeries.type, academicYear: examSeries.academicYear, term: examSeries.term,
@@ -23,11 +23,11 @@ const allExams = db.select({
   .where(eq(examSeries.schoolId, schoolId)).all();
 
 // Students grouped by class
-const allStudents = db.select().from(students).where(eq(students.schoolId, schoolId)).all();
+const allStudents = await db.select().from(students).where(eq(students.schoolId, schoolId)).all();
 const studentMap = new Map(allStudents.map(s => [s.id, s]));
 
 // Enrollments by class
-const allEnrollments = db.select().from(enrollments)
+const allEnrollments = await db.select().from(enrollments)
   .where(and(eq(enrollments.schoolId, schoolId), eq(enrollments.status, 'accepted'))).all();
 const studentsByClass = new Map<number, number[]>();
 for (const e of allEnrollments) {

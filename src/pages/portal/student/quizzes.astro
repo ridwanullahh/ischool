@@ -20,12 +20,12 @@ const schoolId = getUserSchoolId(user.id) ?? student.schoolId;
 const db = getDb();
 
 // All published quizzes for the school
-const allQuizzes = db.select().from(quizzes)
+const allQuizzes = await db.select().from(quizzes)
   .where(eq(quizzes.schoolId, schoolId))
   .orderBy(desc(quizzes.createdAt)).all();
 
 // Student's attempts
-const myAttempts = db.select().from(quizAttempts)
+const myAttempts = await db.select().from(quizAttempts)
   .where(eq(quizAttempts.studentId, student.id))
   .orderBy(desc(quizAttempts.startedAt)).all();
 

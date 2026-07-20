@@ -17,9 +17,9 @@ let trend: { date: string; present: number; absent: number; late: number }[] = [
 
 if (schoolId) {
   const db = getDb();
-  allStudents = db.select().from(students).where(eq(students.schoolId, schoolId)).all();
-  allClasses = db.select().from(classes).where(eq(classes.schoolId, schoolId)).all();
-  records = db.select({
+  allStudents = await db.select().from(students).where(eq(students.schoolId, schoolId)).all();
+  allClasses = await db.select().from(classes).where(eq(classes.schoolId, schoolId)).all();
+  records = await db.select({
     id: attendance.id, studentId: attendance.studentId, date: attendance.date,
     period: attendance.period, status: attendance.status, notes: attendance.notes,
     createdAt: attendance.createdAt,
@@ -42,7 +42,7 @@ if (schoolId) {
   // 7-day trend
   const sevenAgo = new Date(); sevenAgo.setDate(sevenAgo.getDate() - 6);
   const startDate = sevenAgo.toISOString().split('T')[0];
-  const trendRecords = db.select().from(attendance)
+  const trendRecords = await db.select().from(attendance)
     .where(and(eq(attendance.schoolId, schoolId), sql`${attendance.date} >= ${startDate}`))
     .all();
   for (let i = 0; i < 7; i++) {
@@ -63,7 +63,7 @@ if (schoolId) {
 const classStudentMap: Record<number, any[]> = {};
 if (schoolId) {
   const db = getDb();
-  const enr = db.select({
+  const enr = await db.select({
     classId: enrollments.classId,
     studentId: students.id,
     studentName: sql`${students.firstName} || ' ' || ${students.lastName}`.as('name'),

@@ -11,15 +11,15 @@ const schoolId = getUserSchoolId(user.id);
 if (!schoolId) return Astro.redirect('/dashboard');
 const db = getDb();
 
-const allHostels = db.select().from(hostels).where(eq(hostels.schoolId, schoolId)).all();
-const allRooms = db.select({
+const allHostels = await db.select().from(hostels).where(eq(hostels.schoolId, schoolId)).all();
+const allRooms = await db.select({
   id: hostelRooms.id, roomNumber: hostelRooms.roomNumber, floor: hostelRooms.floor,
   type: hostelRooms.type, capacity: hostelRooms.capacity, occupants: hostelRooms.occupants,
   status: hostelRooms.status, hostelId: hostelRooms.hostelId,
 }).from(hostelRooms).all();
 const schoolRooms = allRooms.filter(r => allHostels.some(h => h.id === r.hostelId));
 
-const allocations = db.select({
+const allocations = await db.select({
   id: hostelAllocations.id, studentId: hostelAllocations.studentId, roomId: hostelAllocations.roomId,
   academicYear: hostelAllocations.academicYear, status: hostelAllocations.status, createdAt: hostelAllocations.createdAt,
   studentName: students.firstName, studentLastName: students.lastName, studentCode: students.studentId,
@@ -31,7 +31,7 @@ const allocations = db.select({
   .where(eq(hostelAllocations.schoolId, schoolId))
   .orderBy(desc(hostelAllocations.createdAt)).all();
 
-const allStudents = db.select({ id: students.id, name: students.firstName, lastName: students.lastName, code: students.studentId })
+const allStudents = await db.select({ id: students.id, name: students.firstName, lastName: students.lastName, code: students.studentId })
   .from(students).where(eq(students.schoolId, schoolId)).all();
 
 const stats = {

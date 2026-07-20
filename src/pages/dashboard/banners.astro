@@ -10,7 +10,7 @@ import { eq, asc } from 'drizzle-orm';
 const user = Astro.locals.user!;
 const schoolId = getUserSchoolId(user.id);
 const db = getDb();
-const items = schoolId ? db.select().from(banners).where(eq(banners.schoolId, schoolId)).orderBy(asc(banners.sortOrder)).all() : [];
+const items = schoolId ? await db.select().from(banners).where(eq(banners.schoolId, schoolId)).orderBy(asc(banners.sortOrder)).all() : [];
 const success = Astro.url.searchParams.get('success');
 const editId = Astro.url.searchParams.get('edit');
 const editing = editId ? items.find(i => i.id === Number(editId)) : null;

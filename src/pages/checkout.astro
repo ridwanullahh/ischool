@@ -6,8 +6,8 @@ import { sql } from 'drizzle-orm';
 
 const db = getDb();
 const planSlug = Astro.url.searchParams.get('plan') || 'free';
-const selectedPlan = db.select().from(subscriptionPlans).where(sql`slug = ${planSlug}`).get();
-const allPlans = db.select().from(subscriptionPlans).where(subscriptionPlans.isActive).orderBy(subscriptionPlans.sortOrder).all();
+const selectedPlan = await db.select().from(subscriptionPlans).where(sql`slug = ${planSlug}`).get();
+const allPlans = await db.select().from(subscriptionPlans).where(subscriptionPlans.isActive).orderBy(subscriptionPlans.sortOrder).all();
 const plan = selectedPlan || allPlans[0];
 
 const gateways = [

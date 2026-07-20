@@ -11,9 +11,9 @@ const schoolId = getUserSchoolId(user.id);
 if (!schoolId) return Astro.redirect('/dashboard');
 const db = getDb();
 
-const accounts = db.select().from(socialAccounts).where(eq(socialAccounts.schoolId, schoolId)).all();
-const posts = db.select().from(socialPosts).where(eq(socialPosts.schoolId, schoolId)).orderBy(desc(socialPosts.createdAt)).limit(20).all();
-const totalPosts = db.select({ c: sql<number>`count(*)` }).from(socialPosts).where(eq(socialPosts.schoolId, schoolId)).get()?.c || 0;
+const accounts = await db.select().from(socialAccounts).where(eq(socialAccounts.schoolId, schoolId)).all();
+const posts = await db.select().from(socialPosts).where(eq(socialPosts.schoolId, schoolId)).orderBy(desc(socialPosts.createdAt)).limit(20).all();
+const totalPosts = await db.select({ c: sql<number>`count(*)` }).from(socialPosts).where(eq(socialPosts.schoolId, schoolId)).get()?.c || 0;
 const formatDate = (d: any) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
 
 const PLATFORMS = [

@@ -24,10 +24,10 @@ const selectedDate = Astro.url.searchParams.get('date') || new Date().toISOStrin
 
 // Get classes the teacher can take attendance for
 const myClasses = staff
-  ? db.select().from(classes).where(eq(classes.homeroomTeacherId, staff.id)).all()
+  ? await db.select().from(classes).where(eq(classes.homeroomTeacherId, staff.id)).all()
   : [];
 const allSchoolClasses = schoolId
-  ? db.select().from(classes).where(eq(classes.schoolId, schoolId)).all()
+  ? await db.select().from(classes).where(eq(classes.schoolId, schoolId)).all()
   : [];
 const availableClasses = myClasses.length > 0 ? myClasses : allSchoolClasses;
 
@@ -36,16 +36,16 @@ let classStudents: any[] = [];
 let existingAttendance: Record<number, any> = {};
 if (selectedClassId) {
   const cid = parseInt(selectedClassId);
-  const enrollments_ = db.select().from(enrollments).where(eq(enrollments.classId, cid)).all();
+  const enrollments_ = await db.select().from(enrollments).where(eq(enrollments.classId, cid)).all();
   const studentIds = enrollments_.map(e => e.studentId).filter(Boolean);
   if (studentIds.length > 0) {
-    classStudents = db.select().from(students)
+    classStudents = await db.select().from(students)
       .where(inArray(students.id, studentIds))
       .all()
       .sort((a, b) => (a.firstName + a.lastName).localeCompare(b.firstName + b.lastName));
   }
   // Check for existing attendance records for this date
-  const existing = db.select().from(attendance)
+  const existing = await db.select().from(attendance)
     .where(and(eq(attendance.classId, cid), eq(attendance.date, selectedDate)))
     .all();
   existingAttendance = Object.fromEntries(existing.map(a => [a.studentId, a]));

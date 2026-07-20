@@ -11,7 +11,7 @@ const user = Astro.locals.user!;
 const schoolId = getUserSchoolId(user.id);
 const db = getDb();
 
-const items = schoolId ? db.select().from(programs).where(eq(programs.schoolId, schoolId)).orderBy(asc(programs.sortOrder)).all() : [];
+const items = schoolId ? await db.select().from(programs).where(eq(programs.schoolId, schoolId)).orderBy(asc(programs.sortOrder)).all() : [];
 const success = Astro.url.searchParams.get('success');
 const editId = Astro.url.searchParams.get('edit');
 const editing = editId ? items.find(i => i.id === Number(editId)) : null;

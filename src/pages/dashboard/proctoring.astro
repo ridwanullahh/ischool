@@ -11,12 +11,12 @@ const schoolId = getUserSchoolId(user.id);
 if (!schoolId) return Astro.redirect('/dashboard');
 const db = getDb();
 
-const exams = db.select().from(cbtExams).where(eq(cbtExams.schoolId, schoolId)).all();
+const exams = await db.select().from(cbtExams).where(eq(cbtExams.schoolId, schoolId)).all();
 const examIds = exams.map(e => e.id);
 
 // All attempts with proctoring data
 const attempts = examIds.length > 0
-  ? db.select({
+  ? await db.select({
       id: cbtAttempts.id, examId: cbtAttempts.examId, candidateId: cbtAttempts.candidateId,
       score: cbtAttempts.score, ipAddress: cbtAttempts.ipAddress, deviceFingerprint: cbtAttempts.deviceFingerprint,
       startedAt: cbtAttempts.startedAt, submittedAt: cbtAttempts.submittedAt, status: cbtAttempts.status,
@@ -31,7 +31,7 @@ const attempts = examIds.length > 0
 
 // Get all proctoring logs for stats
 const allLogs = examIds.length > 0
-  ? db.select({
+  ? await db.select({
       id: cbtProctoringLogs.id, attemptId: cbtProctoringLogs.attemptId,
       eventType: cbtProctoringLogs.eventType, timestamp: cbtProctoringLogs.timestamp,
       severity: cbtProctoringLogs.severity, details: cbtProctoringLogs.details,

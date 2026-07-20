@@ -27,23 +27,23 @@ if (!child) {
 const db = getDb();
 
 // Attendance
-const totalDays = db.select({ c: sql<number>`count(*)` }).from(attendance).where(eq(attendance.studentId, child.id)).get()?.c || 0;
-const presentDays = db.select({ c: sql<number>`count(*)` }).from(attendance).where(and(eq(attendance.studentId, child.id), eq(attendance.status, 'present'))).get()?.c || 0;
+const totalDays = await db.select({ c: sql<number>`count(*)` }).from(attendance).where(eq(attendance.studentId, child.id)).get()?.c || 0;
+const presentDays = await db.select({ c: sql<number>`count(*)` }).from(attendance).where(and(eq(attendance.studentId, child.id), eq(attendance.status, 'present'))).get()?.c || 0;
 const attendanceRate = totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 100;
-const recentAttendance = db.select().from(attendance).where(eq(attendance.studentId, child.id)).orderBy(desc(attendance.date)).limit(10).all();
+const recentAttendance = await db.select().from(attendance).where(eq(attendance.studentId, child.id)).orderBy(desc(attendance.date)).limit(10).all();
 
 // Grades
-const recentGrades = db.select().from(grades).where(eq(grades.studentId, child.id)).orderBy(desc(grades.createdAt)).limit(10).all();
+const recentGrades = await db.select().from(grades).where(eq(grades.studentId, child.id)).orderBy(desc(grades.createdAt)).limit(10).all();
 
 // Assignments
 const submittedIds = new Set(db.select().from(submissions).where(eq(submissions.studentId, child.id)).all().map(s => s.assignmentId));
-const pendingAssignments = db.select().from(assignments)
+const pendingAssignments = await db.select().from(assignments)
   .where(and(eq(assignments.schoolId, child.schoolId), sql`${assignments.dueDate} >= date('now')`))
   .orderBy(assignments.dueDate).limit(5).all()
   .filter(a => !submittedIds.has(a.id));
 
 // Fees
-const outstandingInvoices = db.select().from(invoices).where(and(eq(invoices.studentId, child.id), sql`${invoices.status} != 'paid'`)).all();
+const outstandingInvoices = await db.select().from(invoices).where(and(eq(invoices.studentId, child.id), sql`${invoices.status} != 'paid'`)).all();
 const outstandingFees = outstandingInvoices.reduce((s, i) => s + (i.balance || 0), 0);
 
 const className = getStudentClassName(child.id);

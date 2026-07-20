@@ -11,8 +11,8 @@ const schoolId = getUserSchoolId(user.id);
 if (!schoolId) return Astro.redirect('/dashboard');
 const school = getUserSchool(user.id);
 const db = getDb();
-const connection = db.select().from(gmbConnections).where(eq(gmbConnections.schoolId, schoolId)).get();
-const posts = db.select().from(gmbPosts).where(eq(gmbPosts.schoolId, schoolId)).orderBy(desc(gmbPosts.createdAt)).all();
+const connection = await db.select().from(gmbConnections).where(eq(gmbConnections.schoolId, schoolId)).get();
+const posts = await db.select().from(gmbPosts).where(eq(gmbPosts.schoolId, schoolId)).orderBy(desc(gmbPosts.createdAt)).all();
 ---
 
 <DashboardLayout title="GMB Profile - iSchool">

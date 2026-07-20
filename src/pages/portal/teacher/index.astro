@@ -25,7 +25,7 @@ const todayDow = new Date().getDay();
 let scheduleQuery: any[] = [];
 try {
   scheduleQuery = schoolId
-    ? db.select().from(timetableEntries)
+    ? await db.select().from(timetableEntries)
       .where(and(eq(timetableEntries.schoolId, schoolId), eq(timetableEntries.dayOfWeek, todayDow)))
       .orderBy(timetableEntries.startTime).all()
     : [];
@@ -39,7 +39,7 @@ const todaysSchedule = staff?.id
 let myClasses: any[] = [];
 try {
   myClasses = staff
-    ? db.select().from(classes).where(eq(classes.homeroomTeacherId, staff.id)).all()
+    ? await db.select().from(classes).where(eq(classes.homeroomTeacherId, staff.id)).all()
     : [];
 } catch (e) { console.error('Teacher portal myClasses query error:', (e as any).message); }
 
@@ -47,7 +47,7 @@ try {
 let allClasses: any[] = [];
 try {
   allClasses = schoolId
-    ? db.select().from(classes).where(eq(classes.schoolId, schoolId)).all()
+    ? await db.select().from(classes).where(eq(classes.schoolId, schoolId)).all()
     : [];
 } catch (e) { console.error('Teacher portal allClasses query error:', (e as any).message); }
 
@@ -55,7 +55,7 @@ try {
 let pendingGradingRaw: any[] = [];
 try {
   pendingGradingRaw = staff && schoolId
-    ? db.select().from(submissions)
+    ? await db.select().from(submissions)
       .leftJoin(assignments, eq(submissions.assignmentId, assignments.id))
       .leftJoin(students, eq(submissions.studentId, students.id))
       .where(eq(submissions.schoolId, schoolId))
@@ -76,18 +76,19 @@ const pendingGrading = pendingGradingRaw
 
 // My assignments
 const myAssignments = schoolId
-  ? db.select().from(assignments).where(eq(assignments.schoolId, schoolId)).orderBy(desc(assignments.createdAt)).limit(5).all()
+  ? await db.select().from(assignments).where(eq(assignments.schoolId, schoolId)).orderBy(desc(assignments.createdAt)).limit(5).all()
   : [];
 
 // My classes with student counts (precomputed to avoid template literals in markup)
+const allEnrollments = schoolId ? await db.select().from(enrollments).all() : [];
 const myClassesWithCounts = myClasses.map(c => {
-  const count = db.select().from(enrollments).where(eq(enrollments.classId, c.id)).all().length;
+  const count = allEnrollments.filter(e => e.classId === c.id).length;
   return { ...c, studentCount: count, displayName: c.name + (c.section ? ' - ' + c.section : '') };
 });
 
 // Student count
 const studentCount = schoolId
-  ? db.select().from(students).where(eq(students.schoolId, schoolId)).all().length
+  ? (await db.select().from(students).where(eq(students.schoolId, schoolId)).all()).length
   : 0;
 
 const formatTime = (t: string | null) => {

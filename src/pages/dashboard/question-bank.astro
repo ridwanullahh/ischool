@@ -21,10 +21,10 @@ const schoolId = getUserSchoolId(user.id);
 const db = getDb();
 
 const allQuestions = schoolId
-  ? db.select().from(questions).where(eq(questions.schoolId, schoolId)).orderBy(desc(questions.createdAt)).all()
+  ? await db.select().from(questions).where(eq(questions.schoolId, schoolId)).orderBy(desc(questions.createdAt)).all()
   : [];
 
-const allCourses = schoolId ? db.select().from(courses).where(eq(courses.schoolId, schoolId)).all() : [];
+const allCourses = schoolId ? await db.select().from(courses).where(eq(courses.schoolId, schoolId)).all() : [];
 
 // Collect all unique tags
 const allTags = new Set<string>();

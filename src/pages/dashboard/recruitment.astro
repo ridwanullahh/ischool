@@ -11,12 +11,12 @@ const schoolId = getUserSchoolId(user.id);
 if (!schoolId) return Astro.redirect('/dashboard');
 const db = getDb();
 
-const jobs = db.select().from(jobPostings).where(eq(jobPostings.schoolId, schoolId)).orderBy(desc(jobPostings.createdAt)).all();
-const apps = db.select().from(jobApplications).all();
+const jobs = await db.select().from(jobPostings).where(eq(jobPostings.schoolId, schoolId)).orderBy(desc(jobPostings.createdAt)).all();
+const apps = await db.select().from(jobApplications).all();
 const jobMap = new Map(jobs.map(j => [j.id, j]));
 const schoolApps = apps.filter(a => jobMap.has(a.jobId));
 
-const ints = db.select({
+const ints = await db.select({
   id: interviews.id, scheduledAt: interviews.scheduledAt, location: interviews.location,
   notes: interviews.notes, status: interviews.status, applicationId: interviews.applicationId,
   applicantName: jobApplications.applicantName, applicantEmail: jobApplications.applicantEmail,

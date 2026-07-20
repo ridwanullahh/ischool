@@ -16,9 +16,9 @@ let allTeachers: any[] = [];
 
 if (schoolId) {
   const db = getDb();
-  allClasses = db.select().from(classes).where(eq(classes.schoolId, schoolId)).all();
-  allCourses = db.select().from(courses).where(eq(courses.schoolId, schoolId)).all();
-  entries = db.select({
+  allClasses = await db.select().from(classes).where(eq(classes.schoolId, schoolId)).all();
+  allCourses = await db.select().from(courses).where(eq(courses.schoolId, schoolId)).all();
+  entries = await db.select({
     id: timetableEntries.id, classId: timetableEntries.classId, courseId: timetableEntries.courseId,
     teacherId: timetableEntries.teacherId, dayOfWeek: timetableEntries.dayOfWeek,
     periodNumber: timetableEntries.periodNumber, startTime: timetableEntries.startTime,

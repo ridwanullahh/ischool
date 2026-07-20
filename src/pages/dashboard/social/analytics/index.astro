@@ -11,8 +11,8 @@ const schoolId = getUserSchoolId(user.id);
 if (!schoolId) return Astro.redirect('/dashboard');
 const db = getDb();
 
-const posts = db.select().from(socialPosts).where(eq(socialPosts.schoolId, schoolId)).orderBy(desc(socialPosts.createdAt)).all();
-const accounts = db.select().from(socialAccounts).where(eq(socialAccounts.schoolId, schoolId)).all();
+const posts = await db.select().from(socialPosts).where(eq(socialPosts.schoolId, schoolId)).orderBy(desc(socialPosts.createdAt)).all();
+const accounts = await db.select().from(socialAccounts).where(eq(socialAccounts.schoolId, schoolId)).all();
 const published = posts.filter(p => p.status === 'published');
 const totalEngagement = published.reduce((sum, p) => {
   try { const a = typeof p.analytics === 'string' ? JSON.parse(p.analytics) : p.analytics; return sum + (a?.engagement || 0); } catch { return sum; }

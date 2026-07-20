@@ -6,12 +6,12 @@ import { eq, and, asc } from 'drizzle-orm';
 
 const docSlug = Astro.params.slug!;
 const db = getDb();
-const doc = db.select().from(platformDocs)
+const doc = await db.select().from(platformDocs)
   .where(and(eq(platformDocs.slug, docSlug), eq(platformDocs.isPublished, true)))
   .get();
 if (!doc) return Astro.redirect('/docs');
 
-const allDocs = db.select().from(platformDocs)
+const allDocs = await db.select().from(platformDocs)
   .where(eq(platformDocs.isPublished, true))
   .orderBy(asc(platformDocs.sortOrder)).all();
 

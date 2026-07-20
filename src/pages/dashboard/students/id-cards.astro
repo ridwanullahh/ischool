@@ -18,13 +18,15 @@ if (!pageGuard(user, 'students.view')) return Astro.redirect('/dashboard');
 
 const schoolId = getUserSchoolId(user.id);
 const db = getDb();
-const school = schoolId ? db.select().from(schools).where(eq(schools.id, schoolId)).get() : null;
-const allStudents = schoolId ? db.select().from(students).where(eq(students.schoolId, schoolId)).all() : [];
+const school = schoolId ? await db.select().from(schools).where(eq(schools.id, schoolId)).get() : null;
+const allStudents = schoolId ? await db.select().from(students).where(eq(students.schoolId, schoolId)).all() : [];
+const allEnrollments = schoolId ? await db.select().from(enrollments).all() : [];
+const allClasses = schoolId ? await db.select().from(classes).where(eq(classes.schoolId, schoolId)).all() : [];
 
 // Get class names for students
 const studentsWithClass = allStudents.map(s => {
-  const enrollment = db.select().from(enrollments).where(eq(enrollments.studentId, s.id)).get();
-  const cls = enrollment?.classId ? db.select().from(classes).where(eq(classes.id, enrollment.classId)).get() : null;
+  const enrollment = allEnrollments.find(e => e.studentId === s.id);
+  const cls = enrollment?.classId ? allClasses.find(c => c.id === enrollment.classId) : null;
   return { ...s, className: cls ? cls.name + (cls.section ? ' - ' + cls.section : '') : 'N/A' };
 });
 

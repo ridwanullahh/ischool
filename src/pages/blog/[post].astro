@@ -7,7 +7,7 @@ import { formatDate } from '../../lib/utils.js';
 
 const postSlug = Astro.params.post!;
 const db = getDb();
-const post = db.select().from(platformBlogPosts)
+const post = await db.select().from(platformBlogPosts)
   .where(and(eq(platformBlogPosts.slug, postSlug), eq(platformBlogPosts.isPublished, true)))
   .get();
 if (!post) return Astro.redirect('/blog');

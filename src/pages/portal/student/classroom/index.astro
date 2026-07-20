@@ -16,14 +16,13 @@ const schoolId = getUserSchoolId(user.id) ?? student.schoolId;
 const db = getDb();
 
 // Get student's enrollments (classes)
-const myEnrollments = db.select().from(enrollments).where(eq(enrollments.studentId, student.id)).all();
+const myEnrollments = await db.select().from(enrollments).where(eq(enrollments.studentId, student.id)).all();
+const allClasses = await db.select().from(classes).all();
+const allSubjects = await db.select().from(classSubjects).where(eq(classSubjects.schoolId, schoolId)).all();
 const myClasses = myEnrollments.map(e => {
-  const cls = db.select().from(classes).where(eq(classes.id, e.classId)).get();
+  const cls = allClasses.find(c => c.id === e.classId);
   if (!cls) return null;
-  // Get subjects for this class
-  const subjects = db.select().from(classSubjects)
-    .where(and(eq(classSubjects.classId, cls.id), eq(classSubjects.schoolId, schoolId)))
-    .all();
+  const subjects = allSubjects.filter(s => s.classId === cls.id);
   return { ...cls, subjects };
 }).filter(Boolean);
 

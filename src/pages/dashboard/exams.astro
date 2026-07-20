@@ -8,17 +8,17 @@ const user = Astro.locals.user;
 if (!user) return Astro.redirect('/auth/login');
 
 const db = getDb();
-const membership = db.select().from(schoolMembers).where(eq(schoolMembers.userId, user.id)).get();
+const membership = await db.select().from(schoolMembers).where(eq(schoolMembers.userId, user.id)).get();
 const schoolId = membership?.schoolId;
 
 let allSeries: any[] = [];
 let allExams: any[] = [];
 
 if (schoolId) {
-  allSeries = db.select().from(examSeries).where(eq(examSeries.schoolId, schoolId)).all();
+  allSeries = await db.select().from(examSeries).where(eq(examSeries.schoolId, schoolId)).all();
   const seriesIds = allSeries.map(s => s.id);
   if (seriesIds.length > 0) {
-    allExams = db.select().from(exams).where(inArray(exams.seriesId, seriesIds)).all();
+    allExams = await db.select().from(exams).where(inArray(exams.seriesId, seriesIds)).all();
   }
 }
 ---

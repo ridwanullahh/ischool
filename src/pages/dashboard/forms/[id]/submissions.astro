@@ -13,9 +13,9 @@ if (!user) return Astro.redirect('/auth/login');
 const schoolId = getUserSchoolId(user.id);
 const formId = parseInt(Astro.params.id);
 const db = getDb();
-const form = schoolId ? db.select().from(forms).where(and(eq(forms.id, formId), eq(forms.schoolId, schoolId))).get() : null;
+const form = schoolId ? await db.select().from(forms).where(and(eq(forms.id, formId), eq(forms.schoolId, schoolId))).get() : null;
 if (!form) return Astro.redirect('/dashboard/forms');
-const submissions = db.select().from(formSubmissions).where(eq(formSubmissions.formId, formId)).orderBy(desc(formSubmissions.createdAt)).all();
+const submissions = await db.select().from(formSubmissions).where(eq(formSubmissions.formId, formId)).orderBy(desc(formSubmissions.createdAt)).all();
 const fields = ((form.fields as any[]) || []).filter(f => f.type !== 'heading' && f.type !== 'paragraph');
 const formatDate = (d: string | Date | null) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
 ---

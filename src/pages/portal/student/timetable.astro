@@ -24,7 +24,7 @@ const classId = enrollment?.classId;
 
 // Fetch timetable entries for the school, optionally filtered by class
 const allEntries = classId
-  ? db.select().from(timetableEntries).where(and(eq(timetableEntries.schoolId, schoolId), eq(timetableEntries.classId, classId))).all()
+  ? await db.select().from(timetableEntries).where(and(eq(timetableEntries.schoolId, schoolId), eq(timetableEntries.classId, classId))).all()
   : db.select().from(timetableEntries).where(eq(timetableEntries.schoolId, schoolId)).all();
 
 // Group by day of week (0=Sunday ... 6=Saturday)

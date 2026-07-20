@@ -14,17 +14,17 @@ const attemptId = parseInt(Astro.url.searchParams.get('id') || '0');
 if (!attemptId) return Astro.redirect('/portal/student');
 
 const db = getDb();
-const attempt = db.select().from(cbtAttempts).where(eq(cbtAttempts.id, attemptId)).get();
+const attempt = await db.select().from(cbtAttempts).where(eq(cbtAttempts.id, attemptId)).get();
 if (!attempt) return Astro.redirect('/portal/student');
 
-const exam = db.select().from(cbtExams).where(eq(cbtExams.id, attempt.examId)).get();
-const candidate = db.select().from(cbtCandidates).where(eq(cbtCandidates.id, attempt.candidateId)).get();
+const exam = await db.select().from(cbtExams).where(eq(cbtExams.id, attempt.examId)).get();
+const candidate = await db.select().from(cbtCandidates).where(eq(cbtCandidates.id, attempt.candidateId)).get();
 
 // Verify ownership
 if (candidate?.userId !== user.id) return Astro.redirect('/portal/student');
 
 // Get proctoring flags
-const logs = db.select().from(cbtProctoringLogs).where(eq(cbtProctoringLogs.attemptId, attemptId)).all();
+const logs = await db.select().from(cbtProctoringLogs).where(eq(cbtProctoringLogs.attemptId, attemptId)).all();
 
 const percentage = attempt.totalMarks && attempt.score !== null ? Math.round((attempt.score / attempt.totalMarks) * 100) : null;
 const passed = percentage !== null && percentage >= 50;

@@ -5,7 +5,7 @@ import { subscriptionPlans } from '../lib/db/schema.js';
 import { eq, asc } from 'drizzle-orm';
 
 const db = getDb();
-const plans = db.select().from(subscriptionPlans).where(eq(subscriptionPlans.isActive, true)).orderBy(asc(subscriptionPlans.sortOrder)).all();
+const plans = await db.select().from(subscriptionPlans).where(eq(subscriptionPlans.isActive, true)).orderBy(asc(subscriptionPlans.sortOrder)).all();
 ---
 
 <MarketingLayout title="Pricing - iSchool" description="Simple, transparent pricing for school management software. Start free, upgrade when you're ready.">

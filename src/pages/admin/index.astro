@@ -5,12 +5,12 @@ import { schools, users, contactSubmissions } from '../../lib/db/schema.js';
 import { sql } from 'drizzle-orm';
 
 const db = getDb();
-const schoolsCount = db.select({ count: sql<number>`count(*)` }).from(schools).get()?.count || 0;
-const usersCount = db.select({ count: sql<number>`count(*)` }).from(users).get()?.count || 0;
-const activeSchools = db.select({ count: sql<number>`count(*)` }).from(schools).where(sql`status = 'active'`).get()?.count || 0;
-const submissions = db.select({ count: sql<number>`count(*)` }).from(contactSubmissions).where(sql`status = 'new'`).get()?.count || 0;
+const schoolsCount = await db.select({ count: sql<number>`count(*)` }).from(schools).get()?.count || 0;
+const usersCount = await db.select({ count: sql<number>`count(*)` }).from(users).get()?.count || 0;
+const activeSchools = await db.select({ count: sql<number>`count(*)` }).from(schools).where(sql`status = 'active'`).get()?.count || 0;
+const submissions = await db.select({ count: sql<number>`count(*)` }).from(contactSubmissions).where(sql`status = 'new'`).get()?.count || 0;
 
-const recentSchools = db.select({
+const recentSchools = await db.select({
   id: schools.id,
   name: schools.name,
   slug: schools.slug,

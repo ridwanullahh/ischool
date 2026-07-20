@@ -24,46 +24,47 @@ const subjectId = parseInt(Astro.params.subjectId);
 const db = getDb();
 
 // Verify this teacher is assigned to this class+subject
-const assignment = db.select().from(classSubjects)
+const assignment = await db.select().from(classSubjects)
   .where(and(eq(classSubjects.id, subjectId), eq(classSubjects.classId, classId), eq(classSubjects.teacherId, myStaff?.id || 0)))
   .get();
 if (!assignment) return Astro.redirect('/portal/teacher/classroom');
 
-const classInfo = db.select().from(classes).where(eq(classes.id, classId)).get();
-const course = assignment.courseId ? db.select().from(courses).where(eq(courses.id, assignment.courseId)).get() : null;
+const classInfo = await db.select().from(classes).where(eq(classes.id, classId)).get();
+const course = assignment.courseId ? await db.select().from(courses).where(eq(courses.id, assignment.courseId)).get() : null;
 
 // Get students in this class
-const classEnrollments = db.select().from(enrollments).where(eq(enrollments.classId, classId)).all();
+const classEnrollments = await db.select().from(enrollments).where(eq(enrollments.classId, classId)).all();
 const classStudents = classEnrollments.map(e => db.select().from(students).where(eq(students.id, e.studentId)).get()).filter(Boolean);
 
 // Get data for each tab
 const classAssignments = assignment.courseId
-  ? db.select().from(assignments).where(and(eq(assignments.courseId, assignment.courseId), eq(assignments.classId, classId))).orderBy(desc(assignments.createdAt)).all()
+  ? await db.select().from(assignments).where(and(eq(assignments.courseId, assignment.courseId), eq(assignments.classId, classId))).orderBy(desc(assignments.createdAt)).all()
   : [];
 const classQuizzes = assignment.courseId
-  ? db.select().from(quizzes).where(and(eq(quizzes.courseId, assignment.courseId))).orderBy(desc(quizzes.createdAt)).all()
+  ? await db.select().from(quizzes).where(and(eq(quizzes.courseId, assignment.courseId))).orderBy(desc(quizzes.createdAt)).all()
   : [];
 const courseUnitsList = assignment.courseId
-  ? db.select().from(courseUnits).where(eq(courseUnits.courseId, assignment.courseId)).orderBy(courseUnits.sortOrder).all()
+  ? await db.select().from(courseUnits).where(eq(courseUnits.courseId, assignment.courseId)).orderBy(courseUnits.sortOrder).all()
   : [];
 const allLessons = assignment.courseId
-  ? db.select().from(lessons).where(eq(lessons.courseId, assignment.courseId)).orderBy(lessons.sortOrder).all()
+  ? await db.select().from(lessons).where(eq(lessons.courseId, assignment.courseId)).orderBy(lessons.sortOrder).all()
   : [];
 const liveClasses = myStaff
-  ? db.select().from(liveClassRooms)
+  ? await db.select().from(liveClassRooms)
     .where(and(eq(liveClassRooms.classId, classId), eq(liveClassRooms.teacherId, myStaff.id)))
     .orderBy(desc(liveClassRooms.createdAt)).all()
   : [];
 const discussionBoard = assignment.courseId
-  ? db.select().from(discussionBoards).where(and(eq(discussionBoards.courseId, assignment.courseId))).get()
+  ? await db.select().from(discussionBoards).where(and(eq(discussionBoards.courseId, assignment.courseId))).get()
   : null;
 const classGrades = assignment.courseId
-  ? db.select().from(grades).where(eq(grades.courseId, assignment.courseId)).all()
+  ? await db.select().from(grades).where(eq(grades.courseId, assignment.courseId)).all()
   : [];
 
 // Stats
+const allSubmissions = await db.select().from(submissions).all();
 const pendingSubmissions = classAssignments.reduce((count, a) => {
-  const subs = db.select().from(submissions).where(eq(submissions.assignmentId, a.id)).all();
+  const subs = allSubmissions.filter(s => s.assignmentId === a.id);
   return count + subs.filter(s => !s.gradedAt).length;
 }, 0);
 

@@ -5,7 +5,7 @@ import { platformInvoices, platformPayments, schoolSubscriptions, schools, subsc
 import { sql } from 'drizzle-orm';
 
 const db = getDb();
-const invoices = db.select({
+const invoices = await db.select({
   id: platformInvoices.id,
   invoiceNumber: platformInvoices.invoiceNumber,
   amount: platformInvoices.amount,
@@ -18,12 +18,12 @@ const invoices = db.select({
   createdAt: platformInvoices.createdAt,
 }).from(platformInvoices).orderBy(sql`created_at DESC`).limit(50).all();
 
-const totalRevenue = db.select({ total: sql<number>`COALESCE(SUM(total_amount), 0)` }).from(platformInvoices).where(sql`status = 'paid'`).get()?.total || 0;
-const pendingAmount = db.select({ total: sql<number>`COALESCE(SUM(total_amount), 0)` }).from(platformInvoices).where(sql`status = 'pending'`).get()?.total || 0;
-const paidCount = db.select({ count: sql<number>`count(*)` }).from(platformInvoices).where(sql`status = 'paid'`).get()?.count || 0;
-const pendingCount = db.select({ count: sql<number>`count(*)` }).from(platformInvoices).where(sql`status = 'pending'`).get()?.count || 0;
+const totalRevenue = await db.select({ total: sql<number>`COALESCE(SUM(total_amount), 0)` }).from(platformInvoices).where(sql`status = 'paid'`).get()?.total || 0;
+const pendingAmount = await db.select({ total: sql<number>`COALESCE(SUM(total_amount), 0)` }).from(platformInvoices).where(sql`status = 'pending'`).get()?.total || 0;
+const paidCount = await db.select({ count: sql<number>`count(*)` }).from(platformInvoices).where(sql`status = 'paid'`).get()?.count || 0;
+const pendingCount = await db.select({ count: sql<number>`count(*)` }).from(platformInvoices).where(sql`status = 'pending'`).get()?.count || 0;
 
-const subscriptions = db.select({
+const subscriptions = await db.select({
   id: schoolSubscriptions.id,
   schoolId: schoolSubscriptions.schoolId,
   status: schoolSubscriptions.status,

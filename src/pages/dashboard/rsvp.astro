@@ -12,9 +12,9 @@ if (!schoolId) return Astro.redirect('/dashboard');
 const db = getDb();
 
 // Events with RSVP required
-const rsvpEvents = db.select().from(events).where(and(eq(events.schoolId, schoolId), eq(events.rsvpRequired, 1))).orderBy(desc(events.startDate)).all();
-const allRsvps = db.select().from(eventRsvps).all();
-const allUsers = db.select({ id: users.id, name: users.name, email: users.email }).from(users).all();
+const rsvpEvents = await db.select().from(events).where(and(eq(events.schoolId, schoolId), eq(events.rsvpRequired, 1))).orderBy(desc(events.startDate)).all();
+const allRsvps = await db.select().from(eventRsvps).all();
+const allUsers = await db.select({ id: users.id, name: users.name, email: users.email }).from(users).all();
 const userMap = new Map(allUsers.map(u => [u.id, u]));
 
 const enrichedEvents = rsvpEvents.map(e => {

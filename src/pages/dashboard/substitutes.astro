@@ -11,7 +11,7 @@ const schoolId = getUserSchoolId(user.id);
 if (!schoolId) return Astro.redirect('/dashboard');
 const db = getDb();
 
-const subs = db.select({
+const subs = await db.select({
   id: substituteTeachers.id,
   timetableEntryId: substituteTeachers.timetableEntryId,
   originalTeacherId: substituteTeachers.originalTeacherId,
@@ -40,18 +40,18 @@ const subs = db.select({
 const subTeacherIds = [...new Set(subs.map(s => s.substituteTeacherId).filter(Boolean))] as number[];
 const subTeacherMap = new Map<number, string>();
 for (const tid of subTeacherIds) {
-  const u = db.select().from(users).where(eq(users.id, tid)).get();
+  const u = await db.select().from(users).where(eq(users.id, tid)).get();
   if (u) subTeacherMap.set(tid, u.name);
 }
 for (const s of subs) (s as any).substituteTeacherName = s.substituteTeacherId ? subTeacherMap.get(s.substituteTeacherId) || '—' : '—';
 
 // Available teachers (users with teacher role or staff records)
-const teachers = db.select().from(users).innerJoin(schoolMembers, eq(users.id, schoolMembers.userId))
+const teachers = await db.select().from(users).innerJoin(schoolMembers, eq(users.id, schoolMembers.userId))
   .where(and(eq(schoolMembers.schoolId, schoolId), eq(users.role, 'teacher'))).all();
 const teacherList = teachers.map(t => ({ id: t.users.id, name: t.users.name }));
 
 // Timetable entries to choose from
-const entries = db.select({
+const entries = await db.select({
   id: timetableEntries.id, dayOfWeek: timetableEntries.dayOfWeek, periodNumber: timetableEntries.periodNumber,
   startTime: timetableEntries.startTime, endTime: timetableEntries.endTime, room: timetableEntries.room,
   className: classes.name, courseTitle: courses.title, teacherName: users.name, teacherId: timetableEntries.teacherId,
