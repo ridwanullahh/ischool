@@ -124,19 +124,17 @@ export class LightbaseClient {
    * Returns the created document (with auto-generated id, _created_at, etc.)
    */
   async insert(collection: string, document: Record<string, any>): Promise<LightbaseDocument> {
-    const res = await fetch(`${this.baseCollectionUrl}/${collection}`, {
+    const res = await fetch(`${this.baseCollectionUrl}/${collection}/docs`, {
       method: 'POST',
       headers: this.headers,
       body: JSON.stringify(document),
     });
     if (!res.ok) {
       if (res.status === 404) {
-        // Collection doesn't exist — try to create it with basic fields, then retry
+        // Collection doesn't exist — try to create it, then retry
         console.warn(`[Lightbase] Collection '${collection}' not found, creating...`);
-        await this.createCollection(collection, [
-          { name: 'data', type: 'json' },
-        ]).catch(() => {});
-        const retryRes = await fetch(`${this.baseCollectionUrl}/${collection}`, {
+        await this.createCollection(collection, [{ name: 'data', type: 'json' }]).catch(() => {});
+        const retryRes = await fetch(`${this.baseCollectionUrl}/${collection}/docs`, {
           method: 'POST',
           headers: this.headers,
           body: JSON.stringify(document),
@@ -157,7 +155,7 @@ export class LightbaseClient {
    * Get a document by ID.
    */
   async getById(collection: string, id: string): Promise<LightbaseDocument | null> {
-    const res = await fetch(`${this.baseCollectionUrl}/${collection}/${id}`, { headers: this.headers });
+    const res = await fetch(`${this.baseCollectionUrl}/${collection}/docs/${id}`, { headers: this.headers });
     if (res.status === 404) return null;
     if (!res.ok) throw new Error(`Lightbase getById(${collection}, ${id}) failed: ${res.status}`);
     const data = await res.json();
@@ -168,7 +166,7 @@ export class LightbaseClient {
    * Update a document by ID (partial patch).
    */
   async update(collection: string, id: string, patch: Record<string, any>): Promise<LightbaseDocument> {
-    const res = await fetch(`${this.baseCollectionUrl}/${collection}/${id}`, {
+    const res = await fetch(`${this.baseCollectionUrl}/${collection}/docs/${id}`, {
       method: 'PATCH',
       headers: this.headers,
       body: JSON.stringify(patch),
@@ -185,7 +183,7 @@ export class LightbaseClient {
    * Delete a document by ID.
    */
   async delete(collection: string, id: string): Promise<boolean> {
-    const res = await fetch(`${this.baseCollectionUrl}/${collection}/${id}`, {
+    const res = await fetch(`${this.baseCollectionUrl}/${collection}/docs/${id}`, {
       method: 'DELETE',
       headers: this.headers,
     });
@@ -196,6 +194,12 @@ export class LightbaseClient {
   // QUERIES
   // ═══════════════════════════════════════════════════════
 
+  /**
+   * Query documents from a collection.
+   * 
+   * @param collection Collection name
+   * @param options Query options (filter, sort, limit, cursor, select)
+   */
   /**
    * Query documents from a collection.
    * 
@@ -216,7 +220,8 @@ export class LightbaseClient {
     if (options?.cursor) params.set('cursor', JSON.stringify(options.cursor));
     if (options?.select) params.set('select', options.select);
 
-    const url = `${this.baseCollectionUrl}/${collection}?${params.toString()}`;
+    // Use /docs subpath for querying documents (not collection schema)
+    const url = `${this.baseCollectionUrl}/${collection}/docs?${params.toString()}`;
     const res = await fetch(url, { headers: this.headers });
     if (!res.ok) {
       // Gracefully handle 404 (collection not found) — return empty result
@@ -274,7 +279,7 @@ export class LightbaseClient {
    * Uses Lightbase's PUT endpoint with a filter.
    */
   async upsert(collection: string, filter: LightbaseFilter, document: Record<string, any>): Promise<{ document: LightbaseDocument; created: boolean }> {
-    const res = await fetch(`${this.baseCollectionUrl}/${collection}`, {
+    const res = await fetch(`${this.baseCollectionUrl}/${collection}/docs`, {
       method: 'PUT',
       headers: this.headers,
       body: JSON.stringify({ filter, document }),

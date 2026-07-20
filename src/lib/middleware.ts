@@ -6,6 +6,7 @@ import { eq } from 'drizzle-orm';
 import { checkRateLimit } from './security.js';
 import { getUserPermissions } from './rbac.js';
 import { isStudentBlockedFromModule } from './fee-access.js';
+import { getSchoolBySlugAsync, setSchoolCache } from './school-safe.js';
 
 const authPaths = ['/api/auth/login', '/api/auth/register', '/api/auth/password-reset'];
 
@@ -15,10 +16,23 @@ let _autoSeedTriggered = false;
 export const onRequest = defineMiddleware(async (context, next) => {
   const { pathname } = context.url;
 
-  // Trigger auto-seed for Lightbase on first request
+  // Trigger auto-seed for Lightbase on first request (non-blocking but logs errors)
   if (!_autoSeedTriggered && isLightbase()) {
     _autoSeedTriggered = true;
-    import('./db/auto-seed.js').then(m => m.autoSeedLightbase()).catch(() => {});
+    import('./db/auto-seed.js').then(m => m.autoSeedLightbase()).catch(e => console.error('[Seed] Failed:', e));
+  }
+
+  // Pre-load school for [slug] pages when using Lightbase
+  if (isLightbase() && pathname.startsWith('/') && !pathname.startsWith('/api/') && !pathname.startsWith('/auth/') && !pathname.startsWith('/dashboard') && !pathname.startsWith('/admin') && !pathname.startsWith('/portal')) {
+    const slug = pathname.split('/')[1];
+    if (slug && slug !== 'favicon.svg' && slug.length > 0 && !slug.includes('.')) {
+      try {
+        const school = await getSchoolBySlugAsync(slug);
+        if (school) setSchoolCache(slug, school);
+      } catch (e: any) {
+        console.error('[Middleware] School pre-load error:', e.message);
+      }
+    }
   }
 
   if (authPaths.some(p => pathname.startsWith(p))) {

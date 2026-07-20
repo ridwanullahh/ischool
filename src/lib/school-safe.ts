@@ -27,13 +27,45 @@ function parseJsonCol(val: any, fallback: any): any {
 }
 
 /** Returns a school row with settings/socialHandles/activeModules parsed as objects. */
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+import { isLightbase } from './db/index.js';
+import { getLightbaseDb } from './db/lightbase-adapter.js';
+
 export function getSchoolBySlug(slug: string): any {
   try {
+    if (isLightbase()) {
+      if (_schoolCache.has(slug)) return _schoolCache.get(slug);
+      return null;
+    }
     const db = rawDb();
     const row = db.prepare('SELECT * FROM schools WHERE slug = ?').get(slug);
     if (!row) return null;
     return normalizeSchool(row);
   } catch { return null; }
+}
+
+// Cache for async school lookups (filled by middleware or page)
+const _schoolCache = new Map<string, any>();
+
+export function setSchoolCache(slug: string, school: any): void {
+  _schoolCache.set(slug, school);
+}
+
+// Async version for Lightbase
+export async function getSchoolBySlugAsync(slug: string): Promise<any> {
+  try {
+    if (!isLightbase()) {
+      return getSchoolBySlug(slug);
+    }
+    const db = getLightbaseDb();
+    const school = await db.select('schools').where({ field: 'slug', op: 'eq', value: slug }).get();
+    if (!school) return null;
+    return normalizeSchool(school);
+  } catch (e: any) {
+    console.error('[getSchoolBySlugAsync] Error:', e.message);
+    return null;
+  }
 }
 
 /** Normalizes a raw school row: parses JSON columns into objects and maps snake_case to camelCase. */
