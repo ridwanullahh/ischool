@@ -6,7 +6,7 @@ import { eq } from 'drizzle-orm';
 import { checkRateLimit } from './security.js';
 import { getUserPermissions } from './rbac.js';
 import { isStudentBlockedFromModule } from './fee-access.js';
-import { getSchoolBySlugAsync, setSchoolCache } from './school-safe.js';
+import { getSchoolBySlugAsync, setSchoolCache, preloadSchoolData } from './school-safe.js';
 
 const authPaths = ['/api/auth/login', '/api/auth/register', '/api/auth/password-reset'];
 
@@ -22,15 +22,14 @@ export const onRequest = defineMiddleware(async (context, next) => {
     import('./db/auto-seed.js').then(m => m.autoSeedLightbase()).catch(e => console.error('[Seed] Failed:', e));
   }
 
-  // Pre-load school for [slug] pages when using Lightbase
-  if (isLightbase() && pathname.startsWith('/') && !pathname.startsWith('/api/') && !pathname.startsWith('/auth/') && !pathname.startsWith('/dashboard') && !pathname.startsWith('/admin') && !pathname.startsWith('/portal')) {
+  // Pre-load school data for [slug] pages when using Lightbase
+  if (isLightbase() && pathname.startsWith('/') && !pathname.startsWith('/api/') && !pathname.startsWith('/auth/') && !pathname.startsWith('/dashboard') && !pathname.startsWith('/admin') && !pathname.startsWith('/portal') && !pathname.startsWith('/blog') && !pathname.startsWith('/docs') && !pathname.startsWith('/pricing') && !pathname.startsWith('/faq') && !pathname.startsWith('/modules') && !pathname.startsWith('/sitemap') && !pathname.startsWith('/robots')) {
     const slug = pathname.split('/')[1];
     if (slug && slug !== 'favicon.svg' && slug.length > 0 && !slug.includes('.')) {
       try {
-        const school = await getSchoolBySlugAsync(slug);
-        if (school) setSchoolCache(slug, school);
+        await preloadSchoolData(slug);
       } catch (e: any) {
-        console.error('[Middleware] School pre-load error:', e.message);
+        console.error('[Middleware] School pre-load error for', slug, ':', e.message);
       }
     }
   }
@@ -72,13 +71,13 @@ export const onRequest = defineMiddleware(async (context, next) => {
   // RBAC enrichment: resolve the user's schoolId and effective permissions,
   // then attach them to locals.user so endpoints and pages can call
   // Astro.locals.user.permissions.has('students.view') directly.
-  // Wrapped in try/catch so that a DB error (e.g. missing table) doesn't
-  // crash the entire site — the user simply gets no permissions enrichment.
+  // In Lightbase mode the lookup is async — we await it here so that
+  // downstream pages and APIs can read user.schoolId synchronously.
   if (user) {
     try {
       const db2 = getDb();
-      const membership = db2.select().from(schoolMembers).where(eq(schoolMembers.userId, user.id)).get();
-      const schoolId = membership?.schoolId ?? null;
+      const membership = await db2.select().from(schoolMembers).where(eq(schoolMembers.userId, user.id)).get();
+      const schoolId = membership?.schoolId ?? membership?.school_id ?? null;
       const permissions = getUserPermissions(user.id, schoolId ?? undefined);
       (user as any).schoolId = schoolId;
       (user as any).permissions = permissions;

@@ -5,35 +5,49 @@ import { platformBlogPosts } from '../../lib/db/schema.js';
 import { eq, and } from 'drizzle-orm';
 import { formatDate } from '../../lib/utils.js';
 
-const postSlug = Astro.params.post!;
+const postSlug = Astro.params.post;
+if (!postSlug) return Astro.redirect('/blog');
 const db = getDb();
-const post = await db.select().from(platformBlogPosts)
-  .where(and(eq(platformBlogPosts.slug, postSlug), eq(platformBlogPosts.isPublished, true)))
-  .get();
+let post: any = null;
+try {
+  post = await db.select().from(platformBlogPosts)
+    .where(and(eq(platformBlogPosts.slug, postSlug), eq(platformBlogPosts.isPublished, true)))
+    .get();
+} catch (e: any) {
+  console.error('[blog/post] Error loading post:', e?.message || e);
+}
 if (!post) return Astro.redirect('/blog');
+
+// Defensive: ensure content is a string before .split()
+const postContent: string = typeof post.content === 'string' ? post.content : String(post.content || '');
+const postTitle: string = post.title || 'Untitled Post';
+const postExcerpt: string = post.excerpt || '';
+const postCategory: string = post.category || '';
+const postCover: string = post.coverImageUrl || post.cover_image_url || '';
+const postPublishedAt: any = post.publishedAt || post.published_at || null;
 ---
 
-<MarketingLayout title={`${post.title} - iSchool Blog`}>
+<MarketingLayout title={`${postTitle} - iSchool Blog`}>
   <article class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
     <a href="/blog" class="text-sm text-primary-600 hover:underline mb-6 inline-block">&larr; Back to Blog</a>
 
-    {post.coverImageUrl && (
-      <img src={post.coverImageUrl} alt={post.title} class="w-full h-64 sm:h-80 object-cover rounded-xl mb-8" />
+    {postCover && (
+      <img src={postCover} alt={postTitle} class="w-full h-64 sm:h-80 object-cover rounded-xl mb-8" />
     )}
 
     <header class="mb-8">
       <div class="flex items-center gap-3 mb-3">
-        {post.category && <span class="text-sm font-medium bg-primary-50 text-primary-700 px-3 py-1 rounded-full">{post.category}</span>}
-        {post.publishedAt && <span class="text-sm text-gray-500">{formatDate(post.publishedAt)}</span>}
+        {postCategory && <span class="text-sm font-medium bg-primary-50 text-primary-700 px-3 py-1 rounded-full">{postCategory}</span>}
+        {postPublishedAt && <span class="text-sm text-gray-500">{formatDate(postPublishedAt)}</span>}
       </div>
-      <h1 class="text-3xl sm:text-4xl font-bold text-gray-900 leading-tight">{post.title}</h1>
-      {post.excerpt && (
-        <p class="mt-4 text-lg text-gray-600">{post.excerpt}</p>
+      <h1 class="text-3xl sm:text-4xl font-bold text-gray-900 leading-tight">{postTitle}</h1>
+      {postExcerpt && (
+        <p class="mt-4 text-lg text-gray-600">{postExcerpt}</p>
       )}
     </header>
 
     <div class="prose prose-gray max-w-none">
-      {post.content.split('\n').map(para => para.trim()).filter(Boolean).map(para => (
+      {postContent.split('\n').map(para => para.trim()).filter(Boolean).map(para => (
         <p class="text-gray-700 leading-relaxed mb-4">{para}</p>
       ))}
     </div>

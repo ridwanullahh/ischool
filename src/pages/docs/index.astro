@@ -5,9 +5,15 @@ import { platformDocs } from '../../lib/db/schema.js';
 import { eq, asc, and } from 'drizzle-orm';
 
 const db = getDb();
-const docs = await db.select().from(platformDocs)
-  .where(eq(platformDocs.isPublished, true))
-  .orderBy(asc(platformDocs.sortOrder)).all();
+let docs: any[] = [];
+try {
+  const result = await db.select().from(platformDocs)
+    .where(eq(platformDocs.isPublished, true))
+    .orderBy(asc(platformDocs.sortOrder)).all();
+  docs = Array.isArray(result) ? result : [];
+} catch (e: any) {
+  console.error('[docs/index] Error loading docs:', e?.message || e);
+}
 
 const categories = [...new Set(docs.map(d => d.category || 'Getting Started'))];
 ---

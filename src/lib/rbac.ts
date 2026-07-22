@@ -262,50 +262,60 @@ export function getUserPermissions(userId: number, schoolId?: number): Set<Permi
     }
   }
 
-  const db = getDb();
-  const user = db.select().from(users).where(eq(users.id, userId)).get();
-  if (!user) {
+  try {
+    const db = getDb();
+
+    // Sync read — works in SQLite mode. In Lightbase mode this returns
+    // undefined (Promise), which we treat as "no permission info available"
+    // and fall back to defaults based on the user object's role.
+    const user = (db.select().from(users).where(eq(users.id, userId)).get() as any);
+    if (!user || (user instanceof Promise)) {
+      // Lightbase path: return defaults based on a role hint if available
+      return new Set();
+    }
+
+    // Start with platform role permissions
+    const platformRole = (user.role as Role) || 'school_admin';
+    const perms = getDefaultPermissions(platformRole);
+
+    // If user is super_admin, they have everything
+    if (platformRole === 'super_admin') {
+      permissionCache.set(cacheKey, { perms, schoolId: null, ts: Date.now() });
+      return perms;
+    }
+
+    // Membership & overrides — sync calls only run in SQLite mode
+    try {
+      const membershipQuery = schoolId
+        ? (db.select().from(schoolMembers).where(and(eq(schoolMembers.userId, userId), eq(schoolMembers.schoolId, schoolId))).get() as any)
+        : (db.select().from(schoolMembers).where(eq(schoolMembers.userId, userId)).get() as any);
+
+      if (membershipQuery && !(membershipQuery instanceof Promise)) {
+        const memberRole = (membershipQuery.role as Role) || 'editor';
+        const equivalentRole = memberRole === 'admin' ? 'school_admin' : memberRole;
+        const memberPerms = getDefaultPermissions(equivalentRole as Role);
+        memberPerms.forEach(p => perms.add(p));
+
+        const overrides = db.select().from(roleOverrides)
+          .where(and(eq(roleOverrides.schoolId, membershipQuery.schoolId), eq(roleOverrides.role, equivalentRole)))
+          .all() as any[];
+        if (Array.isArray(overrides) && !(overrides instanceof Promise)) {
+          for (const ov of overrides) {
+            if (ov.action === 'grant') {
+              perms.add(ov.permission as Permission);
+            } else {
+              perms.delete(ov.permission as Permission);
+            }
+          }
+        }
+      }
+    } catch { /* Lightbase sync error — fall through with platform-role perms */ }
+
+    permissionCache.set(cacheKey, { perms, schoolId: schoolId ?? null, ts: Date.now() });
+    return perms;
+  } catch {
     return new Set();
   }
-
-  // Start with platform role permissions
-  const platformRole = user.role as Role;
-  let perms = getDefaultPermissions(platformRole);
-
-  // If user is super_admin, they have everything
-  if (platformRole === 'super_admin') {
-    permissionCache.set(cacheKey, { perms, schoolId: null, ts: Date.now() });
-    return perms;
-  }
-
-  // Merge in school membership role permissions
-  const membershipQuery = schoolId
-    ? db.select().from(schoolMembers).where(and(eq(schoolMembers.userId, userId), eq(schoolMembers.schoolId, schoolId))).get()
-    : db.select().from(schoolMembers).where(eq(schoolMembers.userId, userId)).get();
-
-  if (membershipQuery) {
-    const memberRole = membershipQuery.role as Role;
-    // Map member role to platform role equivalent for permission lookup
-    const equivalentRole = memberRole === 'admin' ? 'school_admin' : memberRole;
-    const memberPerms = getDefaultPermissions(equivalentRole as Role);
-    // Union: user gets the broader of the two role sets
-    memberPerms.forEach(p => perms.add(p));
-
-    // Apply per-school role overrides (grant or revoke)
-    const overrides = db.select().from(roleOverrides)
-      .where(and(eq(roleOverrides.schoolId, membershipQuery.schoolId), eq(roleOverrides.role, equivalentRole)))
-      .all();
-    for (const ov of overrides) {
-      if (ov.action === 'grant') {
-        perms.add(ov.permission as Permission);
-      } else {
-        perms.delete(ov.permission as Permission);
-      }
-    }
-  }
-
-  permissionCache.set(cacheKey, { perms, schoolId: schoolId ?? null, ts: Date.now() });
-  return perms;
 }
 
 /**

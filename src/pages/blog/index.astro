@@ -6,9 +6,15 @@ import { eq, desc, and } from 'drizzle-orm';
 import { formatDate } from '../../lib/utils.js';
 
 const db = getDb();
-const posts = await db.select().from(platformBlogPosts)
-  .where(eq(platformBlogPosts.isPublished, true))
-  .orderBy(desc(platformBlogPosts.publishedAt)).all();
+let posts: any[] = [];
+try {
+  const result = await db.select().from(platformBlogPosts)
+    .where(eq(platformBlogPosts.isPublished, true))
+    .orderBy(desc(platformBlogPosts.publishedAt)).all();
+  posts = Array.isArray(result) ? result : [];
+} catch (e: any) {
+  console.error('[blog/index] Error loading posts:', e?.message || e);
+}
 ---
 
 <MarketingLayout title="Blog - iSchool">

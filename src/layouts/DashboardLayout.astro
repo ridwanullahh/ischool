@@ -24,10 +24,14 @@ if (user && (user.role === 'student' || user.role === 'teacher' || user.role ===
 
 let school = null;
 if (user) {
-  const db = getDb();
-  const membership = db.select().from(schoolMembers).where(eq(schoolMembers.userId, user.id)).get();
-  if (membership) {
-    school = db.select().from(schools).where(eq(schools.id, membership.schoolId)).get();
+  try {
+    const db = getDb();
+    const membership = await db.select().from(schoolMembers).where(eq(schoolMembers.userId, user.id)).get();
+    if (membership) {
+      school = await db.select().from(schools).where(eq(schools.id, membership.schoolId)).get();
+    }
+  } catch (e) {
+    // Lightbase or DB error — continue without school
   }
 }
 
@@ -302,7 +306,7 @@ const isSectionActive = (items: Array<{href: string}>) => items.some(item => isA
         <!-- User Profile -->
         <div class="p-3" style="border-top: 1px solid var(--border);">
           {school && (
-            <a href={`/${school.slug}`} target="_blank" class="flex items-center gap-2 text-sm mb-2 px-3 py-2 rounded-xl transition-colors" style="color: var(--primary);">
+            <a href={`/${school?.slug || ''}`} target="_blank" class="flex items-center gap-2 text-sm mb-2 px-3 py-2 rounded-xl transition-colors" style="color: var(--primary);">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
               View Website
             </a>

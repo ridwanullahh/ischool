@@ -1,16 +1,15 @@
 ---
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
-import { getUserSchoolId } from '../../lib/school.js';
 import { getDb } from '../../lib/db/index.js';
 import {
   announcements, blogPosts, classes, contactSubmissions, galleryItems, faqs,
   students, staff, courses, invoices, payments, attendance, events, messages,
-  libraryBooks, vehicles, assets, exams, examSeries,
+  libraryBooks, vehicles, assets,
 } from '../../lib/db/schema.js';
 import { eq, sql, desc } from 'drizzle-orm';
 
 const user = Astro.locals.user!;
-const schoolId = getUserSchoolId(user.id);
+const schoolId = user.schoolId ?? null;
 
 let cmsStats = { announcements: 0, posts: 0, classes: 0, submissions: 0, gallery: 0, faqs: 0 };
 let moduleStats = { students: 0, staff: 0, courses: 0, revenue: 0, pendingPayments: 0, events: 0, messages: 0, books: 0, vehicles: 0, assets: 0, exams: 0, todayAttendance: 0 };
@@ -19,51 +18,91 @@ let recentActivity: any[] = [];
 if (schoolId) {
   const db = getDb();
   try {
+    // Count helper — awaits async Lightbase calls, returns 0 on error
+    const countOf = async (table: any): Promise<number> => {
+      try {
+        const rows = await db.select().from(table).where(eq(table.schoolId, schoolId)).all();
+        return Array.isArray(rows) ? rows.length : 0;
+      } catch { return 0; }
+    };
 
-  cmsStats = {
-    announcements: db.select({ count: sql<number>`count(*)` }).from(announcements).where(eq(announcements.schoolId, schoolId)).get()?.count || 0,
-    posts: db.select({ count: sql<number>`count(*)` }).from(blogPosts).where(eq(blogPosts.schoolId, schoolId)).get()?.count || 0,
-    classes: db.select({ count: sql<number>`count(*)` }).from(classes).where(eq(classes.schoolId, schoolId)).get()?.count || 0,
-    submissions: db.select({ count: sql<number>`count(*)` }).from(contactSubmissions).where(eq(contactSubmissions.schoolId, schoolId)).get()?.count || 0,
-    gallery: db.select({ count: sql<number>`count(*)` }).from(galleryItems).where(eq(galleryItems.schoolId, schoolId)).get()?.count || 0,
-    faqs: db.select({ count: sql<number>`count(*)` }).from(faqs).where(eq(faqs.schoolId, schoolId)).get()?.count || 0,
-  };
+    cmsStats = {
+      announcements: await countOf(announcements),
+      posts: await countOf(blogPosts),
+      classes: await countOf(classes),
+      submissions: await countOf(contactSubmissions),
+      gallery: await countOf(galleryItems),
+      faqs: await countOf(faqs),
+    };
 
-  moduleStats = {
-    students: db.select({ count: sql<number>`count(*)` }).from(students).where(eq(students.schoolId, schoolId)).get()?.count || 0,
-    staff: db.select({ count: sql<number>`count(*)` }).from(staff).where(eq(staff.schoolId, schoolId)).get()?.count || 0,
-    courses: db.select({ count: sql<number>`count(*)` }).from(courses).where(eq(courses.schoolId, schoolId)).get()?.count || 0,
-    revenue: db.select({ total: sql<number>`coalesce(sum(${payments.amount}), 0)` }).from(payments).where(eq(payments.schoolId, schoolId)).get()?.total || 0,
-    pendingPayments: db.select({ count: sql<number>`count(*)` }).from(invoices).where(sql`${invoices.schoolId} = ${schoolId} AND ${invoices.status} != 'paid'`).get()?.count || 0,
-    events: db.select({ count: sql<number>`count(*)` }).from(events).where(eq(events.schoolId, schoolId)).get()?.count || 0,
-    messages: db.select({ count: sql<number>`count(*)` }).from(messages).where(eq(messages.schoolId, schoolId)).get()?.count || 0,
-    books: db.select({ count: sql<number>`count(*)` }).from(libraryBooks).where(eq(libraryBooks.schoolId, schoolId)).get()?.count || 0,
-    vehicles: db.select({ count: sql<number>`count(*)` }).from(vehicles).where(eq(vehicles.schoolId, schoolId)).get()?.count || 0,
-    assets: db.select({ count: sql<number>`count(*)` }).from(assets).where(eq(assets.schoolId, schoolId)).get()?.count || 0,
-    exams: 0,
-    todayAttendance: 0,
-  };
+    moduleStats = {
+      students: await countOf(students),
+      staff: await countOf(staff),
+      courses: await countOf(courses),
+      revenue: 0,
+      pendingPayments: 0,
+      events: await countOf(events),
+      messages: await countOf(messages),
+      books: await countOf(libraryBooks),
+      vehicles: await countOf(vehicles),
+      assets: await countOf(assets),
+      exams: 0,
+      todayAttendance: 0,
+    };
 
-  const today = new Date().toISOString().split('T')[0];
-  moduleStats.todayAttendance = await db.select({ count: sql<number>`count(*)` }).from(attendance).where(sql`${attendance.schoolId} = ${schoolId} AND ${attendance.date} = ${today}`).get()?.count || 0;
+    // Compute revenue (sum of payments)
+    try {
+      const paymentRows = await db.select().from(payments).where(eq(payments.schoolId, schoolId)).all();
+      moduleStats.revenue = (paymentRows || []).reduce((sum: number, p: any) => {
+        const amt = typeof p.amount === 'number' ? p.amount : Number(p.amount) || 0;
+        return sum + amt;
+      }, 0);
+    } catch { /* ignore */ }
 
-  const allSeries = await db.select().from(examSeries).where(eq(examSeries.schoolId, schoolId)).all();
-  if (allSeries.length > 0) {
-    const seriesIds = allSeries.map(s => s.id);
-    moduleStats.exams = await db.select({ count: sql<number>`count(*)` }).from(exams).where(sql`${exams.seriesId} IN (${sql.join(seriesIds.map(id => sql`${id}`), sql`, `)})`).get()?.count || 0;
-  }
+    // Pending invoices count
+    try {
+      const invoiceRows = await db.select().from(invoices).where(eq(invoices.schoolId, schoolId)).all();
+      moduleStats.pendingPayments = (invoiceRows || []).filter((i: any) => i.status !== 'paid').length;
+    } catch { /* ignore */ }
 
-  const recentStudents = await db.select({ type: sql`'student'`, name: sql`${students.firstName} || ' ' || ${students.lastName}`, date: students.createdAt }).from(students).where(eq(students.schoolId, schoolId)).orderBy(desc(students.createdAt)).limit(3).all();
-  const recentEvents = await db.select({ type: sql`'event'`, name: events.title, date: events.createdAt }).from(events).where(eq(events.schoolId, schoolId)).orderBy(desc(events.createdAt)).limit(3).all();
-  const recentCourses = await db.select({ type: sql`'course'`, name: courses.title, date: courses.createdAt }).from(courses).where(eq(courses.schoolId, schoolId)).orderBy(desc(courses.createdAt)).limit(3).all();
-  recentActivity = [...recentStudents, ...recentEvents, ...recentCourses]
-    .sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime())
-    .slice(0, 8);
-  } catch (e) {
+    // Today's attendance
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const attRows = await db.select().from(attendance).where(eq(attendance.schoolId, schoolId)).all();
+      moduleStats.todayAttendance = (attRows || []).filter((a: any) => {
+        if (!a.date) return false;
+        const ds = typeof a.date === 'string' ? a.date : new Date(a.date).toISOString().split('T')[0];
+        return ds === today;
+      }).length;
+    } catch { /* ignore */ }
+
+    // Recent activity — students, events, courses
+    const [recentStudents, recentEvents, recentCourses] = await Promise.all([
+      db.select().from(students).where(eq(students.schoolId, schoolId)).orderBy(desc(students.createdAt)).limit(3).all().catch(() => []),
+      db.select().from(events).where(eq(events.schoolId, schoolId)).orderBy(desc(events.createdAt)).limit(3).all().catch(() => []),
+      db.select().from(courses).where(eq(courses.schoolId, schoolId)).orderBy(desc(courses.createdAt)).limit(3).all().catch(() => []),
+    ]);
+
+    const fmt = (arr: any[], type: string) => (arr || []).map((r: any) => ({
+      type,
+      name: r.title || [r.firstName, r.lastName].filter(Boolean).join(' ') || r.name || 'Untitled',
+      date: r.createdAt || r.created_at,
+    }));
+
+    recentActivity = [...fmt(recentStudents, 'student'), ...fmt(recentEvents, 'event'), ...fmt(recentCourses, 'course')]
+      .sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime())
+      .slice(0, 8);
+  } catch (e: any) {
     // Gracefully degrade — dashboard shows zeros if DB queries fail
-    console.error('Dashboard stats error:', e);
+    console.error('Dashboard stats error:', e?.message || e);
   }
 }
+
+// Safe user display name — never crash on missing name
+const userDisplayName: string = (() => {
+  const name = (user as any)?.name || (user as any)?.email || 'User';
+  return String(name).split(' ')[0];
+})();
 
 const quickActions = [
   { label: 'Add Student', href: '/dashboard/students', icon: 'M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z' },
@@ -102,7 +141,7 @@ const cmsCards = [
 <DashboardLayout title="Dashboard - iSchool">
   <div class="space-y-8">
     <div>
-      <h2 class="text-2xl font-bold text-gray-900">Welcome back, {user.name.split(' ')[0]}</h2>
+      <h2 class="text-2xl font-bold text-gray-900">Welcome back, {userDisplayName}</h2>
       <p class="text-gray-500 mt-1">Here's an overview of your school's activity.</p>
     </div>
 

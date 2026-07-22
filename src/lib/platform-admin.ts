@@ -30,17 +30,23 @@ export async function createPlatformAdminSession(email: string): Promise<{ sessi
   const { eq } = await import('drizzle-orm');
   const db = getDb();
 
-  let user = db.select().from(users).where(eq(users.email, email)).get();
+  let user: any = null;
+  try {
+    user = await db.select().from(users).where(eq(users.email, email)).get();
+  } catch (e: any) {
+    console.error('[platform-admin] lookup error:', e?.message || e);
+    throw new Error('Failed to look up platform admin');
+  }
   if (!user) {
     const bcrypt = await import('bcryptjs');
-    [user] = db.insert(users).values({
+    user = await db.insert(users).values({
       email,
       passwordHash: await bcrypt.default.hash(Math.random().toString(36), 12),
       name: 'Platform Admin',
       role: 'super_admin',
-    }).returning().all();
+    }).returning();
   } else if (user.role !== 'super_admin') {
-    db.update(users).set({ role: 'super_admin' }).where(eq(users.id, user.id)).run();
+    await db.update(users).set({ role: 'super_admin' }).where(eq(users.id, user.id)).run();
     user = { ...user, role: 'super_admin' };
   }
 

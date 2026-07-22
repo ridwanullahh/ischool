@@ -11,6 +11,10 @@ export async function hashPassword(password: string): Promise<string> {
 }
 
 export async function verifyPassword(password: string, hash: string): Promise<boolean> {
+  // Defensive: hash must be a non-empty string. If a user row was created
+  // without a password hash (e.g. legacy data), bcrypt.compare would throw
+  // on undefined/null — return false instead.
+  if (!hash || typeof hash !== 'string') return false;
   return bcrypt.compare(password, hash);
 }
 
@@ -19,40 +23,71 @@ export async function createSession(userId: number): Promise<string> {
   const id = nanoid(32);
   const expiresAt = new Date(Date.now() + SESSION_DURATION * 1000);
 
-  db.insert(sessions).values({ id, userId, expiresAt }).run();
+  await db.insert(sessions).values({ id, userId, expiresAt }).run();
   return id;
 }
 
 export async function validateSession(sessionId: string) {
   const db = getDb();
-  const session = db.select().from(sessions).where(eq(sessions.id, sessionId)).get();
 
-  if (!session) return null;
-
-  if (new Date() > session.expiresAt) {
-    db.delete(sessions).where(eq(sessions.id, sessionId)).run();
+  let session: any = null;
+  try {
+    session = await db.select().from(sessions).where(eq(sessions.id, sessionId)).get();
+  } catch (e: any) {
+    console.error('[auth.validateSession] lookup error:', e?.message || e);
     return null;
   }
 
-  const user = db.select({
-    id: users.id,
-    email: users.email,
-    name: users.name,
-    role: users.role,
-    avatarUrl: users.avatarUrl,
-  }).from(users).where(eq(users.id, session.userId)).get();
+  if (!session) return null;
+
+  // Normalize session fields (snake_case from Lightbase → camelCase)
+  const sessionUserId = session.userId ?? session.user_id;
+  const sessionExpiresAt = session.expiresAt ?? session.expires_at;
+
+  if (new Date() > new Date(sessionExpiresAt)) {
+    try { await db.delete(sessions).where(eq(sessions.id, sessionId)).run(); } catch { /* ignore */ }
+    return null;
+  }
+
+  let user: any = null;
+  try {
+    user = await db.select({
+      id: users.id,
+      email: users.email,
+      name: users.name,
+      role: users.role,
+      avatarUrl: users.avatarUrl,
+    }).from(users).where(eq(users.id, sessionUserId)).get();
+  } catch (e: any) {
+    console.error('[auth.validateSession] user lookup error:', e?.message || e);
+    return null;
+  }
 
   if (!user) return null;
 
-  const newExpiry = new Date(Date.now() + SESSION_DURATION * 1000);
-  db.update(sessions).set({ expiresAt: newExpiry }).where(eq(sessions.id, sessionId)).run();
+  // Normalize user fields
+  const normalizedUser = {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role,
+    avatarUrl: user.avatarUrl ?? user.avatar_url ?? null,
+  };
 
-  return { session, user };
+  // Refresh session expiry
+  const newExpiry = new Date(Date.now() + SESSION_DURATION * 1000);
+  try { await db.update(sessions).set({ expiresAt: newExpiry }).where(eq(sessions.id, sessionId)).run(); } catch { /* ignore */ }
+
+  return { session, user: normalizedUser };
 }
 
 export async function deleteSession(sessionId: string): Promise<void> {
   const db = getDb();
-  db.delete(sessions).where(eq(sessions.id, sessionId)).run();
+  try {
+    await db.delete(sessions).where(eq(sessions.id, sessionId)).run();
+  } catch (e: any) {
+    console.error('[auth.deleteSession] error:', e?.message || e);
+  }
 }
 
 export function setSessionCookie(headers: Headers, sessionId: string): void {
