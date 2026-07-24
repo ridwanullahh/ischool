@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { nanoid } from 'nanoid';
-import { getDb } from './db/index.js';
+import { getDb, isLightbase } from './db/index.js';
+import { getLightbaseDb } from './db/lightbase-adapter.js';
 import { users, sessions } from './db/schema.js';
 import { eq } from 'drizzle-orm';
 
@@ -23,49 +24,95 @@ export async function createSession(userId: number): Promise<string> {
   const id = nanoid(32);
   const expiresAt = new Date(Date.now() + SESSION_DURATION * 1000);
 
-  await db.insert(sessions).values({ id, userId, expiresAt }).run();
+  if (isLightbase()) {
+    // Lightbase: id is auto-generated; we store the session token in `session_id`
+    await getLightbaseDb().raw.insert('sessions', {
+      session_id: id,
+      user_id: String(userId),
+      expires_at: expiresAt.toISOString(),
+      created_at: new Date().toISOString(),
+    });
+  } else {
+    // SQLite: id is the session token
+    await db.insert(sessions).values({ id, userId, expiresAt } as any).run();
+  }
   return id;
 }
 
 export async function validateSession(sessionId: string) {
-  const db = getDb();
+  if (!sessionId) return null;
 
   let session: any = null;
-  try {
-    session = await db.select().from(sessions).where(eq(sessions.id, sessionId)).get();
-  } catch (e: any) {
-    console.error('[auth.validateSession] lookup error:', e?.message || e);
-    return null;
+
+  if (isLightbase()) {
+    // Lightbase: query by session_id field
+    try {
+      const result = await getLightbaseDb().raw.query('sessions', {
+        filter: { field: 'session_id', op: 'eq', value: sessionId },
+        limit: 1,
+      });
+      session = result.data?.[0] || null;
+    } catch (e: any) {
+      console.error('[auth.validateSession] Lightbase lookup error:', e?.message || e);
+      return null;
+    }
+  } else {
+    const db = getDb();
+    try {
+      session = await db.select().from(sessions).where(eq(sessions.id, sessionId)).get();
+    } catch (e: any) {
+      console.error('[auth.validateSession] lookup error:', e?.message || e);
+      return null;
+    }
   }
 
   if (!session) return null;
 
-  // Normalize session fields (snake_case from Lightbase → camelCase)
   const sessionUserId = session.userId ?? session.user_id;
   const sessionExpiresAt = session.expiresAt ?? session.expires_at;
 
   if (new Date() > new Date(sessionExpiresAt)) {
-    try { await db.delete(sessions).where(eq(sessions.id, sessionId)).run(); } catch { /* ignore */ }
+    // Delete expired session
+    if (isLightbase() && session.id) {
+      try { await getLightbaseDb().raw.delete('sessions', session.id); } catch { /* ignore */ }
+    } else {
+      const db = getDb();
+      try { await db.delete(sessions).where(eq(sessions.id, sessionId)).run(); } catch { /* ignore */ }
+    }
     return null;
   }
 
+  // Look up the user
   let user: any = null;
-  try {
-    user = await db.select({
-      id: users.id,
-      email: users.email,
-      name: users.name,
-      role: users.role,
-      avatarUrl: users.avatarUrl,
-    }).from(users).where(eq(users.id, sessionUserId)).get();
-  } catch (e: any) {
-    console.error('[auth.validateSession] user lookup error:', e?.message || e);
-    return null;
+  if (isLightbase()) {
+    try {
+      user = await getLightbaseDb().raw.query('users', {
+        filter: { field: 'id', op: 'eq', value: sessionUserId },
+        limit: 1,
+      });
+      user = user.data?.[0] || null;
+    } catch (e: any) {
+      console.error('[auth.validateSession] user lookup error:', e?.message || e);
+      return null;
+    }
+  } else {
+    const db = getDb();
+    try {
+      user = await db.select({
+        id: users.id,
+        email: users.email,
+        name: users.name,
+        role: users.role,
+        avatarUrl: users.avatarUrl,
+      }).from(users).where(eq(users.id, sessionUserId)).get();
+    } catch (e: any) {
+      console.error('[auth.validateSession] user lookup error:', e?.message || e);
+      return null;
+    }
   }
 
   if (!user) return null;
 
-  // Normalize user fields
   const normalizedUser = {
     id: user.id,
     email: user.email,
@@ -76,17 +123,41 @@ export async function validateSession(sessionId: string) {
 
   // Refresh session expiry
   const newExpiry = new Date(Date.now() + SESSION_DURATION * 1000);
-  try { await db.update(sessions).set({ expiresAt: newExpiry }).where(eq(sessions.id, sessionId)).run(); } catch { /* ignore */ }
+  if (isLightbase() && session.id) {
+    try {
+      await getLightbaseDb().raw.update('sessions', session.id, {
+        expires_at: newExpiry.toISOString(),
+      });
+    } catch { /* ignore */ }
+  } else {
+    const db = getDb();
+    try { await db.update(sessions).set({ expiresAt: newExpiry }).where(eq(sessions.id, sessionId)).run(); } catch { /* ignore */ }
+  }
 
   return { session, user: normalizedUser };
 }
 
 export async function deleteSession(sessionId: string): Promise<void> {
-  const db = getDb();
-  try {
-    await db.delete(sessions).where(eq(sessions.id, sessionId)).run();
-  } catch (e: any) {
-    console.error('[auth.deleteSession] error:', e?.message || e);
+  if (isLightbase()) {
+    try {
+      const result = await getLightbaseDb().raw.query('sessions', {
+        filter: { field: 'session_id', op: 'eq', value: sessionId },
+        limit: 1,
+      });
+      const session = result.data?.[0];
+      if (session?.id) {
+        await getLightbaseDb().raw.delete('sessions', session.id);
+      }
+    } catch (e: any) {
+      console.error('[auth.deleteSession] error:', e?.message || e);
+    }
+  } else {
+    const db = getDb();
+    try {
+      await db.delete(sessions).where(eq(sessions.id, sessionId)).run();
+    } catch (e: any) {
+      console.error('[auth.deleteSession] error:', e?.message || e);
+    }
   }
 }
 

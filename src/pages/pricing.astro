@@ -5,7 +5,23 @@ import { subscriptionPlans } from '../lib/db/schema.js';
 import { eq, asc } from 'drizzle-orm';
 
 const db = getDb();
-const plans = await db.select().from(subscriptionPlans).where(eq(subscriptionPlans.isActive, true)).orderBy(asc(subscriptionPlans.sortOrder)).all();
+let plans: any[] = [];
+try {
+  const result = await db.select().from(subscriptionPlans).where(eq(subscriptionPlans.isActive, true)).orderBy(asc(subscriptionPlans.sortOrder)).all();
+  plans = Array.isArray(result) ? result : [];
+} catch (e: any) {
+  console.error('[pricing] Error loading plans:', e?.message || e);
+}
+
+// Defensive field extraction — Lightbase stores features as JSON string,
+// but SQLite mode would parse it via Drizzle. Normalize both ways.
+function parseFeatures(val: any): string[] {
+  if (Array.isArray(val)) return val;
+  if (typeof val === 'string' && val.trim()) {
+    try { const p = JSON.parse(val); return Array.isArray(p) ? p : []; } catch { return []; }
+  }
+  return [];
+}
 ---
 
 <MarketingLayout title="Pricing - iSchool" description="Simple, transparent pricing for school management software. Start free, upgrade when you're ready.">
@@ -19,22 +35,29 @@ const plans = await db.select().from(subscriptionPlans).where(eq(subscriptionPla
 
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 max-w-7xl mx-auto">
         {plans.map(plan => {
-          const features = (plan.features as string[]) || [];
+          const features = parseFeatures(plan.features);
+          const monthlyPrice = (plan.price_monthly ?? plan.monthlyPrice ?? 0) as number;
+          const annualPrice = (plan.price_yearly ?? plan.annualPrice ?? 0) as number;
+          const maxStudents = (plan.max_students ?? plan.maxStudents) as number;
+          const isPopular = plan.is_popular ?? plan.isPopular ?? false;
+          const isFree = monthlyPrice === 0;
           return (
-            <div class:list={['bg-white rounded-2xl p-6 shadow-sm relative flex flex-col', plan.isPopular ? 'border-2 border-primary-500 shadow-xl shadow-primary-100' : 'border border-gray-200']}>
-              {plan.isPopular && <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-primary-600 to-primary-700 text-white text-xs font-bold px-4 py-1 rounded-full shadow-lg">Most Popular</div>}
-              {plan.isFree && <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-green-500 text-white text-xs font-bold px-4 py-1 rounded-full">Free Forever</div>}
+            <div class:list={['bg-white rounded-2xl p-6 shadow-sm relative flex flex-col', isPopular ? 'border-2 border-primary-500 shadow-xl shadow-primary-100' : 'border border-gray-200']}>
+              {isPopular && <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-primary-600 to-primary-700 text-white text-xs font-bold px-4 py-1 rounded-full shadow-lg">Most Popular</div>}
+              {isFree && <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-green-500 text-white text-xs font-bold px-4 py-1 rounded-full">Free Forever</div>}
               <div class="mb-4">
                 <h3 class="text-lg font-bold text-gray-900">{plan.name}</h3>
                 <p class="text-sm text-gray-500 mt-1">{plan.description}</p>
               </div>
               <div class="mb-6">
                 <div class="flex items-baseline gap-1">
-                  <span class="text-4xl font-black text-gray-900">${(plan.monthlyPrice / 100).toFixed(0)}</span>
+                  <span class="text-4xl font-black text-gray-900">N{(monthlyPrice / 100).toFixed(0)}</span>
                   <span class="text-gray-500 text-sm">/mo</span>
                 </div>
-                {plan.annualPrice > 0 && (
-                  <p class="text-sm text-gray-500 mt-1">or ${(plan.annualPrice / 100).toFixed(0)}/year <span class="text-green-600 font-medium">(save {Math.round((1 - plan.annualPrice / (plan.monthlyPrice * 12)) * 100)}%)</span></p>
+                {annualPrice > 0 && (
+                  <p class="text-sm text-gray-500 mt-1">or N{(annualPrice / 100).toFixed(0)}/year {monthlyPrice > 0 && annualPrice < monthlyPrice * 12 && (
+                    <span class="text-green-600 font-medium">(save {Math.round((1 - annualPrice / (monthlyPrice * 12)) * 100)}%)</span>
+                  )}</p>
                 )}
               </div>
               <ul class="space-y-2.5 mb-6 flex-1">
@@ -46,18 +69,18 @@ const plans = await db.select().from(subscriptionPlans).where(eq(subscriptionPla
                 ))}
                 <li class="flex items-start gap-2.5 text-sm text-gray-600">
                   <svg class="w-4 h-4 text-green-500 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                  Up to {plan.maxStudents || 'Unlimited'} students
+                  Up to {maxStudents || 'Unlimited'} students
                 </li>
                 <li class="flex items-start gap-2.5 text-sm text-gray-600">
                   <svg class="w-4 h-4 text-green-500 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                  Up to {plan.maxStaff || 'Unlimited'} staff
+                  Up to {(plan.max_staff ?? plan.maxStaff) || 'Unlimited'} staff
                 </li>
-                {plan.customDomain && <li class="flex items-start gap-2.5 text-sm text-gray-600"><svg class="w-4 h-4 text-green-500 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Custom domain</li>}
-                {plan.apiAccess && <li class="flex items-start gap-2.5 text-sm text-gray-600"><svg class="w-4 h-4 text-green-500 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>API access</li>}
-                {plan.prioritySupport && <li class="flex items-start gap-2.5 text-sm text-gray-600"><svg class="w-4 h-4 text-green-500 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Priority support</li>}
+                {(plan.custom_domain ?? plan.customDomain) && <li class="flex items-start gap-2.5 text-sm text-gray-600"><svg class="w-4 h-4 text-green-500 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Custom domain</li>}
+                {(plan.api_access ?? plan.apiAccess) && <li class="flex items-start gap-2.5 text-sm text-gray-600"><svg class="w-4 h-4 text-green-500 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>API access</li>}
+                {(plan.priority_support ?? plan.prioritySupport) && <li class="flex items-start gap-2.5 text-sm text-gray-600"><svg class="w-4 h-4 text-green-500 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Priority support</li>}
               </ul>
-              <a href={`/checkout?plan=${plan.slug}`} class:list={['block w-full text-center px-4 py-3 text-sm font-bold rounded-xl transition-all', plan.isPopular ? 'text-white bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 shadow-lg shadow-primary-200' : plan.isFree ? 'text-green-700 bg-green-50 border border-green-200 hover:bg-green-100' : 'text-primary-700 border-2 border-primary-200 hover:bg-primary-50']}>
-                {plan.isFree ? 'Get Started Free' : 'Start Free Trial'}
+              <a href={`/checkout?plan=${plan.slug}`} class:list={['block w-full text-center px-4 py-3 text-sm font-bold rounded-xl transition-all', isPopular ? 'text-white bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 shadow-lg shadow-primary-200' : isFree ? 'text-green-700 bg-green-50 border border-green-200 hover:bg-green-100' : 'text-primary-700 border-2 border-primary-200 hover:bg-primary-50']}>
+                {isFree ? 'Get Started Free' : 'Start Free Trial'}
               </a>
             </div>
           );
@@ -72,7 +95,7 @@ const plans = await db.select().from(subscriptionPlans).where(eq(subscriptionPla
       )}
 
       <div class="mt-16 text-center">
-        <p class="text-gray-500 text-sm">All paid plans include a {plans[0]?.trialDays || 14}-day free trial. No credit card required. Cancel anytime.</p>
+        <p class="text-gray-500 text-sm">All paid plans include a 14-day free trial. No credit card required. Cancel anytime.</p>
         <div class="mt-6 flex items-center justify-center gap-6 text-sm text-gray-500">
           <span class="flex items-center gap-2"><svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/></svg> Secure payments</span>
           <span class="flex items-center gap-2"><svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> Stripe, PayPal, Paystack</span>

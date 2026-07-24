@@ -10,14 +10,20 @@ import { getSchoolBySlugAsync, setSchoolCache, preloadSchoolData } from './schoo
 
 const authPaths = ['/api/auth/login', '/api/auth/register', '/api/auth/password-reset'];
 
-// Auto-seed flag — runs once on first request
+// Auto-seed is DISABLED for Lightbase mode. The database has been seeded
+// comprehensively and manually via `scripts/seed-lightbase.ts`. To re-seed,
+// run that script explicitly. The auto-seed code remains in
+// `src/lib/db/auto-seed.ts` for reference and future use.
+//
+// To re-enable auto-seed, set environment variable ENABLE_AUTO_SEED=true.
 let _autoSeedTriggered = false;
+const ENABLE_AUTO_SEED = process.env.ENABLE_AUTO_SEED === 'true';
 
 export const onRequest = defineMiddleware(async (context, next) => {
   const { pathname } = context.url;
 
-  // Trigger auto-seed for Lightbase on first request (non-blocking but logs errors)
-  if (!_autoSeedTriggered && isLightbase()) {
+  // Trigger auto-seed for Lightbase on first request (only if explicitly enabled)
+  if (ENABLE_AUTO_SEED && !_autoSeedTriggered && isLightbase()) {
     _autoSeedTriggered = true;
     import('./db/auto-seed.js').then(m => m.autoSeedLightbase()).catch(e => console.error('[Seed] Failed:', e));
   }

@@ -11,10 +11,15 @@
 import { LightbaseClient } from '../src/lib/lightbase.js';
 
 const client = new LightbaseClient({
-  apiKey: process.env.LIGHTBASE_API_KEY || 'lb_live_p8xrxsbw6mrf10yj5n6b3sdt13tapx5xvxzpqvybfnsz8anb0neg',
+  apiKey: process.env.LIGHTBASE_API_KEY || '',
   project: process.env.LIGHTBASE_PROJECT || 'edulink',
-  baseUrl: process.env.LIGHTBASE_BASE_URL || 'http://lightbase.80.225.189.74.sslip.io',
+  baseUrl: process.env.LIGHTBASE_BASE_URL || '',
 });
+
+if (!process.env.LIGHTBASE_API_KEY || !process.env.LIGHTBASE_BASE_URL) {
+  console.error('ERROR: LIGHTBASE_API_KEY and LIGHTBASE_BASE_URL environment variables are required.');
+  process.exit(1);
+}
 
 // Helper to create a text field
 function text(name: string, opts: any = {}) {

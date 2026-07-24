@@ -10,7 +10,7 @@
  * Configuration via environment variables:
  *   LIGHTBASE_API_KEY  — API key for authentication
  *   LIGHTBASE_PROJECT  — Project ID (e.g., "edulink")
- *   LIGHTBASE_BASE_URL — Base URL (e.g., "http://lightbase.80.225.189.74.sslip.io")
+ *   LIGHTBASE_BASE_URL — Base URL (e.g., "https://your-lightbase-instance.example.com")
  */
 
 export interface LightbaseConfig {
@@ -51,7 +51,7 @@ export class LightbaseClient {
     this.config = {
       apiKey: config?.apiKey || process.env.LIGHTBASE_API_KEY || '',
       project: config?.project || process.env.LIGHTBASE_PROJECT || 'edulink',
-      baseUrl: config?.baseUrl || process.env.LIGHTBASE_BASE_URL || 'http://lightbase.80.225.189.74.sslip.io',
+      baseUrl: config?.baseUrl || process.env.LIGHTBASE_BASE_URL || '',
     };
     this.headers = {
       'apikey': this.config.apiKey,

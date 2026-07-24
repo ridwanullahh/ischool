@@ -24,29 +24,54 @@ export function getPlatformAdminEmails(): string[] {
   return getPlatformAdmins().map(a => a.email);
 }
 
-export async function createPlatformAdminSession(email: string): Promise<{ sessionId: string; user: { id: number; email: string; name: string; role: string } }> {
-  const { getDb } = await import('./db/index.js');
+export async function createPlatformAdminSession(email: string): Promise<{ sessionId: string; user: { id: any; email: string; name: string; role: string } }> {
+  const { getDb, isLightbase } = await import('./db/index.js');
+  const { getLightbaseDb } = await import('./db/lightbase-adapter.js');
   const { users } = await import('./db/schema.js');
   const { eq } = await import('drizzle-orm');
   const db = getDb();
 
   let user: any = null;
   try {
-    user = await db.select().from(users).where(eq(users.email, email)).get();
+    if (isLightbase()) {
+      // Lightbase: query by email directly via raw client
+      const result = await getLightbaseDb().raw.query('users', {
+        filter: { field: 'email', op: 'eq', value: email.toLowerCase() },
+        limit: 1,
+      });
+      user = result.data?.[0] || null;
+    } else {
+      user = await db.select().from(users).where(eq(users.email, email)).get();
+    }
   } catch (e: any) {
     console.error('[platform-admin] lookup error:', e?.message || e);
     throw new Error('Failed to look up platform admin');
   }
+
   if (!user) {
     const bcrypt = await import('bcryptjs');
-    user = await db.insert(users).values({
-      email,
-      passwordHash: await bcrypt.default.hash(Math.random().toString(36), 12),
-      name: 'Platform Admin',
-      role: 'super_admin',
-    }).returning();
+    if (isLightbase()) {
+      user = await getLightbaseDb().raw.insert('users', {
+        email: email.toLowerCase(),
+        password_hash: await bcrypt.default.hash(Math.random().toString(36), 12),
+        name: 'Platform Admin',
+        role: 'super_admin',
+        is_active: true,
+      });
+    } else {
+      user = await db.insert(users).values({
+        email,
+        passwordHash: await bcrypt.default.hash(Math.random().toString(36), 12),
+        name: 'Platform Admin',
+        role: 'super_admin',
+      }).returning();
+    }
   } else if (user.role !== 'super_admin') {
-    await db.update(users).set({ role: 'super_admin' }).where(eq(users.id, user.id)).run();
+    if (isLightbase() && user.id) {
+      await getLightbaseDb().raw.update('users', user.id, { role: 'super_admin' });
+    } else {
+      await db.update(users).set({ role: 'super_admin' }).where(eq(users.id, user.id)).run();
+    }
     user = { ...user, role: 'super_admin' };
   }
 
