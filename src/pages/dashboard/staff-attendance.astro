@@ -16,7 +16,7 @@ import { getStaffForUser } from '../../lib/portal.js';
 const user = Astro.locals.user;
 if (!user) return Astro.redirect('/auth/login');
 
-const schoolId = getUserSchoolId(user.id);
+const schoolId = getUserSchoolId(user);
 const db = getDb();
 const today = new Date().toISOString().split('T')[0];
 const now = new Date();

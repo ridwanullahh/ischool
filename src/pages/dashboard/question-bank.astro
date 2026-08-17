@@ -17,7 +17,7 @@ const user = Astro.locals.user;
 if (!user) return Astro.redirect('/auth/login');
 if (!pageGuard(user, 'cbt.question_bank.manage')) return Astro.redirect('/dashboard');
 
-const schoolId = getUserSchoolId(user.id);
+const schoolId = getUserSchoolId(user);
 const db = getDb();
 
 const allQuestions = schoolId

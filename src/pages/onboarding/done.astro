@@ -3,7 +3,7 @@ import OnboardingLayout from '../../layouts/OnboardingLayout.astro';
 import { getUserSchool } from '../../lib/school.js';
 
 const user = Astro.locals.user!;
-const school = getUserSchool(user.id);
+const school = getUserSchool(user);
 ---
 <OnboardingLayout title="Setup Complete - iSchool" step={4}>
   <div class="bg-white rounded-xl border border-gray-200 p-8 text-center">

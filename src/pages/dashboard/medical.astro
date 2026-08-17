@@ -7,28 +7,23 @@ import { eq } from 'drizzle-orm';
 
 const user = Astro.locals.user!;
 if (!user) return Astro.redirect('/auth/login');
-const schoolId = getUserSchoolId(user.id);
+const schoolId = getUserSchoolId(user);
 if (!schoolId) return Astro.redirect('/dashboard');
 const db = getDb();
 
-const records = await db.select({
-  id: studentMedicalRecords.id,
-  studentId: studentMedicalRecords.studentId,
-  studentName: students.firstName,
-  studentLastName: students.lastName,
-  studentIdCode: students.studentId,
-  type: studentMedicalRecords.type,
-  title: studentMedicalRecords.title,
-  description: studentMedicalRecords.description,
-  severity: studentMedicalRecords.severity,
-  date: studentMedicalRecords.date,
-  createdAt: studentMedicalRecords.createdAt,
-}).from(studentMedicalRecords)
-  .leftJoin(students, eq(studentMedicalRecords.studentId, students.id))
-  .where(eq(studentMedicalRecords.schoolId, schoolId)).all();
-
-const allStudents = await db.select({ id: students.id, name: students.firstName, lastName: students.lastName, sid: students.studentId })
-  .from(students).where(eq(students.schoolId, schoolId)).all();
+// Fetch medical records and students separately, then join client-side
+const rawRecords = await db.select().from(studentMedicalRecords).where(eq(studentMedicalRecords.schoolId, schoolId)).all();
+const allStudents = await db.select().from(students).where(eq(students.schoolId, schoolId)).all();
+const studentMap = new Map((allStudents || []).map((s: any) => [s.id, s]));
+const records = (rawRecords || []).map((r: any) => {
+  const student = studentMap.get(r.studentId ?? r.student_id);
+  return {
+    ...r,
+    studentName: student?.firstName || student?.first_name || '',
+    studentLastName: student?.lastName || student?.last_name || '',
+    studentIdCode: student?.studentId || student?.student_id || '',
+  };
+});
 
 const typeLabels: Record<string, string> = {
   condition: 'Medical Condition', allergy: 'Allergy', medication: 'Medication',

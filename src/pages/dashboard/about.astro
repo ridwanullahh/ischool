@@ -8,7 +8,7 @@ import { aboutPages } from '../../lib/db/schema.js';
 import { eq } from 'drizzle-orm';
 
 const user = Astro.locals.user!;
-const schoolId = getUserSchoolId(user.id);
+const schoolId = getUserSchoolId(user);
 const db = getDb();
 
 let about = null;

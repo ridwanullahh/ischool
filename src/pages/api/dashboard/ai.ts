@@ -491,7 +491,7 @@ export const GET: APIRoute = async ({ locals, url }) => {
   if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
   const denied = guardPermission(user, 'platform.settings');
   if (denied) return denied;
-  const schoolId = getUserSchoolId(user.id);
+  const schoolId = getUserSchoolId(user);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 404 });
   const db = getDb();
   const action = url.searchParams.get('action');
@@ -527,7 +527,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
   const denied = guardPermission(user, 'platform.settings');
   if (denied) return denied;
-  const schoolId = getUserSchoolId(user.id);
+  const schoolId = getUserSchoolId(user);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 404 });
   const db = getDb();
   const data = await request.json();
@@ -776,7 +776,7 @@ export const DELETE: APIRoute = async ({ request, locals }) => {
   if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
   const denied = guardPermission(user, 'platform.settings');
   if (denied) return denied;
-  const schoolId = getUserSchoolId(user.id);
+  const schoolId = getUserSchoolId(user);
   const { id } = await request.json();
   if (!id) return new Response(JSON.stringify({ error: 'id required' }), { status: 400 });
   const db = getDb();

@@ -15,7 +15,7 @@ export const GET: APIRoute = async ({ locals, url }) => {
   if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
   const denied = guardPermission(user, 'courses.view');
   if (denied) return denied;
-  const schoolId = getUserSchoolId(user.id);
+  const schoolId = getUserSchoolId(user);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 404 });
   const db = getDb();
   const search = url.searchParams.get('search');
@@ -32,7 +32,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
   const denied = guardPermission(user, 'courses.create');
   if (denied) return denied;
-  const schoolId = getUserSchoolId(user.id);
+  const schoolId = getUserSchoolId(user);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 404 });
   const data = await request.json();
   if (!data.title || !data.slug) return new Response(JSON.stringify({ error: 'title and slug are required' }), { status: 400 });
@@ -57,7 +57,7 @@ export const PUT: APIRoute = async ({ request, locals }) => {
   if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
   const denied = guardPermission(user, 'courses.edit');
   if (denied) return denied;
-  const schoolId = getUserSchoolId(user.id);
+  const schoolId = getUserSchoolId(user);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 404 });
   const data = await request.json();
   if (!data.id) return new Response(JSON.stringify({ error: 'id is required' }), { status: 400 });
@@ -76,7 +76,7 @@ export const DELETE: APIRoute = async ({ request, locals }) => {
   if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
   const denied = guardPermission(user, 'courses.delete');
   if (denied) return denied;
-  const schoolId = getUserSchoolId(user.id);
+  const schoolId = getUserSchoolId(user);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 404 });
   const { id } = await request.json();
   const db = getDb();

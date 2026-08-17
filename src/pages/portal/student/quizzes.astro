@@ -16,7 +16,7 @@ if (!user) return Astro.redirect('/auth/login?redirect=/portal/student/quizzes')
 
 const student = getStudentForUser(user.id);
 if (!student) return Astro.redirect('/portal/no-profile');
-const schoolId = getUserSchoolId(user.id) ?? student.schoolId;
+const schoolId = getUserSchoolId(user) ?? student.schoolId;
 const db = getDb();
 
 // All published quizzes for the school

@@ -14,7 +14,7 @@ import { getStaffForUser, getUserSchoolId } from '../../../lib/portal.js';
 const user = Astro.locals.user;
 if (!user) return Astro.redirect('/auth/login?redirect=/portal/teacher/grades');
 
-const schoolId = getUserSchoolId(user.id);
+const schoolId = getUserSchoolId(user);
 const db = getDb();
 
 const selectedAssignmentId = Astro.url.searchParams.get('assignment');

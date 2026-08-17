@@ -16,7 +16,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const user = (locals as any).user;
   if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
 
-  const schoolId = getUserSchoolId(user.id);
+  const schoolId = getUserSchoolId(user);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 404 });
 
   const formData = await request.formData();

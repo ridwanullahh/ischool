@@ -7,7 +7,7 @@ import { eq, and, desc, sql } from 'drizzle-orm';
 
 const user = Astro.locals.user!;
 if (!user) return Astro.redirect('/auth/login');
-const schoolId = getUserSchoolId(user.id);
+const schoolId = getUserSchoolId(user);
 
 let records: any[] = [];
 let allStudents: any[] = [];
@@ -19,16 +19,17 @@ if (schoolId) {
   const db = getDb();
   allStudents = await db.select().from(students).where(eq(students.schoolId, schoolId)).all();
   allClasses = await db.select().from(classes).where(eq(classes.schoolId, schoolId)).all();
-  records = await db.select({
-    id: attendance.id, studentId: attendance.studentId, date: attendance.date,
-    period: attendance.period, status: attendance.status, notes: attendance.notes,
-    createdAt: attendance.createdAt,
-    studentName: sql`${students.firstName} || ' ' || ${students.lastName}`.as('student_name'),
-    studentIdentifier: students.studentId,
-  }).from(attendance)
-    .leftJoin(students, eq(attendance.studentId, students.id))
-    .where(eq(attendance.schoolId, schoolId))
-    .orderBy(desc(attendance.date)).limit(100).all();
+  const studentMap = new Map((allStudents || []).map((s: any) => [s.id, s]));
+  // Fetch attendance records without join, then join client-side
+  const rawRecords = await db.select().from(attendance).where(eq(attendance.schoolId, schoolId)).orderBy(desc(attendance.date)).limit(100).all();
+  records = (rawRecords || []).map((r: any) => {
+    const student = studentMap.get(r.studentId ?? r.student_id);
+    return {
+      ...r,
+      studentName: student ? `${student.firstName || student.first_name || ''} ${student.lastName || student.last_name || ''}`.trim() : 'Unknown',
+      studentIdentifier: student?.studentId || student?.student_id || '',
+    };
+  });
 
   const today = new Date().toISOString().split('T')[0];
   const todayRecords = records.filter(r => r.date === today);
@@ -42,13 +43,11 @@ if (schoolId) {
   // 7-day trend
   const sevenAgo = new Date(); sevenAgo.setDate(sevenAgo.getDate() - 6);
   const startDate = sevenAgo.toISOString().split('T')[0];
-  const trendRecords = await db.select().from(attendance)
-    .where(and(eq(attendance.schoolId, schoolId), sql`${attendance.date} >= ${startDate}`))
-    .all();
+  const trendRecords = await db.select().from(attendance).where(eq(attendance.schoolId, schoolId)).all();
   for (let i = 0; i < 7; i++) {
     const d = new Date(); d.setDate(d.getDate() - i);
     const ds = d.toISOString().split('T')[0];
-    const day = trendRecords.filter(r => r.date === ds);
+    const day = (trendRecords || []).filter(r => r.date === ds);
     trend.push({
       date: ds,
       present: day.filter(r => r.status === 'present').length,
@@ -60,22 +59,24 @@ if (schoolId) {
 }
 
 // Students per class for bulk entry
-const classStudentMap: Record<number, any[]> = {};
+const classStudentMap: Record<string, any[]> = {};
 if (schoolId) {
   const db = getDb();
-  const enr = await db.select({
-    classId: enrollments.classId,
-    studentId: students.id,
-    studentName: sql`${students.firstName} || ' ' || ${students.lastName}`.as('name'),
-    studentCode: students.studentId,
-  }).from(enrollments)
-    .leftJoin(students, eq(enrollments.studentId, students.id))
-    .where(and(eq(enrollments.schoolId, schoolId), eq(enrollments.status, 'accepted')))
-    .all();
-  for (const e of enr) {
-    if (e.classId) {
-      if (!classStudentMap[e.classId]) classStudentMap[e.classId] = [];
-      classStudentMap[e.classId].push({ id: e.studentId, name: e.studentName, code: e.studentCode });
+  const enr = await db.select().from(enrollments).where(eq(enrollments.schoolId, schoolId)).all();
+  const allStudentsForMap = allStudents;
+  const studentMap = new Map((allStudentsForMap || []).map((s: any) => [s.id, s]));
+  for (const e of (enr || [])) {
+    if (e.status !== 'accepted') continue;
+    const cid = e.classId ?? e.class_id;
+    if (!cid) continue;
+    if (!classStudentMap[cid]) classStudentMap[cid] = [];
+    const student = studentMap.get(e.studentId ?? e.student_id);
+    if (student) {
+      classStudentMap[cid].push({
+        id: student.id,
+        name: `${student.firstName || student.first_name || ''} ${student.lastName || student.last_name || ''}`.trim(),
+        code: student.studentId || student.student_id || '',
+      });
     }
   }
 }

@@ -16,7 +16,7 @@ const user = Astro.locals.user;
 if (!user) return Astro.redirect('/auth/login');
 if (!pageGuard(user, 'reports.view')) return Astro.redirect('/dashboard');
 
-const schoolId = getUserSchoolId(user.id);
+const schoolId = getUserSchoolId(user);
 const db = getDb();
 
 // Available report types with their data sources

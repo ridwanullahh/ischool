@@ -30,7 +30,7 @@ const { title } = Astro.props;
 const currentPath = Astro.url.pathname;
 
 const student = getStudentForUser(user.id);
-const schoolId = getUserSchoolId(user.id);
+const schoolId = getUserSchoolId(user);
 const className = student ? getStudentClassName(student.id) : null;
 
 const navItems = [

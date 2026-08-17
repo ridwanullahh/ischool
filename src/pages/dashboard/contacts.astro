@@ -8,14 +8,18 @@ import { contactInfo, contactSubmissions } from '../../lib/db/schema.js';
 import { eq, asc, desc } from 'drizzle-orm';
 
 const user = Astro.locals.user!;
-const schoolId = getUserSchoolId(user.id);
+const schoolId = getUserSchoolId(user);
 const db = getDb();
 
 const contacts = schoolId ? await db.select().from(contactInfo).where(eq(contactInfo.schoolId, schoolId)).orderBy(asc(contactInfo.sortOrder)).all() : [];
-const submissions = schoolId ? await db.select().from(contactSubmissions).where(eq(contactSubmissions.schoolId, schoolId)).orderBy(desc(contactSubmissions.createdAt)).limit(10).all().map(sub => ({
-  ...sub,
-  parsedData: sub.data as Record<string, string>,
-})) : [];
+let submissions: any[] = [];
+if (schoolId) {
+  const subs = await db.select().from(contactSubmissions).where(eq(contactSubmissions.schoolId, schoolId)).orderBy(desc(contactSubmissions.createdAt)).limit(10).all();
+  submissions = (subs || []).map(sub => ({
+    ...sub,
+    parsedData: sub.data as Record<string, string>,
+  }));
+}
 const success = Astro.url.searchParams.get('success');
 ---
 

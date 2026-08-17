@@ -7,7 +7,7 @@ import { eq, desc } from 'drizzle-orm';
 
 const user = Astro.locals.user!;
 if (!user) return Astro.redirect('/auth/login');
-const schoolId = getUserSchoolId(user.id);
+const schoolId = getUserSchoolId(user);
 
 let records: any[] = [];
 let allUsers: any[] = [];

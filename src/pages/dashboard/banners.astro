@@ -8,7 +8,7 @@ import { banners } from '../../lib/db/schema.js';
 import { eq, asc } from 'drizzle-orm';
 
 const user = Astro.locals.user!;
-const schoolId = getUserSchoolId(user.id);
+const schoolId = getUserSchoolId(user);
 const db = getDb();
 const items = schoolId ? await db.select().from(banners).where(eq(banners.schoolId, schoolId)).orderBy(asc(banners.sortOrder)).all() : [];
 const success = Astro.url.searchParams.get('success');

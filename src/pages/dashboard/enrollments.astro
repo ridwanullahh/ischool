@@ -7,7 +7,7 @@ import { eq, desc, sql } from 'drizzle-orm';
 
 const user = Astro.locals.user!;
 if (!user) return Astro.redirect('/auth/login');
-const schoolId = getUserSchoolId(user.id);
+const schoolId = getUserSchoolId(user);
 
 let records: any[] = [];
 let allStudents: any[] = [];
@@ -18,18 +18,21 @@ if (schoolId) {
   const db = getDb();
   allStudents = await db.select().from(students).where(eq(students.schoolId, schoolId)).all();
   allClasses = await db.select().from(classes).where(eq(classes.schoolId, schoolId)).all();
-  records = await db.select({
-    id: enrollments.id, studentId: enrollments.studentId, classId: enrollments.classId,
-    academicYear: enrollments.academicYear, term: enrollments.term, status: enrollments.status,
-    notes: enrollments.notes, createdAt: enrollments.createdAt,
-    studentName: sql`${students.firstName} || ' ' || ${students.lastName}`.as('student_name'),
-    studentIdentifier: students.studentId,
-    className: classes.name,
-  }).from(enrollments)
-    .leftJoin(students, eq(enrollments.studentId, students.id))
-    .leftJoin(classes, eq(enrollments.classId, classes.id))
-    .where(eq(enrollments.schoolId, schoolId))
-    .orderBy(desc(enrollments.createdAt)).all();
+  // Fetch enrollments without join (NoSQL adapter doesn't support leftJoin)
+  const rawRecords = await db.select().from(enrollments).where(eq(enrollments.schoolId, schoolId)).orderBy(desc(enrollments.createdAt)).all();
+  // Build lookup maps for client-side join
+  const studentMap = new Map((allStudents || []).map((s: any) => [s.id, s]));
+  const classMap = new Map((allClasses || []).map((c: any) => [c.id, c]));
+  records = (rawRecords || []).map((r: any) => {
+    const student = studentMap.get(r.studentId ?? r.student_id);
+    const cls = classMap.get(r.classId ?? r.class_id);
+    return {
+      ...r,
+      studentName: student ? `${student.firstName || student.first_name || ''} ${student.lastName || student.last_name || ''}`.trim() : 'Unknown',
+      studentIdentifier: student?.studentId || student?.student_id || '—',
+      className: cls?.name || '—',
+    };
+  });
 
   stats = {
     total: records.length,

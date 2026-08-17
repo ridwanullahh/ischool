@@ -7,7 +7,7 @@ import { eq } from 'drizzle-orm';
 
 const user = Astro.locals.user!;
 if (!user) return Astro.redirect('/auth/login');
-const schoolId = getUserSchoolId(user.id);
+const schoolId = getUserSchoolId(user);
 if (!schoolId) return Astro.redirect('/dashboard');
 const db = getDb();
 const lists = await db.select().from(emailLists).where(eq(emailLists.schoolId, schoolId)).all();

@@ -9,7 +9,8 @@ import { blogPosts } from '../../lib/db/schema.js';
 import { eq, desc } from 'drizzle-orm';
 
 const user = Astro.locals.user!;
-const schoolId = getUserSchoolId(user.id);
+const schoolId = getUserSchoolId(user);
+const school = (user as any).school;
 const db = getDb();
 
 const posts = schoolId ? await db.select().from(blogPosts).where(eq(blogPosts.schoolId, schoolId)).orderBy(desc(blogPosts.createdAt)).all() : [];

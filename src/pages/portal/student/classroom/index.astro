@@ -12,7 +12,7 @@ const user = Astro.locals.user;
 if (!user) return Astro.redirect('/auth/login?redirect=/portal/student/classroom');
 const student = getStudentForUser(user.id);
 if (!student) return Astro.redirect('/portal/no-profile');
-const schoolId = getUserSchoolId(user.id) ?? student.schoolId;
+const schoolId = getUserSchoolId(user) ?? student.schoolId;
 const db = getDb();
 
 // Get student's enrollments (classes)

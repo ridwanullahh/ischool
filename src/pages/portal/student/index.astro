@@ -18,7 +18,7 @@ const student = getStudentForUser(user.id);
 if (!student) {
   return Astro.redirect('/portal/no-profile');
 }
-const schoolId = getUserSchoolId(user.id) ?? student.schoolId;
+const schoolId = getUserSchoolId(user) ?? student.schoolId;
 const db = getDb();
 
 // Attendance rate

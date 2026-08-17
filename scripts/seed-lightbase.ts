@@ -952,16 +952,16 @@ async function seedSchoolData() {
     { school_id: schoolId, type: 'admissions', label: 'Admissions Email', value: 'admissions@alnoor.edu', sort_order: 5 },
   ], 'label');
 
-  // 16. Navigation items — critical for theme Layout
+  // 16. Navigation items — critical for theme Layout (organized logically)
   log('  Seeding navigation_items...');
   await seedMany('navigation_items', [
     { school_id: schoolId, label: 'Home', url: '/', sort_order: 0, is_external: false },
     { school_id: schoolId, label: 'About', url: '/about', sort_order: 1, is_external: false },
     { school_id: schoolId, label: 'Programs', url: '/programs', sort_order: 2, is_external: false },
     { school_id: schoolId, label: 'Classes', url: '/classes', sort_order: 3, is_external: false },
-    { school_id: schoolId, label: 'Announcements', url: '/announcements', sort_order: 4, is_external: false },
-    { school_id: schoolId, label: 'Gallery', url: '/gallery', sort_order: 5, is_external: false },
-    { school_id: schoolId, label: 'Admissions', url: '/admissions', sort_order: 6, is_external: false },
+    { school_id: schoolId, label: 'Admissions', url: '/admissions', sort_order: 4, is_external: false },
+    { school_id: schoolId, label: 'News', url: '/announcements', sort_order: 5, is_external: false },
+    { school_id: schoolId, label: 'Gallery', url: '/gallery', sort_order: 6, is_external: false },
     { school_id: schoolId, label: 'FAQs', url: '/faqs', sort_order: 7, is_external: false },
     { school_id: schoolId, label: 'Contact', url: '/contact', sort_order: 8, is_external: false },
   ], 'label');

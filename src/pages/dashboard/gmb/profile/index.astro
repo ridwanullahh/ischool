@@ -7,9 +7,9 @@ import { eq, desc } from 'drizzle-orm';
 
 const user = Astro.locals.user!;
 if (!user) return Astro.redirect('/auth/login');
-const schoolId = getUserSchoolId(user.id);
+const schoolId = getUserSchoolId(user);
 if (!schoolId) return Astro.redirect('/dashboard');
-const school = getUserSchool(user.id);
+const school = getUserSchool(user);
 const db = getDb();
 const connection = await db.select().from(gmbConnections).where(eq(gmbConnections.schoolId, schoolId)).get();
 const posts = await db.select().from(gmbPosts).where(eq(gmbPosts.schoolId, schoolId)).orderBy(desc(gmbPosts.createdAt)).all();

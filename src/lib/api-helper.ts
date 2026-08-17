@@ -142,7 +142,7 @@ export function apiHandler(
       }
 
       // School ID resolution
-      const schoolId = getUserSchoolId(user.id);
+      const schoolId = getUserSchoolId(user);
       if (!schoolId) {
         throw errors.forbidden('No school association found');
       }

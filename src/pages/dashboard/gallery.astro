@@ -6,7 +6,7 @@ import { galleryItems, galleryAlbums, virtualTours } from '../../lib/db/schema.j
 import { eq, asc, and } from 'drizzle-orm';
 
 const user = Astro.locals.user!;
-const schoolId = getUserSchoolId(user.id);
+const schoolId = getUserSchoolId(user);
 const db = getDb();
 
 const tab = Astro.url.searchParams.get('tab') || 'items';

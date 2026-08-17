@@ -74,9 +74,9 @@ export const onRequest = defineMiddleware(async (context, next) => {
     if (result) user = result.user;
   }
 
-  // RBAC enrichment: resolve the user's schoolId and effective permissions,
-  // then attach them to locals.user so endpoints and pages can call
-  // Astro.locals.user.permissions.has('students.view') directly.
+  // RBAC enrichment: resolve the user's schoolId, school object, and effective
+  // permissions, then attach them to locals.user so endpoints and pages can
+  // call Astro.locals.user.schoolId / .school / .permissions.has(...) directly.
   // In Lightbase mode the lookup is async — we await it here so that
   // downstream pages and APIs can read user.schoolId synchronously.
   if (user) {
@@ -84,12 +84,36 @@ export const onRequest = defineMiddleware(async (context, next) => {
       const db2 = getDb();
       const membership = await db2.select().from(schoolMembers).where(eq(schoolMembers.userId, user.id)).get();
       const schoolId = membership?.schoolId ?? membership?.school_id ?? null;
-      const permissions = getUserPermissions(user.id, schoolId ?? undefined);
       (user as any).schoolId = schoolId;
+      // Also fetch the full school object so dashboard pages can access it
+      // without making another async call (they're sync contexts).
+      if (schoolId) {
+        try {
+          const schoolRow = await db2.select().from(schools).where(eq(schools.id, schoolId)).get();
+          if (schoolRow) {
+            // Normalize snake_case → camelCase for consistency
+            const s = schoolRow;
+            (user as any).school = {
+              ...s,
+              primaryColor: s.primaryColor ?? s.primary_color ?? '#05B34D',
+              secondaryColor: s.secondaryColor ?? s.secondary_color ?? '#F2B91C',
+              logoUrl: s.logoUrl ?? s.logo_url ?? null,
+              faviconUrl: s.faviconUrl ?? s.favicon_url ?? null,
+              customDomain: s.customDomain ?? s.custom_domain ?? null,
+              socialHandles: s.socialHandles ?? s.social_handles ?? {},
+              activeModules: s.activeModules ?? s.active_modules ?? ['cms','sis','lms','finance','communication'],
+              settings: s.settings ?? {},
+              moduleSettings: s.moduleSettings ?? s.module_settings ?? {},
+            };
+          }
+        } catch { /* school lookup failed — continue without */ }
+      }
+      const permissions = getUserPermissions(user.id, schoolId ?? undefined);
       (user as any).permissions = permissions;
     } catch (e) {
       // Gracefully degrade — user is authenticated but without RBAC enrichment
       (user as any).schoolId = null;
+      (user as any).school = null;
       (user as any).permissions = null;
     }
   }

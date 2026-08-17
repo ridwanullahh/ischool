@@ -5,7 +5,7 @@ import Button from '../../components/ui/Button.astro';
 import { getUserSchool } from '../../lib/school.js';
 
 const user = Astro.locals.user!;
-const school = getUserSchool(user.id);
+const school = getUserSchool(user);
 ---
 <OnboardingLayout title="About Page - iSchool Setup" step={2}>
   <div class="bg-white rounded-xl border border-gray-200 p-8">

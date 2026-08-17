@@ -19,7 +19,7 @@ const v3Themes = listV2Themes().sort((a, b) => {
 });
 
 const user = Astro.locals.user!;
-const school = getUserSchool(user.id);
+const school = getUserSchool(user);
 const success = Astro.url.searchParams.get('success');
 
 const settings = (school?.settings as any) || {};

@@ -7,43 +7,42 @@ import { eq, asc, and, sql } from 'drizzle-orm';
 
 const user = Astro.locals.user!;
 if (!user) return Astro.redirect('/auth/login');
-const schoolId = getUserSchoolId(user.id);
+const schoolId = getUserSchoolId(user);
 if (!schoolId) return Astro.redirect('/dashboard');
 const db = getDb();
 
 const allClasses = await db.select().from(classes).where(eq(classes.schoolId, schoolId)).orderBy(asc(classes.sortOrder)).all();
-const allStaff = await db.select({ id: staff.id, firstName: staff.firstName, lastName: staff.lastName, designation: staff.designation }).from(staff).where(eq(staff.schoolId, schoolId)).all();
-const allCourses = await db.select({ id: courses.id, title: courses.title }).from(courses).where(eq(courses.schoolId, schoolId)).all();
+const allStaff = await db.select().from(staff).where(eq(staff.schoolId, schoolId)).all();
+const allCourses = await db.select().from(courses).where(eq(courses.schoolId, schoolId)).all();
 const allSubjects = await db.select().from(classSubjects).where(eq(classSubjects.schoolId, schoolId)).all();
 
-// Enrollment counts per class
-const enrollmentCounts = await db.select({
-  classId: enrollments.classId,
-  count: sql<number>`count(*)`,
-}).from(enrollments)
-  .where(and(eq(enrollments.schoolId, schoolId), eq(enrollments.status, 'accepted')))
-  .groupBy(enrollments.classId).all();
-const countMap = new Map(enrollmentCounts.map(e => [e.classId, e.count]));
-
-// Waitlist counts per class
-const waitlistCounts = await db.select({
-  classId: enrollments.classId,
-  count: sql<number>`count(*)`,
-}).from(enrollments)
-  .where(and(eq(enrollments.schoolId, schoolId), eq(enrollments.status, 'waitlisted')))
-  .groupBy(enrollments.classId).all();
-const waitlistMap = new Map(waitlistCounts.map(e => [e.classId, e.count]));
+// Enrollment counts per class — compute client-side (groupBy not supported in NoSQL adapter)
+const allEnrollments = await db.select().from(enrollments).where(eq(enrollments.schoolId, schoolId)).all();
+const countMap = new Map<string, number>();
+const waitlistMap = new Map<string, number>();
+for (const e of (allEnrollments || [])) {
+  const cid = e.classId ?? e.class_id;
+  if (!cid) continue;
+  const status = e.status;
+  if (status === 'accepted') {
+    countMap.set(cid, (countMap.get(cid) || 0) + 1);
+  } else if (status === 'waitlisted') {
+    waitlistMap.set(cid, (waitlistMap.get(cid) || 0) + 1);
+  }
+}
 
 const success = Astro.url.searchParams.get('success');
 const editId = Astro.url.searchParams.get('edit');
 const editing = editId ? allClasses.find(c => c.id === Number(editId)) : null;
 
-const staffMap = new Map(allStaff.map(s => [s.id, `${s.firstName} ${s.lastName}`]));
-const courseMap = new Map(allCourses.map(c => [c.id, c.title]));
-const subjectsByClass = new Map<number, typeof allSubjects>();
-for (const s of allSubjects) {
-  if (!subjectsByClass.has(s.classId)) subjectsByClass.set(s.classId, []);
-  subjectsByClass.get(s.classId)!.push(s);
+const staffMap = new Map((allStaff || []).map((s: any) => [s.id, `${s.firstName || s.first_name || ''} ${s.lastName || s.last_name || ''}`.trim()]));
+const courseMap = new Map((allCourses || []).map((c: any) => [c.id, c.title]));
+const subjectsByClass = new Map<string, any[]>();
+for (const s of (allSubjects || [])) {
+  const cid = s.classId ?? s.class_id;
+  if (!cid) continue;
+  if (!subjectsByClass.has(cid)) subjectsByClass.set(cid, []);
+  subjectsByClass.get(cid)!.push(s);
 }
 ---
 

@@ -9,7 +9,7 @@ import { guardPermission } from '../../../lib/rbac.js';
 export const GET: APIRoute = async ({ request, locals }) => {
   const user = locals.user;
   if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
-  const schoolId = getUserSchoolId(user.id);
+  const schoolId = getUserSchoolId(user);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
 
   const db = getDb();
@@ -61,11 +61,11 @@ export const GET: APIRoute = async ({ request, locals }) => {
 export const POST: APIRoute = async ({ request, locals }) => {
   const user = locals.user;
   if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
-  const schoolId = getUserSchoolId(user.id);
+  const schoolId = getUserSchoolId(user);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
 
   const db = getDb();
-  const school = getUserSchool(user.id);
+  const school = getUserSchool(user);
   const data = await request.json();
   const action = data.action;
 

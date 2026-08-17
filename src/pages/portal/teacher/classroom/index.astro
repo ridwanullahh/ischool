@@ -15,7 +15,7 @@ const user = Astro.locals.user;
 if (!user) return Astro.redirect('/auth/login?redirect=/portal/teacher/classroom');
 
 const staff = getStaffForUser(user.id);
-const schoolId = getUserSchoolId(user.id);
+const schoolId = getUserSchoolId(user);
 const db = getDb();
 
 // Get all class_subjects assigned to this teacher

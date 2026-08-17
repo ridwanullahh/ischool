@@ -99,17 +99,23 @@ function rawDb(): any {
 }
 
 /**
- * Returns the school a user belongs to. In SQLite mode, queries synchronously.
- * In Lightbase mode, returns null (use Astro.locals.user.schoolId set by
- * middleware, or call the async version explicitly).
+ * Returns the school a user belongs to. Accepts either a userId (number/string)
+ * OR the full user object from Astro.locals.user (preferred — the middleware
+ * pre-populates user.school in both Lightbase and SQLite modes).
  */
-export function getUserSchool(userId: number): any {
-  if (isLightbase()) {
-    // Lightbase is async — caller should use Astro.locals.user.schoolId
-    // (already populated by middleware). Return null here.
-    return null;
-  }
+export function getUserSchool(userOrUserId: any): any {
   try {
+    // If passed a user object with .school pre-populated by middleware, use it
+    if (userOrUserId && typeof userOrUserId === 'object') {
+      if (userOrUserId.school) return userOrUserId.school;
+      if (userOrUserId.id) userOrUserId = userOrUserId.id;
+      else return null;
+    }
+    const userId = userOrUserId;
+    if (isLightbase()) {
+      // Lightbase is async — caller should pass the user object instead
+      return null;
+    }
     const db = getDb();
     const membership = db.select().from(schoolMembers)
       .where(eq(schoolMembers.userId, userId))
@@ -121,11 +127,24 @@ export function getUserSchool(userId: number): any {
   } catch { return null; }
 }
 
-export function getUserSchoolId(userId: number): number | null {
-  if (isLightbase()) {
-    return null; // Use Astro.locals.user.schoolId
-  }
+/**
+ * Returns the schoolId for a user. Accepts either a userId (number/string)
+ * OR the full user object from Astro.locals.user (preferred — the middleware
+ * pre-populates user.schoolId in both Lightbase and SQLite modes).
+ */
+export function getUserSchoolId(userOrUserId: any): string | number | null {
   try {
+    // If passed a user object with .schoolId pre-populated by middleware, use it
+    if (userOrUserId && typeof userOrUserId === 'object') {
+      if (userOrUserId.schoolId) return userOrUserId.schoolId;
+      if (userOrUserId.school_id) return userOrUserId.school_id;
+      if (userOrUserId.id) userOrUserId = userOrUserId.id;
+      else return null;
+    }
+    const userId = userOrUserId;
+    if (isLightbase()) {
+      return null; // Caller should pass the user object instead
+    }
     const db = getDb();
     const membership = db.select().from(schoolMembers).where(eq(schoolMembers.userId, userId)).get();
     return membership?.schoolId || null;

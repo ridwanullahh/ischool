@@ -17,7 +17,7 @@ export const GET: APIRoute = async ({ locals, url }) => {
   const denied = guardPermission(user, 'transport.view');
   if (denied) return denied;
   const db = getDb();
-  const schoolId = await getUserSchoolId(user.id);
+  const schoolId = await getUserSchoolId(user);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 403 });
 
   const action = url.searchParams.get('action');
@@ -56,7 +56,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const denied = guardPermission(user, 'transport.create');
   if (denied) return denied;
   const db = getDb();
-  const schoolId = await getUserSchoolId(user.id);
+  const schoolId = await getUserSchoolId(user);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 403 });
 
   const data = await request.json();
@@ -96,7 +96,7 @@ export const DELETE: APIRoute = async ({ request, locals }) => {
   const denied = guardPermission(user, 'transport.delete');
   if (denied) return denied;
   const db = getDb();
-  const schoolId = await getUserSchoolId(user.id);
+  const schoolId = await getUserSchoolId(user);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 403 });
 
   const { id, type } = await request.json();

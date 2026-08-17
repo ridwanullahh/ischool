@@ -164,19 +164,51 @@ export class LightbaseClient {
 
   /**
    * Update a document by ID (partial patch).
+   * Uses the bulk endpoint with a single update operation since the
+   * /docs/{id} PATCH endpoint is not available on all Lightbase instances.
    */
   async update(collection: string, id: string, patch: Record<string, any>): Promise<LightbaseDocument> {
-    const res = await fetch(`${this.baseCollectionUrl}/${collection}/docs/${id}`, {
-      method: 'PATCH',
-      headers: this.headers,
-      body: JSON.stringify(patch),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(`Lightbase update(${collection}, ${id}) failed: ${res.status} ${JSON.stringify(err)}`);
+    // Try direct PATCH first (works on some Lightbase instances)
+    try {
+      const res = await fetch(`${this.baseCollectionUrl}/${collection}/docs/${id}`, {
+        method: 'PATCH',
+        headers: this.headers,
+        body: JSON.stringify(patch),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        return data.document || data;
+      }
+      // If 404, fall through to bulk update
+      if (res.status !== 404) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(`Lightbase update(${collection}, ${id}) failed: ${res.status} ${JSON.stringify(err)}`);
+      }
+    } catch (e: any) {
+      // If it's a 404/not-found, fall through to bulk
+      if (!e.message?.includes('404') && !e.message?.includes('not_found')) {
+        // Network error — try bulk as fallback
+      }
     }
-    const data = await res.json();
-    return data.document || data;
+
+    // Fallback: use the bulk endpoint
+    const bulkRes = await fetch(`${this.config.baseUrl}/api/v1/projects/${this.config.project}/bulk`, {
+      method: 'POST',
+      headers: this.headers,
+      body: JSON.stringify({
+        updates: [{ collection, id, patch }],
+      }),
+    });
+    if (!bulkRes.ok) {
+      const err = await bulkRes.json().catch(() => ({}));
+      throw new Error(`Lightbase update via bulk(${collection}, ${id}) failed: ${bulkRes.status} ${JSON.stringify(err)}`);
+    }
+    const result = await bulkRes.json();
+    if (result.updated > 0) {
+      // Return a merged document (best effort)
+      return { id, ...patch } as LightbaseDocument;
+    }
+    throw new Error(`Lightbase update(${collection}, ${id}) did not update any document`);
   }
 
   /**

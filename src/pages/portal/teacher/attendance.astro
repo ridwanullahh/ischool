@@ -15,7 +15,7 @@ const user = Astro.locals.user;
 if (!user) return Astro.redirect('/auth/login?redirect=/portal/teacher/attendance');
 
 const staff = getStaffForUser(user.id);
-const schoolId = getUserSchoolId(user.id);
+const schoolId = getUserSchoolId(user);
 const db = getDb();
 
 // Get selected class

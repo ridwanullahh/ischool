@@ -15,7 +15,7 @@ const user = Astro.locals.user;
 if (!user) return Astro.redirect('/auth/login?redirect=/portal/parent');
 
 const children = getChildrenForParent(user.id);
-const schoolId = getUserSchoolId(user.id);
+const schoolId = getUserSchoolId(user);
 const db = getDb();
 
 // Build per-child summary

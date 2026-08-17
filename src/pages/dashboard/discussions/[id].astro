@@ -16,7 +16,7 @@ if (!pageGuard(user, 'courses.view')) return Astro.redirect('/dashboard');
 const boardId = parseInt(Astro.params.id);
 if (!boardId) return Astro.redirect('/dashboard/discussions');
 
-const schoolId = getUserSchoolId(user.id);
+const schoolId = getUserSchoolId(user);
 const db = getDb();
 
 const board = await db.select().from(discussionBoards).where(and(eq(discussionBoards.id, boardId), eq(discussionBoards.schoolId, schoolId || 0))).get();

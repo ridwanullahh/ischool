@@ -13,7 +13,7 @@ import { getStaffForUser, getUserSchoolId } from '../../../lib/portal.js';
 const user = Astro.locals.user;
 if (!user) return Astro.redirect('/auth/login?redirect=/portal/teacher/assignments');
 
-const schoolId = getUserSchoolId(user.id);
+const schoolId = getUserSchoolId(user);
 const db = getDb();
 
 // Get all assignments for the school

@@ -22,7 +22,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (!schoolId || !title || !slug) {
     return new Response(JSON.stringify({ error: 'Missing required fields' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
   }
-  if (schoolId !== getUserSchoolId(user.id)) {
+  if (schoolId !== getUserSchoolId(user)) {
     return new Response(JSON.stringify({ error: 'School mismatch' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
   }
 
@@ -51,7 +51,7 @@ export const PUT: APIRoute = async ({ request, locals }) => {
   if (!formId || !schoolId) {
     return new Response(JSON.stringify({ error: 'Missing formId or schoolId' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
   }
-  if (schoolId !== getUserSchoolId(user.id)) {
+  if (schoolId !== getUserSchoolId(user)) {
     return new Response(JSON.stringify({ error: 'School mismatch' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
   }
 

@@ -17,7 +17,7 @@ export const GET: APIRoute = async ({ locals, url }) => {
   if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
   const denied = guardPermission(user, 'hr.view');
   if (denied) return denied;
-  const schoolId = getUserSchoolId(user.id);
+  const schoolId = getUserSchoolId(user);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 404 });
 
   const db = getDb();
@@ -99,7 +99,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
   const denied = guardPermission(user, 'hr.create');
   if (denied) return denied;
-  const schoolId = getUserSchoolId(user.id);
+  const schoolId = getUserSchoolId(user);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 404 });
 
   const data = await request.json();
@@ -126,7 +126,7 @@ export const PUT: APIRoute = async ({ request, locals }) => {
   if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
   const denied = guardPermission(user, 'hr.edit');
   if (denied) return denied;
-  const schoolId = getUserSchoolId(user.id);
+  const schoolId = getUserSchoolId(user);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 404 });
 
   const data = await request.json();
@@ -159,7 +159,7 @@ export const DELETE: APIRoute = async ({ request, locals }) => {
   if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
   const denied = guardPermission(user, 'hr.delete');
   if (denied) return denied;
-  const schoolId = getUserSchoolId(user.id);
+  const schoolId = getUserSchoolId(user);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 404 });
 
   const { id } = await request.json();

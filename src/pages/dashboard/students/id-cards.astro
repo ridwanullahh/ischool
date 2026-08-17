@@ -16,7 +16,7 @@ const user = Astro.locals.user;
 if (!user) return Astro.redirect('/auth/login');
 if (!pageGuard(user, 'students.view')) return Astro.redirect('/dashboard');
 
-const schoolId = getUserSchoolId(user.id);
+const schoolId = getUserSchoolId(user);
 const db = getDb();
 const school = schoolId ? await db.select().from(schools).where(eq(schools.id, schoolId)).get() : null;
 const allStudents = schoolId ? await db.select().from(students).where(eq(students.schoolId, schoolId)).all() : [];

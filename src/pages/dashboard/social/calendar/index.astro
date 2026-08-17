@@ -7,7 +7,7 @@ import { eq, desc } from 'drizzle-orm';
 
 const user = Astro.locals.user!;
 if (!user) return Astro.redirect('/auth/login');
-const schoolId = getUserSchoolId(user.id);
+const schoolId = getUserSchoolId(user);
 if (!schoolId) return Astro.redirect('/dashboard');
 const db = getDb();
 const posts = await db.select().from(socialPosts).where(eq(socialPosts.schoolId, schoolId)).orderBy(desc(socialPosts.createdAt)).all();

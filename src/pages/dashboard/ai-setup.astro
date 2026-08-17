@@ -4,7 +4,7 @@ import { getUserSchool } from '../../lib/school.js';
 
 const user = Astro.locals.user!;
 if (!user) return Astro.redirect('/auth/login');
-const school = getUserSchool(user.id);
+const school = getUserSchool(user);
 ---
 
 <DashboardLayout title="AI Content Setup - iSchool">

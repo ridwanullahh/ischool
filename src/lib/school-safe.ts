@@ -192,9 +192,9 @@ function getDefaultNav(): any[] {
     { label: 'About', url: '/about', sort_order: 1, is_external: false },
     { label: 'Programs', url: '/programs', sort_order: 2, is_external: false },
     { label: 'Classes', url: '/classes', sort_order: 3, is_external: false },
-    { label: 'Announcements', url: '/announcements', sort_order: 4, is_external: false },
-    { label: 'Gallery', url: '/gallery', sort_order: 5, is_external: false },
-    { label: 'Admissions', url: '/admissions', sort_order: 6, is_external: false },
+    { label: 'Admissions', url: '/admissions', sort_order: 4, is_external: false },
+    { label: 'News', url: '/announcements', sort_order: 5, is_external: false },
+    { label: 'Gallery', url: '/gallery', sort_order: 6, is_external: false },
     { label: 'FAQs', url: '/faqs', sort_order: 7, is_external: false },
     { label: 'Contact', url: '/contact', sort_order: 8, is_external: false },
   ];
