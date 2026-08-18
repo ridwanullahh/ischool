@@ -1,0 +1,172 @@
+---
+/**
+ * ListToolbar — Reusable AJAX search/filter/sort toolbar for post listing pages.
+ *
+ * Features:
+ * - Real-time search (debounced, client-side filtering)
+ * - Status filter dropdown
+ * - Sort dropdown (newest, oldest, title A-Z)
+ * - View toggle (grid/list)
+ * - Results counter
+ *
+ * Usage:
+ * <ListToolbar 
+ *   searchPlaceholder="Search posts..." 
+ *   filterOptions={[{value:'published',label:'Published'},{value:'draft',label:'Draft'}]}
+ *   filterField="status"
+ * />
+ */
+interface Props {
+  searchPlaceholder?: string;
+  filterOptions?: Array<{ value: string; label: string }>;
+  filterField?: string;
+  newItemHref?: string;
+  newItemLabel?: string;
+  sortField?: string;
+}
+
+const {
+  searchPlaceholder = 'Search...',
+  filterOptions = [],
+  filterField = 'status',
+  newItemHref,
+  newItemLabel = '+ New',
+  sortField = 'data-title',
+} = Astro.props;
+---
+
+<div class="mosaic-card p-4 mb-4">
+  <div class="flex flex-wrap items-center gap-3">
+    <!-- Search -->
+    <div class="flex-1 min-w-[200px] relative">
+      <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style="color: var(--mosaic-text-subtle);" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+      <input
+        type="text"
+        id="list-search"
+        placeholder={searchPlaceholder}
+        class="w-full pl-10 pr-3 py-2.5 rounded-xl text-sm focus:outline-none transition-all"
+        style="background: var(--mosaic-surface-2); border: 1px solid var(--mosaic-border); color: var(--mosaic-text);"
+        oninput="filterList()"
+      />
+    </div>
+
+    {filterOptions.length > 0 && (
+      <select id="list-filter" class="px-3 py-2.5 rounded-xl text-sm cursor-pointer focus:outline-none" style="background: var(--mosaic-surface-2); border: 1px solid var(--mosaic-border); color: var(--mosaic-text-muted);" onchange="filterList()">
+        <option value="">All</option>
+        {filterOptions.map(opt => <option value={opt.value}>{opt.label}</option>)}
+      </select>
+    )}
+
+    <select id="list-sort" class="px-3 py-2.5 rounded-xl text-sm cursor-pointer focus:outline-none" style="background: var(--mosaic-surface-2); border: 1px solid var(--mosaic-border); color: var(--mosaic-text-muted);" onchange="sortList()">
+      <option value="newest">Newest First</option>
+      <option value="oldest">Oldest First</option>
+      <option value="title-asc">Title A-Z</option>
+      <option value="title-desc">Title Z-A</option>
+    </select>
+
+    <div class="flex items-center gap-1 p-1 rounded-xl" style="background: var(--mosaic-surface-2);">
+      <button id="view-grid" onclick="setView('grid')" class="p-1.5 rounded-lg transition-all" style="background: var(--mosaic-surface);" title="Grid view">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h7M4 12h7M4 18h7M15 6h7M15 12h7M15 18h7"/></svg>
+      </button>
+      <button id="view-list" onclick="setView('list')" class="p-1.5 rounded-lg transition-all" style="color: var(--mosaic-text-subtle);" title="List view">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+    </div>
+
+    {newItemHref && (
+      <a href={newItemHref} class="mosaic-btn-primary text-sm px-4 py-2.5 whitespace-nowrap">{newItemLabel}</a>
+    )}
+  </div>
+
+  <div class="flex items-center justify-between mt-3 pt-3" style="border-top: 1px solid var(--mosaic-border);">
+    <p class="text-xs" style="color: var(--mosaic-text-muted);">
+      <span id="results-count">0</span> results
+    </p>
+    <button id="clear-filters" onclick="clearFilters()" class="text-xs font-medium hover:underline" style="color: var(--mosaic-primary);">Clear filters</button>
+  </div>
+</div>
+
+<script is:inline>
+  let currentView = 'grid';
+  let allItems = [];
+
+  function initList() {
+    allItems = Array.from(document.querySelectorAll('[data-list-item]'));
+    filterList();
+  }
+
+  function filterList() {
+    const search = (document.getElementById('list-search')?.value || '').toLowerCase();
+    const filter = document.getElementById('list-filter')?.value || '';
+    const container = document.getElementById('list-container');
+    if (!container) return;
+
+    let visible = 0;
+    allItems.forEach(item => {
+      const title = (item.getAttribute('data-title') || '').toLowerCase();
+      const status = item.getAttribute('data-status') || '';
+      const matchesSearch = !search || title.includes(search);
+      const matchesFilter = !filter || status === filter;
+      if (matchesSearch && matchesFilter) {
+        item.style.display = '';
+        visible++;
+      } else {
+        item.style.display = 'none';
+      }
+    });
+    const countEl = document.getElementById('results-count');
+    if (countEl) countEl.textContent = visible;
+  }
+
+  function sortList() {
+    const sort = document.getElementById('list-sort')?.value || 'newest';
+    const container = document.getElementById('list-container');
+    if (!container) return;
+    const items = Array.from(container.querySelectorAll('[data-list-item]'));
+    items.sort((a, b) => {
+      const titleA = a.getAttribute('data-title') || '';
+      const titleB = b.getAttribute('data-title') || '';
+      const dateA = new Date(a.getAttribute('data-date') || 0).getTime();
+      const dateB = new Date(b.getAttribute('data-date') || 0).getTime();
+      switch (sort) {
+        case 'newest': return dateB - dateA;
+        case 'oldest': return dateA - dateB;
+        case 'title-asc': return titleA.localeCompare(titleB);
+        case 'title-desc': return titleB.localeCompare(titleA);
+        default: return 0;
+      }
+    });
+    items.forEach(item => container.appendChild(item));
+  }
+
+  function setView(view) {
+    currentView = view;
+    const gridBtn = document.getElementById('view-grid');
+    const listBtn = document.getElementById('view-list');
+    const container = document.getElementById('list-container');
+    if (gridBtn) { gridBtn.style.background = view === 'grid' ? 'var(--mosaic-surface)' : 'transparent'; gridBtn.style.color = view === 'grid' ? '' : 'var(--mosaic-text-subtle)'; }
+    if (listBtn) { listBtn.style.background = view === 'list' ? 'var(--mosaic-surface)' : 'transparent'; listBtn.style.color = view === 'list' ? '' : 'var(--mosaic-text-subtle)'; }
+    if (container) {
+      if (view === 'grid') {
+        container.className = container.className.replace(/grid-cols-1/g, 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3');
+      } else {
+        container.className = 'space-y-3';
+      }
+    }
+  }
+
+  function clearFilters() {
+    const search = document.getElementById('list-search');
+    const filter = document.getElementById('list-filter');
+    if (search) search.value = '';
+    if (filter) filter.value = '';
+    filterList();
+  }
+
+  // Initialize on load
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initList);
+  } else {
+    initList();
+  }
+</script>

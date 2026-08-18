@@ -18,7 +18,7 @@ const templates = await db.select().from(emailTemplates).where(eq(emailTemplates
 const editId = Astro.url.searchParams.get('edit');
 let editing: any = null;
 if (editId) {
-  editing = await db.select().from(emailCampaigns).where(eq(emailCampaigns.id, Number(editId))).get();
+  editing = await db.select().from(emailCampaigns).where(eq(emailCampaigns.id, editId as any)).get();
 }
 ---
 
