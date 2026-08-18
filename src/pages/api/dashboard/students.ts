@@ -6,11 +6,6 @@ import { toCsv, csvResponse, type CsvColumn } from '../../../lib/export.js';
 import { parseCsv, validateImportRows } from '../../../lib/import.js';
 import { guardPermission } from '../../../lib/rbac.js';
 
-function getUserSchoolId(userId: number): number | null {
-  const db = getDb();
-  const membership = db.select().from(schoolMembers).where(eq(schoolMembers.userId, userId)).get();
-  return membership?.schoolId || null;
-}
 
 function logAudit(schoolId: number, userId: number, action: string, entityType: string, entityId: number | null, details?: string) {
   try {
@@ -24,7 +19,7 @@ export const GET: APIRoute = async ({ locals, url }) => {
   const denied = guardPermission(user, 'students.view');
   if (denied) return denied;
 
-  const schoolId = getUserSchoolId(user);
+  const schoolId = await getSchoolIdForApi(user);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 404 });
 
   const db = getDb();
@@ -82,7 +77,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const denied = guardPermission(user, 'students.create');
   if (denied) return denied;
 
-  const schoolId = getUserSchoolId(user);
+  const schoolId = await getSchoolIdForApi(user);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 404 });
 
   const data = await request.json();
@@ -147,7 +142,7 @@ export const PUT: APIRoute = async ({ request, locals }) => {
   const denied = guardPermission(user, 'students.edit');
   if (denied) return denied;
 
-  const schoolId = getUserSchoolId(user);
+  const schoolId = await getSchoolIdForApi(user);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 404 });
 
   const data = await request.json();
@@ -175,7 +170,7 @@ export const DELETE: APIRoute = async ({ request, locals }) => {
   const denied = guardPermission(user, 'students.delete');
   if (denied) return denied;
 
-  const schoolId = getUserSchoolId(user);
+  const schoolId = await getSchoolIdForApi(user);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 404 });
 
   const { id } = await request.json();

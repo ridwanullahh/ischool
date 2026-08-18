@@ -4,11 +4,6 @@ import { getDb } from '../../../lib/db/index.js';
 import { feeStructures, schoolMembers } from '../../../lib/db/schema.js';
 import { eq } from 'drizzle-orm';
 
-async function getUserSchoolId(userId: number) {
-  const db = getDb();
-  const m = db.select().from(schoolMembers).where(eq(schoolMembers.userId, userId)).get();
-  return m?.schoolId || null;
-}
 
 export const GET: APIRoute = async ({ locals }) => {
   const user = (locals as any).user;
@@ -16,7 +11,7 @@ export const GET: APIRoute = async ({ locals }) => {
   const denied = guardPermission(user, 'fees.view');
   if (denied) return denied;
   const db = getDb();
-  const schoolId = await getUserSchoolId(user);
+  const schoolId = (user as any).schoolId ?? null;
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 403 });
 
   const allFees = db.select().from(feeStructures).where(eq(feeStructures.schoolId, schoolId)).all();
@@ -29,7 +24,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const denied = guardPermission(user, 'fees.view');
   if (denied) return denied;
   const db = getDb();
-  const schoolId = await getUserSchoolId(user);
+  const schoolId = (user as any).schoolId ?? null;
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 403 });
 
   const data = await request.json();
@@ -55,7 +50,7 @@ export const DELETE: APIRoute = async ({ request, locals }) => {
   const denied = guardPermission(user, 'fees.view');
   if (denied) return denied;
   const db = getDb();
-  const schoolId = await getUserSchoolId(user);
+  const schoolId = (user as any).schoolId ?? null;
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 403 });
 
   const { id } = await request.json();

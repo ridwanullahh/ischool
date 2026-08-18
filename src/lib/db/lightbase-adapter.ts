@@ -479,23 +479,30 @@ class LightbaseTransaction {
 // Helper: Clean document for Lightbase (remove undefined, stringify nested objects)
 // ═══════════════════════════════════════════════════════
 
+function camelToSnake(s: string): string {
+  return s.replace(/[A-Z]/g, (c) => '_' + c.toLowerCase());
+}
+
 function cleanDoc(doc: Record<string, any>): Record<string, any> {
   const cleaned: Record<string, any> = {};
   for (const [key, value] of Object.entries(doc)) {
     if (value === undefined) continue;
+    // Convert camelCase keys to snake_case for Lightbase storage
+    // (Drizzle JS property names -> SQL column names)
+    const snakeKey = camelToSnake(key);
     if (value === null) {
-      cleaned[key] = null;
+      cleaned[snakeKey] = null;
       continue;
     }
     if (value instanceof Date) {
-      cleaned[key] = value.toISOString();
+      cleaned[snakeKey] = value.toISOString();
     } else if (typeof value === 'object' && !Array.isArray(value)) {
       // Store nested objects as JSON strings (Lightbase json fields)
-      cleaned[key] = JSON.stringify(value);
+      cleaned[snakeKey] = JSON.stringify(value);
     } else if (Array.isArray(value)) {
-      cleaned[key] = JSON.stringify(value);
+      cleaned[snakeKey] = JSON.stringify(value);
     } else {
-      cleaned[key] = value;
+      cleaned[snakeKey] = value;
     }
   }
   return cleaned;
@@ -543,9 +550,7 @@ function matchesFilter(doc: any, f: LightbaseFilter): boolean {
   }
 }
 
-function camelToSnake(s: string): string {
-  return s.replace(/[A-Z]/g, (c) => '_' + c.toLowerCase());
-}
+// (camelToSnake is already defined above in cleanDoc section)
 
 // ═══════════════════════════════════════════════════════
 // Main Lightbase DB Adapter

@@ -12,11 +12,6 @@ import {
 import { eq, and, desc, sql } from 'drizzle-orm';
 import { decrypt, stripPII, logAudit, sanitizeHtml, validateRequired } from '../../../lib/security.js';
 
-function getUserSchoolId(userId: number): number | null {
-  const db = getDb();
-  const m = db.select().from(schoolMembers).where(eq(schoolMembers.userId, userId)).get();
-  return m?.schoolId || null;
-}
 
 function getActiveApiKey(): { key: string; baseUrl: string; modelId: string } | null {
   // First try database-configured provider
@@ -491,7 +486,7 @@ export const GET: APIRoute = async ({ locals, url }) => {
   if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
   const denied = guardPermission(user, 'platform.settings');
   if (denied) return denied;
-  const schoolId = getUserSchoolId(user);
+  const schoolId = await getSchoolIdForApi(user);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 404 });
   const db = getDb();
   const action = url.searchParams.get('action');
@@ -527,7 +522,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
   const denied = guardPermission(user, 'platform.settings');
   if (denied) return denied;
-  const schoolId = getUserSchoolId(user);
+  const schoolId = await getSchoolIdForApi(user);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 404 });
   const db = getDb();
   const data = await request.json();
@@ -776,7 +771,7 @@ export const DELETE: APIRoute = async ({ request, locals }) => {
   if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
   const denied = guardPermission(user, 'platform.settings');
   if (denied) return denied;
-  const schoolId = getUserSchoolId(user);
+  const schoolId = await getSchoolIdForApi(user);
   const { id } = await request.json();
   if (!id) return new Response(JSON.stringify({ error: 'id required' }), { status: 400 });
   const db = getDb();

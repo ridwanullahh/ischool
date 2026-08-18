@@ -4,18 +4,13 @@ import { announcements, notifications, users, schoolMembers, students, classes, 
 import { eq, and, inArray } from 'drizzle-orm';
 import { guardPermission } from '../../../lib/rbac.js';
 
-function getUserSchoolId(userId: number): number | null {
-  const db = getDb();
-  const membership = db.select().from(schoolMembers).where(eq(schoolMembers.userId, userId)).get();
-  return membership?.schoolId || null;
-}
 
 export const GET: APIRoute = async ({ locals }) => {
   const user = (locals as any).user;
   if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
   const denied = guardPermission(user, 'announcements.view');
   if (denied) return denied;
-  const schoolId = getUserSchoolId(user);
+  const schoolId = await getSchoolIdForApi(user);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 404 });
 
   const db = getDb();
@@ -28,7 +23,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
   const denied = guardPermission(user, 'announcements.create');
   if (denied) return denied;
-  const schoolId = getUserSchoolId(user);
+  const schoolId = await getSchoolIdForApi(user);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 404 });
 
   const data = await request.json();
@@ -111,7 +106,7 @@ export const PUT: APIRoute = async ({ request, locals }) => {
   if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
   const denied = guardPermission(user, 'announcements.edit');
   if (denied) return denied;
-  const schoolId = getUserSchoolId(user);
+  const schoolId = await getSchoolIdForApi(user);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 404 });
 
   const data = await request.json();
@@ -130,7 +125,7 @@ export const DELETE: APIRoute = async ({ request, locals }) => {
   if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
   const denied = guardPermission(user, 'announcements.delete');
   if (denied) return denied;
-  const schoolId = getUserSchoolId(user);
+  const schoolId = await getSchoolIdForApi(user);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 404 });
 
   const { id } = await request.json();

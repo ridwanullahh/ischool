@@ -5,18 +5,13 @@ import { eq, and, like } from 'drizzle-orm';
 import { toCsv, csvResponse, type CsvColumn } from '../../../lib/export.js';
 import { guardPermission } from '../../../lib/rbac.js';
 
-function getUserSchoolId(userId: number): number | null {
-  const db = getDb();
-  const membership = db.select().from(schoolMembers).where(eq(schoolMembers.userId, userId)).get();
-  return membership?.schoolId || null;
-}
 
 export const GET: APIRoute = async ({ locals, url }) => {
   const user = (locals as any).user;
   if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
   const denied = guardPermission(user, 'events.view');
   if (denied) return denied;
-  const schoolId = getUserSchoolId(user);
+  const schoolId = await getSchoolIdForApi(user);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 404 });
   const db = getDb();
 
@@ -44,7 +39,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
   const denied = guardPermission(user, 'events.create');
   if (denied) return denied;
-  const schoolId = getUserSchoolId(user);
+  const schoolId = await getSchoolIdForApi(user);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 404 });
   const data = await request.json();
   if (!data.title || !data.startDate || !data.category) {
@@ -75,7 +70,7 @@ export const PUT: APIRoute = async ({ request, locals }) => {
   if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
   const denied = guardPermission(user, 'events.edit');
   if (denied) return denied;
-  const schoolId = getUserSchoolId(user);
+  const schoolId = await getSchoolIdForApi(user);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 404 });
   const data = await request.json();
   if (!data.id) return new Response(JSON.stringify({ error: 'id is required' }), { status: 400 });
@@ -94,7 +89,7 @@ export const DELETE: APIRoute = async ({ request, locals }) => {
   if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
   const denied = guardPermission(user, 'events.delete');
   if (denied) return denied;
-  const schoolId = getUserSchoolId(user);
+  const schoolId = await getSchoolIdForApi(user);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 404 });
   const { id } = await request.json();
   const db = getDb();

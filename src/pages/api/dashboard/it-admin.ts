@@ -4,18 +4,13 @@ import { getDb } from '../../../lib/db/index.js';
 import { moduleSettings, auditLogs, schoolMembers, schools, users } from '../../../lib/db/schema.js';
 import { eq, and, desc } from 'drizzle-orm';
 
-function getUserSchoolId(userId: number): number | null {
-  const db = getDb();
-  const membership = db.select().from(schoolMembers).where(eq(schoolMembers.userId, userId)).get();
-  return membership?.schoolId || null;
-}
 
 export const GET: APIRoute = async ({ locals, url }) => {
   const user = (locals as any).user;
   if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
   const denied = guardPermission(user, 'platform.settings');
   if (denied) return denied;
-  const schoolId = getUserSchoolId(user);
+  const schoolId = await getSchoolIdForApi(user);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 404 });
 
   const type = url.searchParams.get('type') || 'modules';
@@ -95,7 +90,7 @@ export const PUT: APIRoute = async ({ request, locals }) => {
   if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
   const denied = guardPermission(user, 'platform.settings');
   if (denied) return denied;
-  const schoolId = getUserSchoolId(user);
+  const schoolId = await getSchoolIdForApi(user);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 404 });
 
   const data = await request.json();

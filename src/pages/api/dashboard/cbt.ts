@@ -5,11 +5,6 @@ import { eq, and, like } from 'drizzle-orm';
 import { toCsv, csvResponse, type CsvColumn } from '../../../lib/export.js';
 import { guardPermission } from '../../../lib/rbac.js';
 
-async function getUserSchoolId(userId: number) {
-  const db = getDb();
-  const membership = db.select().from(schoolMembers).where(eq(schoolMembers.userId, userId)).get();
-  return membership?.schoolId || null;
-}
 
 export const GET: APIRoute = async ({ locals, url }) => {
   const user = (locals as any).user;
@@ -18,7 +13,7 @@ export const GET: APIRoute = async ({ locals, url }) => {
   if (denied) return denied;
 
   const db = getDb();
-  const schoolId = await getUserSchoolId(user);
+  const schoolId = (user as any).schoolId ?? null;
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 403 });
 
   const action = url.searchParams.get('action');
@@ -51,7 +46,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (denied) return denied;
 
   const db = getDb();
-  const schoolId = await getUserSchoolId(user);
+  const schoolId = (user as any).schoolId ?? null;
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 403 });
 
   const data = await request.json();
@@ -85,7 +80,7 @@ export const PUT: APIRoute = async ({ request, locals }) => {
   if (denied) return denied;
 
   const db = getDb();
-  const schoolId = await getUserSchoolId(user);
+  const schoolId = (user as any).schoolId ?? null;
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 403 });
 
   const data = await request.json();
@@ -118,7 +113,7 @@ export const DELETE: APIRoute = async ({ request, locals }) => {
   if (denied) return denied;
 
   const db = getDb();
-  const schoolId = await getUserSchoolId(user);
+  const schoolId = (user as any).schoolId ?? null;
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 403 });
 
   const { id } = await request.json();

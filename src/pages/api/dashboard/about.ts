@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { getUserSchoolId } from '../../../lib/school.js';
+import { getUserSchoolId, getSchoolIdForApi } from '../../../lib/school.js'; 
 import { getDb } from '../../../lib/db/index.js';
 import { aboutPages } from '../../../lib/db/schema.js';
 import { eq } from 'drizzle-orm';
@@ -16,7 +16,7 @@ export const POST: APIRoute = async ({ request, redirect }) => {
   const result = sid ? await validateSession(sid) : null;
   if (!result?.user) return new Response('Unauthorized', { status: 401 });
 
-  const schoolId = getUserSchoolId(result.user.id);
+  const schoolId = await getSchoolIdForApi(result.user);
   if (!schoolId) return new Response('No school found', { status: 404 });
 
   const features: Array<{ title: string; description: string }> = [];

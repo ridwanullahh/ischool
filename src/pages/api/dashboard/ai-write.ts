@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { guardPermission } from '../../../lib/rbac.js';
 import { getSessionIdFromCookie, validateSession } from '../../../lib/auth.js';
-import { getUserSchoolId } from '../../../lib/school.js';
+import { getUserSchoolId, getSchoolIdForApi } from '../../../lib/school.js'; 
 import { getDb } from '../../../lib/db/index.js';
 import { aiApiKeys, aiModels, aiProviders } from '../../../lib/db/schema.js';
 import { eq } from 'drizzle-orm';
@@ -46,7 +46,7 @@ export const POST: APIRoute = async ({ request }) => {
   const result = sid ? await validateSession(sid) : null;
   if (!result?.user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
 
-  const schoolId = getUserSchoolId(result.user.id);
+  const schoolId = await getSchoolIdForApi(result.user);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
 
   const db = getDb();

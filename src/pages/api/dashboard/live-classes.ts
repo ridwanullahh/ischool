@@ -7,11 +7,6 @@ import {
 import { eq, and, desc, sql } from 'drizzle-orm';
 import { guardPermission } from '../../../lib/rbac.js';
 
-function getUserSchoolId(userId: number): number | null {
-  const db = getDb();
-  const membership = db.select().from(schoolMembers).where(eq(schoolMembers.userId, userId)).get();
-  return membership?.schoolId || null;
-}
 
 function generateMeetingId(): string {
   const chars = 'abcdefghijklmnopqrstuvwxyz';
@@ -26,7 +21,7 @@ export const GET: APIRoute = async ({ locals, url }) => {
   const denied = guardPermission(user, 'courses.view');
   if (denied) return denied;
 
-  const schoolId = getUserSchoolId(user);
+  const schoolId = await getSchoolIdForApi(user);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 404 });
 
   const db = getDb();
@@ -84,7 +79,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const denied = guardPermission(user, 'courses.create');
   if (denied) return denied;
 
-  const schoolId = getUserSchoolId(user);
+  const schoolId = await getSchoolIdForApi(user);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 404 });
 
   const db = getDb();
@@ -207,7 +202,7 @@ export const PUT: APIRoute = async ({ request, locals }) => {
   const denied = guardPermission(user, 'courses.edit');
   if (denied) return denied;
 
-  const schoolId = getUserSchoolId(user);
+  const schoolId = await getSchoolIdForApi(user);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 404 });
 
   const data = await request.json();
@@ -232,7 +227,7 @@ export const DELETE: APIRoute = async ({ request, locals }) => {
   const denied = guardPermission(user, 'courses.delete');
   if (denied) return denied;
 
-  const schoolId = getUserSchoolId(user);
+  const schoolId = await getSchoolIdForApi(user);
   if (!schoolId) return new Response(JSON.stringify({ error: 'No school found' }), { status: 404 });
 
   const { id } = await request.json();

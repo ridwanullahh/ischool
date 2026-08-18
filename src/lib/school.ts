@@ -165,3 +165,25 @@ function _normalizeSchoolLocal(row: any): any {
     settings: parseJsonCol(row.settings, {}),
   };
 }
+
+/**
+ * Async helper for API endpoints that call validateSession() directly
+ * (not going through the middleware RBAC enrichment). Queries
+ * school_members by user.id to resolve the schoolId.
+ *
+ * Usage in API handlers:
+ *   const schoolId = await getSchoolIdForApi(result.user);
+ *   if (!schoolId) return new Response('No school found', { status: 404 });
+ */
+export async function getSchoolIdForApi(user: any): Promise<string | number | null> {
+  if (!user) return null;
+  // Check if middleware already set schoolId (page requests)
+  if (user.schoolId) return user.schoolId;
+  if (user.school_id) return user.school_id;
+  // API requests: query school_members async
+  try {
+    const db = getDb();
+    const membership = await db.select().from(schoolMembers).where(eq(schoolMembers.userId, user.id)).get();
+    return membership?.schoolId ?? membership?.school_id ?? null;
+  } catch { return null; }
+}
