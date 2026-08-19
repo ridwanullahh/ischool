@@ -1,7 +1,5 @@
 ---
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
-import Input from '../../components/ui/Input.astro';
-import Button from '../../components/ui/Button.astro';
 import { getUserSchoolId } from '../../lib/school.js';
 import { getDb } from '../../lib/db/index.js';
 import { aboutPages } from '../../lib/db/schema.js';
@@ -11,127 +9,100 @@ const user = Astro.locals.user!;
 const schoolId = getUserSchoolId(user);
 const db = getDb();
 
-let about = null;
-if (schoolId) {
-  about = await db.select().from(aboutPages).where(eq(aboutPages.schoolId, schoolId)).get();
-}
+let about: any = null;
+if (schoolId) { try { about = await db.select().from(aboutPages).where(eq(aboutPages.schoolId, schoolId)).get(); } catch {} }
 
-// Gracefully parse features/stats — handle both array (correct) and
-// string (legacy double-encoded) data from Drizzle json-mode columns.
 function parseJsonField(val: any, fallback: any): any {
   if (val === null || val === undefined) return fallback;
   if (Array.isArray(val)) return val;
   if (typeof val === 'object') return val;
-  if (typeof val === 'string') {
-    if (val === '') return fallback;
-    try { const parsed = JSON.parse(val); return Array.isArray(parsed) ? parsed : (parsed || fallback); }
-    catch { return fallback; }
-  }
+  if (typeof val === 'string') { if (val === '') return fallback; try { const p = JSON.parse(val); return Array.isArray(p) ? p : (p || fallback); } catch { return fallback; } }
   return fallback;
 }
-
 const features: Array<{ title: string; description: string }> = parseJsonField(about?.features, []);
 const stats: Array<{ label: string; value: string }> = parseJsonField(about?.stats, []);
 const success = Astro.url.searchParams.get('success');
 ---
 
 <DashboardLayout title="About Page - iSchool">
-  {success && (
-    <div class="mb-6 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">About page saved successfully.</div>
-  )}
+  {success && <div class="mosaic-card p-4 mb-4" style="border-color:#05B34D;background:rgba(5,179,77,0.05);"><p class="text-sm font-medium" style="color:#05B34D;">About page saved successfully.</p></div>}
 
-  <form method="POST" action="/api/dashboard/about" class="space-y-8">
-    <div class="bg-white rounded-xl border border-gray-200 p-6">
-      <h2 class="text-base font-semibold text-gray-900 mb-4">Mission & Vision</h2>
-      <div class="space-y-5">
-        <Input label="Mission Statement" name="mission" value={about?.mission || ''} placeholder="Our mission is to..." rows={3} />
-        <Input label="Vision Statement" name="vision" value={about?.vision || ''} placeholder="We envision a world where..." rows={3} />
-        <Input label="Value Proposition (Why Choose Us)" name="valueProposition" value={about?.valueProposition || ''} placeholder="What makes your school unique..." rows={3} />
-      </div>
+  <div class="mb-6"><h1 class="text-2xl font-bold mb-1" style="font-family:'Space Grotesk',sans-serif;color:var(--mosaic-text);">About Page</h1><p class="text-sm" style="color:var(--mosaic-text-muted);">Edit your school's about page content.</p></div>
+
+  <form method="POST" action="/api/dashboard/about" class="space-y-6">
+    <div class="mosaic-card p-6 space-y-5">
+      <h2 class="text-sm font-bold uppercase tracking-wider mb-4" style="color:var(--mosaic-text-subtle);">Mission & Vision</h2>
+      <div><label class="block text-sm font-semibold mb-2" style="color:var(--mosaic-text);">Mission Statement</label><textarea name="mission" rows="3" placeholder="Our mission is to..." class="w-full px-4 py-3 rounded-xl text-sm focus:outline-none transition-all" style="background:var(--mosaic-surface-2);border:1px solid var(--mosaic-border);color:var(--mosaic-text);">{about?.mission || ''}</textarea></div>
+      <div><label class="block text-sm font-semibold mb-2" style="color:var(--mosaic-text);">Vision Statement</label><textarea name="vision" rows="3" placeholder="We envision..." class="w-full px-4 py-3 rounded-xl text-sm focus:outline-none transition-all" style="background:var(--mosaic-surface-2);border:1px solid var(--mosaic-border);color:var(--mosaic-text);">{about?.vision || ''}</textarea></div>
+      <div><label class="block text-sm font-semibold mb-2" style="color:var(--mosaic-text);">Value Proposition</label><textarea name="valueProposition" rows="3" placeholder="What makes your school unique..." class="w-full px-4 py-3 rounded-xl text-sm focus:outline-none transition-all" style="background:var(--mosaic-surface-2);border:1px solid var(--mosaic-border);color:var(--mosaic-text);">{about?.valueProposition || about?.value_proposition || ''}</textarea></div>
+      <div><label class="block text-sm font-semibold mb-2" style="color:var(--mosaic-text);">History</label><textarea name="history" rows="4" placeholder="School history..." class="w-full px-4 py-3 rounded-xl text-sm focus:outline-none transition-all" style="background:var(--mosaic-surface-2);border:1px solid var(--mosaic-border);color:var(--mosaic-text);">{about?.history || ''}</textarea></div>
     </div>
 
-    <div class="bg-white rounded-xl border border-gray-200 p-6">
-      <h2 class="text-base font-semibold text-gray-900 mb-4">Key Features</h2>
-      <p class="text-sm text-gray-500 mb-4">Add up to 6 features that highlight your school.</p>
-      <div id="features-container" class="space-y-4">
+    <div class="mosaic-card p-6 space-y-5">
+      <h2 class="text-sm font-bold uppercase tracking-wider mb-4" style="color:var(--mosaic-text-subtle);">Key Features</h2>
+      <p class="text-xs" style="color:var(--mosaic-text-muted);">Add up to 6 features that highlight your school.</p>
+      <div id="features-container" class="space-y-3">
         {features.length > 0 ? features.map((f, i) => (
-          <div class="feature-row grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg relative">
-            <input type="text" name={`feature_title_${i}`} value={f.title} placeholder="Feature title" class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
-            <input type="text" name={`feature_desc_${i}`} value={f.description} placeholder="Description" class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
-            <button type="button" onclick="this.closest('.feature-row').remove()" class="absolute top-2 right-2 text-gray-400 hover:text-red-500">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-            </button>
+          <div class="feature-row grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 rounded-xl relative" style="background:var(--mosaic-surface-2);">
+            <input type="text" name={`feature_title_${i}`} value={f.title || ''} placeholder="Feature title" class="w-full px-3 py-2 rounded-lg text-sm focus:outline-none" style="background:var(--mosaic-surface);border:1px solid var(--mosaic-border);color:var(--mosaic-text);" />
+            <input type="text" name={`feature_desc_${i}`} value={f.description || ''} placeholder="Description" class="w-full px-3 py-2 rounded-lg text-sm focus:outline-none" style="background:var(--mosaic-surface);border:1px solid var(--mosaic-border);color:var(--mosaic-text);" />
+            <button type="button" onclick="this.closest('.feature-row').remove()" class="absolute top-2 right-2 p-1 rounded-lg hover:bg-red-50" style="color:var(--mosaic-text-subtle);"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
           </div>
         )) : (
-          <div class="feature-row grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg relative">
-            <input type="text" name="feature_title_0" placeholder="Feature title" class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
-            <input type="text" name="feature_desc_0" placeholder="Description" class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
-            <button type="button" onclick="this.closest('.feature-row').remove()" class="absolute top-2 right-2 text-gray-400 hover:text-red-500">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-            </button>
+          <div class="feature-row grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 rounded-xl relative" style="background:var(--mosaic-surface-2);">
+            <input type="text" name="feature_title_0" placeholder="Feature title" class="w-full px-3 py-2 rounded-lg text-sm focus:outline-none" style="background:var(--mosaic-surface);border:1px solid var(--mosaic-border);color:var(--mosaic-text);" />
+            <input type="text" name="feature_desc_0" placeholder="Description" class="w-full px-3 py-2 rounded-lg text-sm focus:outline-none" style="background:var(--mosaic-surface);border:1px solid var(--mosaic-border);color:var(--mosaic-text);" />
+            <button type="button" onclick="this.closest('.feature-row').remove()" class="absolute top-2 right-2 p-1 rounded-lg hover:bg-red-50" style="color:var(--mosaic-text-subtle);"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
           </div>
         )}
       </div>
-      <button type="button" id="add-feature" class="mt-4 text-sm text-primary-600 hover:text-primary-700 font-medium">+ Add Feature</button>
+      <button type="button" id="add-feature" class="text-sm font-medium" style="color:#05B34D;">+ Add Feature</button>
     </div>
 
-    <div class="bg-white rounded-xl border border-gray-200 p-6">
-      <h2 class="text-base font-semibold text-gray-900 mb-4">Statistics</h2>
-      <p class="text-sm text-gray-500 mb-4">Add impressive numbers about your school.</p>
-      <div id="stats-container" class="space-y-4">
+    <div class="mosaic-card p-6 space-y-5">
+      <h2 class="text-sm font-bold uppercase tracking-wider mb-4" style="color:var(--mosaic-text-subtle);">Statistics</h2>
+      <div id="stats-container" class="space-y-3">
         {stats.length > 0 ? stats.map((s, i) => (
-          <div class="stat-row grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg relative">
-            <input type="text" name={`stat_label_${i}`} value={s.label} placeholder="Label (e.g., Students Enrolled)" class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
-            <input type="text" name={`stat_value_${i}`} value={s.value} placeholder="Value (e.g., 1,200+)" class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
-            <button type="button" onclick="this.closest('.stat-row').remove()" class="absolute top-2 right-2 text-gray-400 hover:text-red-500">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-            </button>
+          <div class="stat-row grid grid-cols-2 gap-3 p-4 rounded-xl relative" style="background:var(--mosaic-surface-2);">
+            <input type="text" name={`stat_label_${i}`} value={s.label || ''} placeholder="Label (e.g. Students)" class="w-full px-3 py-2 rounded-lg text-sm focus:outline-none" style="background:var(--mosaic-surface);border:1px solid var(--mosaic-border);color:var(--mosaic-text);" />
+            <input type="text" name={`stat_value_${i}`} value={s.value || ''} placeholder="Value (e.g. 500+)" class="w-full px-3 py-2 rounded-lg text-sm focus:outline-none" style="background:var(--mosaic-surface);border:1px solid var(--mosaic-border);color:var(--mosaic-text);" />
+            <button type="button" onclick="this.closest('.stat-row').remove()" class="absolute top-2 right-2 p-1 rounded-lg hover:bg-red-50" style="color:var(--mosaic-text-subtle);"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
           </div>
         )) : (
-          <div class="stat-row grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg relative">
-            <input type="text" name="stat_label_0" placeholder="Label (e.g., Students Enrolled)" class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
-            <input type="text" name="stat_value_0" placeholder="Value (e.g., 1,200+)" class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
-            <button type="button" onclick="this.closest('.stat-row').remove()" class="absolute top-2 right-2 text-gray-400 hover:text-red-500">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-            </button>
+          <div class="stat-row grid grid-cols-2 gap-3 p-4 rounded-xl relative" style="background:var(--mosaic-surface-2);">
+            <input type="text" name="stat_label_0" placeholder="Label" class="w-full px-3 py-2 rounded-lg text-sm focus:outline-none" style="background:var(--mosaic-surface);border:1px solid var(--mosaic-border);color:var(--mosaic-text);" />
+            <input type="text" name="stat_value_0" placeholder="Value" class="w-full px-3 py-2 rounded-lg text-sm focus:outline-none" style="background:var(--mosaic-surface);border:1px solid var(--mosaic-border);color:var(--mosaic-text);" />
+            <button type="button" onclick="this.closest('.stat-row').remove()" class="absolute top-2 right-2 p-1 rounded-lg hover:bg-red-50" style="color:var(--mosaic-text-subtle);"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
           </div>
         )}
       </div>
-      <button type="button" id="add-stat" class="mt-4 text-sm text-primary-600 hover:text-primary-700 font-medium">+ Add Stat</button>
+      <button type="button" id="add-stat" class="text-sm font-medium" style="color:#05B34D;">+ Add Stat</button>
     </div>
 
-    <Button type="submit">Save About Page</Button>
+    <div class="flex items-center gap-3 sticky bottom-4">
+      <button type="submit" class="mosaic-btn-primary px-8 py-3 text-sm">Save About Page</button>
+      <a href="/dashboard" class="px-4 py-3 rounded-xl text-sm font-medium transition-colors hover:bg-gray-100 dark:hover:bg-slate-800" style="color:var(--mosaic-text-muted);">Back to Dashboard</a>
+    </div>
   </form>
 
-  <script>
-    let featureIdx = document.querySelectorAll('.feature-row').length;
-    document.getElementById('add-feature')?.addEventListener('click', () => {
-      const container = document.getElementById('features-container');
-      const row = document.createElement('div');
-      row.className = 'feature-row grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg relative';
-      row.innerHTML = `
-        <input type="text" name="feature_title_${featureIdx}" placeholder="Feature title" class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
-        <input type="text" name="feature_desc_${featureIdx}" placeholder="Description" class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
-        <button type="button" onclick="this.closest('.feature-row').remove()" class="absolute top-2 right-2 text-gray-400 hover:text-red-500">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-        </button>`;
-      container?.appendChild(row);
-      featureIdx++;
+  <script is:inline>
+    document.getElementById('add-feature')?.addEventListener('click', function() {
+      var c = document.getElementById('features-container');
+      var i = c.children.length;
+      var row = document.createElement('div');
+      row.className = 'feature-row grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 rounded-xl relative';
+      row.style.background = 'var(--mosaic-surface-2)';
+      row.innerHTML = '<input type="text" name="feature_title_' + i + '" placeholder="Feature title" class="w-full px-3 py-2 rounded-lg text-sm focus:outline-none" style="background:var(--mosaic-surface);border:1px solid var(--mosaic-border);color:var(--mosaic-text);" /><input type="text" name="feature_desc_' + i + '" placeholder="Description" class="w-full px-3 py-2 rounded-lg text-sm focus:outline-none" style="background:var(--mosaic-surface);border:1px solid var(--mosaic-border);color:var(--mosaic-text);" /><button type="button" onclick="this.closest(\\'.feature-row\\').remove()" class="absolute top-2 right-2 p-1 rounded-lg" style="color:var(--mosaic-text-subtle);"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>';
+      c.appendChild(row);
     });
-
-    let statIdx = document.querySelectorAll('.stat-row').length;
-    document.getElementById('add-stat')?.addEventListener('click', () => {
-      const container = document.getElementById('stats-container');
-      const row = document.createElement('div');
-      row.className = 'stat-row grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg relative';
-      row.innerHTML = `
-        <input type="text" name="stat_label_${statIdx}" placeholder="Label (e.g., Students Enrolled)" class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
-        <input type="text" name="stat_value_${statIdx}" placeholder="Value (e.g., 1,200+)" class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
-        <button type="button" onclick="this.closest('.stat-row').remove()" class="absolute top-2 right-2 text-gray-400 hover:text-red-500">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-        </button>`;
-      container?.appendChild(row);
-      statIdx++;
+    document.getElementById('add-stat')?.addEventListener('click', function() {
+      var c = document.getElementById('stats-container');
+      var i = c.children.length;
+      var row = document.createElement('div');
+      row.className = 'stat-row grid grid-cols-2 gap-3 p-4 rounded-xl relative';
+      row.style.background = 'var(--mosaic-surface-2)';
+      row.innerHTML = '<input type="text" name="stat_label_' + i + '" placeholder="Label" class="w-full px-3 py-2 rounded-lg text-sm focus:outline-none" style="background:var(--mosaic-surface);border:1px solid var(--mosaic-border);color:var(--mosaic-text);" /><input type="text" name="stat_value_' + i + '" placeholder="Value" class="w-full px-3 py-2 rounded-lg text-sm focus:outline-none" style="background:var(--mosaic-surface);border:1px solid var(--mosaic-border);color:var(--mosaic-text);" /><button type="button" onclick="this.closest(\\'.stat-row\\').remove()" class="absolute top-2 right-2 p-1 rounded-lg" style="color:var(--mosaic-text-subtle);"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>';
+      c.appendChild(row);
     });
   </script>
 </DashboardLayout>

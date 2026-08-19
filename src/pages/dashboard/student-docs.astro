@@ -1,215 +1,55 @@
 ---
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import ListToolbar from '../../components/ListToolbar.astro';
 import { getUserSchoolId } from '../../lib/school.js';
 import { getDb } from '../../lib/db/index.js';
 import { studentDocuments, students } from '../../lib/db/schema.js';
-import { eq } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 
 const user = Astro.locals.user!;
-if (!user) return Astro.redirect('/auth/login');
 const schoolId = getUserSchoolId(user);
-if (!schoolId) return Astro.redirect('/dashboard');
 const db = getDb();
-
-// Fetch documents and students separately, then join client-side
-const rawDocs = await db.select().from(studentDocuments).where(eq(studentDocuments.schoolId, schoolId)).all();
-const allStudents = await db.select().from(students).where(eq(students.schoolId, schoolId)).all();
-const studentMap = new Map((allStudents || []).map((s: any) => [s.id, s]));
-const docs = (rawDocs || []).map((d: any) => {
-  const student = studentMap.get(d.studentId ?? d.student_id);
-  return {
-    ...d,
-    studentName: student?.firstName || student?.first_name || '',
-    studentLastName: student?.lastName || student?.last_name || '',
-    studentIdCode: student?.studentId || student?.student_id || '',
-  };
-});
-
-const categoryLabels: Record<string, string> = {
-  birth_certificate: 'Birth Certificate', passport: 'Passport', health_record: 'Health Record',
-  transfer_certificate: 'Transfer Certificate', report_card: 'Report Card', id_card: 'ID Card', other: 'Other',
-};
-const categoryColors: Record<string, string> = {
-  birth_certificate: 'bg-blue-50 text-blue-700 border-blue-200', passport: 'bg-purple-50 text-purple-700 border-purple-200',
-  health_record: 'bg-emerald-50 text-emerald-700 border-emerald-200', transfer_certificate: 'bg-amber-50 text-amber-700 border-amber-200',
-  report_card: 'bg-indigo-50 text-indigo-700 border-indigo-200', id_card: 'bg-gray-50 text-gray-700 border-gray-200',
-  other: 'bg-gray-50 text-gray-700 border-gray-200',
-};
-const formatDate = (d: any) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
-const fileIcon = (ft: string) => {
-  if (!ft) return '📄';
-  if (ft.includes('pdf')) return '📕';
-  if (ft.includes('image')) return '🖼️';
-  if (ft.includes('word') || ft.includes('document')) return '📘';
-  if (ft.includes('sheet') || ft.includes('excel')) return '📗';
-  return '📄';
-};
+let docs: any[] = [];
+let allStudents: any[] = [];
+if (schoolId) {
+  try {
+    allStudents = await db.select().from(students).where(eq(students.schoolId, schoolId)).all() || [];
+    const studentMap = new Map((allStudents||[]).map((s:any) => [s.id, s]));
+    const raw = await db.select().from(studentDocuments).where(eq(studentDocuments.schoolId, schoolId)).orderBy(desc(studentDocuments.createdAt)).all() || [];
+    docs = raw.map((d:any) => { const s = studentMap.get(d.studentId ?? d.student_id); return { ...d, studentName: s ? `${s.firstName||s.first_name||''} ${s.lastName||s.last_name||''}`.trim() : 'Unknown', studentIdCode: s?.studentId || s?.student_id || '' }; });
+  } catch {}
+}
+const categoryLabels: Record<string,string> = { birth_certificate:'Birth Certificate', passport:'Passport', health_record:'Health Record', transfer_certificate:'Transfer Certificate', report_card:'Report Card', id_card:'ID Card', other:'Other' };
+const categoryColors: Record<string,string> = { birth_certificate:'rgba(59,130,246,0.1)', passport:'rgba(168,85,247,0.1)', health_record:'rgba(5,179,77,0.1)', transfer_certificate:'rgba(242,185,28,0.1)', report_card:'rgba(99,102,241,0.1)', id_card:'rgba(107,114,128,0.1)', other:'rgba(107,114,128,0.1)' };
+const categoryTextColors: Record<string,string> = { birth_certificate:'#3B82F6', passport:'#A855F7', health_record:'#05B34D', transfer_certificate:'#F2B91C', report_card:'#6366F1', id_card:'#6B7280', other:'#6B7280' };
 ---
 
-<DashboardLayout title="Student Documents - iSchool">
-  <div class="space-y-6">
-    <div class="flex items-center justify-between">
-      <div>
-        <h2 class="text-2xl font-bold text-gray-900">Document Vault</h2>
-        <p class="text-sm text-gray-500 mt-1">Centralized document repository per student — birth certificates, passports, health records, transfer certificates, report cards, ID cards, and more.</p>
-      </div>
-      <button onclick="openModal()" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">+ Upload Document</button>
-    </div>
+<DashboardLayout title="Documents - iSchool">
+  <div class="mb-6"><h1 class="text-2xl font-bold mb-1" style="font-family:'Space Grotesk',sans-serif;color:var(--mosaic-text);">Student Documents</h1><p class="text-sm" style="color:var(--mosaic-text-muted);">Manage student documents and certificates.</p></div>
 
-    <!-- Filter bar -->
-    <div class="bg-white rounded-xl border border-gray-200 p-4 flex flex-col sm:flex-row gap-3">
-      <input id="searchInput" type="text" placeholder="Search by student or title..." class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm" oninput="filterDocs()" />
-      <select id="categoryFilter" class="px-3 py-2 border border-gray-300 rounded-lg text-sm" onchange="filterDocs()">
-        <option value="">All Categories</option>
-        {Object.entries(categoryLabels).map(([k, v]) => <option value={k}>{v}</option>)}
-      </select>
-    </div>
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+    <div class="mosaic-card p-4"><p class="text-[10px] font-medium uppercase tracking-wider mb-1" style="color:var(--mosaic-text-subtle);">Total</p><p class="text-2xl font-bold" style="font-family:'Space Grotesk',sans-serif;color:var(--mosaic-text);">{docs.length}</p></div>
+    <div class="mosaic-card p-4"><p class="text-[10px] font-medium uppercase tracking-wider mb-1" style="color:var(--mosaic-text-subtle);">Birth Certs</p><p class="text-2xl font-bold" style="font-family:'Space Grotesk',sans-serif;color:#3B82F6;">{docs.filter(d => d.category==='birth_certificate').length}</p></div>
+    <div class="mosaic-card p-4"><p class="text-[10px] font-medium uppercase tracking-wider mb-1" style="color:var(--mosaic-text-subtle);">Health Records</p><p class="text-2xl font-bold" style="font-family:'Space Grotesk',sans-serif;color:#05B34D;">{docs.filter(d => d.category==='health_record').length}</p></div>
+    <div class="mosaic-card p-4"><p class="text-[10px] font-medium uppercase tracking-wider mb-1" style="color:var(--mosaic-text-subtle);">Passports</p><p class="text-2xl font-bold" style="font-family:'Space Grotesk',sans-serif;color:#A855F7;">{docs.filter(d => d.category==='passport').length}</p></div>
+  </div>
 
-    <!-- Documents grid -->
+  <ListToolbar searchPlaceholder="Search documents..." filterOptions={Object.entries(categoryLabels).map(([v,l]) => ({value:v,label:l}))} filterField="category" newItemHref="/dashboard/student-docs/new" newItemLabel="+ Upload Document" />
+
+  <div id="list-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
     {docs.length === 0 ? (
-      <div class="bg-white rounded-xl border border-gray-200 p-12 text-center">
-        <div class="text-4xl mb-3">📁</div>
-        <h3 class="text-lg font-semibold text-gray-900 mb-1">No documents uploaded yet</h3>
-        <p class="text-sm text-gray-500 mb-4">Upload birth certificates, health records, passports, and other student documents.</p>
-        <button onclick="openModal()" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg">+ Upload First Document</button>
+      <div class="col-span-full mosaic-card p-12 text-center"><h3 class="text-base font-semibold mb-1" style="color:var(--mosaic-text);">No documents yet</h3><a href="/dashboard/student-docs/new" class="mosaic-btn-primary inline-block px-6 py-2.5 text-sm mt-2">+ Upload Document</a></div>
+    ) : docs.map(d => (
+      <div data-list-item data-title={d.title||d.studentName||''} data-status={d.category||'other'} data-date={d.createdAt||d.created_at||''} class="mosaic-card p-5 group">
+        <div class="flex items-center gap-3 mb-3">
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center" style={`background:${categoryColors[d.category]||'rgba(107,114,128,0.1)'};`}><svg class="w-5 h-5" style={`color:${categoryTextColors[d.category]||'#6B7280'};`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg></div>
+          <div class="flex-1 min-w-0"><h3 class="text-sm font-bold truncate" style="color:var(--mosaic-text);">{d.title || d.fileName || d.file_name || 'Untitled'}</h3><p class="text-xs" style="color:var(--mosaic-text-muted);">{d.studentName}</p></div>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full" style={`background:${categoryColors[d.category]||'rgba(107,114,128,0.1)'};color:${categoryTextColors[d.category]||'#6B7280'};`}>{categoryLabels[d.category]||d.category||'Other'}</span>
+          <span class="text-[11px]" style="color:var(--mosaic-text-subtle);">{d.createdAt||d.created_at?new Date(d.createdAt||d.created_at).toLocaleDateString():''}</span>
+        </div>
       </div>
-    ) : (
-      <div id="docsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {docs.map(d => (
-          <div class="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition doc-card" data-student={`${d.studentName || ''} ${d.studentLastName || ''}`.toLowerCase()} data-title={(d.title || '').toLowerCase()} data-category={d.category}>
-            <div class="flex items-start gap-3">
-              <div class="text-3xl">{fileIcon(d.fileType || '')}</div>
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2 mb-1">
-                  <span class={`text-[10px] font-bold uppercase px-2 py-0.5 rounded border ${categoryColors[d.category] || categoryColors.other}`}>{categoryLabels[d.category] || d.category}</span>
-                </div>
-                <h4 class="font-semibold text-sm text-gray-900 truncate">{d.title}</h4>
-                <p class="text-xs text-gray-500 mt-0.5">{d.studentName} {d.studentLastName} ({d.studentIdCode})</p>
-                <p class="text-xs text-gray-400 mt-1">Uploaded {formatDate(d.createdAt)}</p>
-                <div class="flex gap-2 mt-2">
-                  <a href={d.fileUrl} target="_blank" class="text-xs text-primary-600 font-medium">View</a>
-                  <a href={d.fileUrl} download={d.fileName || ''} class="text-xs text-green-600 font-medium">Download</a>
-                  <button onclick={`editDoc(${d.id})`} class="text-xs text-amber-600 font-medium">Edit</button>
-                  <button onclick={`deleteDoc(${d.id})`} class="text-xs text-red-600 font-medium">Delete</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    )}
+    ))}
   </div>
-
-  <!-- Upload Modal -->
-  <div id="docModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
-      <h3 class="text-lg font-bold text-gray-900 mb-4" id="modalTitle">Upload Document</h3>
-      <form id="docForm" class="space-y-3">
-        <input type="hidden" name="id" />
-        <div><label class="block text-xs font-medium text-gray-700 mb-1">Student *</label>
-          <select name="studentId" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
-            <option value="">Select student…</option>
-            {allStudents.map(s => <option value={s.id}>{s.name} {s.lastName} ({s.sid})</option>)}
-          </select>
-        </div>
-        <div class="grid grid-cols-2 gap-3">
-          <div><label class="block text-xs font-medium text-gray-700 mb-1">Category *</label>
-            <select name="category" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
-              {Object.entries(categoryLabels).map(([k, v]) => <option value={k}>{v}</option>)}
-            </select>
-          </div>
-          <div><label class="block text-xs font-medium text-gray-700 mb-1">Title *</label><input name="title" required placeholder="e.g. Birth Certificate 2020" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /></div>
-        </div>
-        <div>
-          <label class="block text-xs font-medium text-gray-700 mb-1">File *</label>
-          <input name="file" type="file" required class="w-full text-sm" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp" onchange="previewFile(this)" />
-          <p class="text-xs text-gray-500 mt-1">PDF, DOC, JPG, PNG accepted. Max 10MB.</p>
-          <div id="filePreview" class="hidden mt-2 text-xs text-gray-600 bg-gray-50 rounded p-2"></div>
-        </div>
-        <div class="flex gap-3 pt-2">
-          <button type="button" onclick="closeModal()" class="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg">Cancel</button>
-          <button type="submit" class="flex-1 px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg">Save</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <script is:inline define:vars={{ docs }} set:html={`(function(){
-    var allDocs = docs;
-    window.openModal = function() {
-      var form = document.getElementById('docForm');
-      form.reset(); form.id.value = '';
-      document.getElementById('modalTitle').textContent = 'Upload Document';
-      document.getElementById('docModal').classList.remove('hidden');
-    };
-    window.closeModal = function() { document.getElementById('docModal').classList.add('hidden'); };
-    window.previewFile = function(input) {
-      var preview = document.getElementById('filePreview');
-      if (input.files && input.files[0]) {
-        var file = input.files[0];
-        preview.textContent = file.name + ' (' + (file.size/1024).toFixed(1) + ' KB)';
-        preview.classList.remove('hidden');
-      }
-    };
-    window.editDoc = function(id) {
-      var d = allDocs.find(function(x){ return x.id === id; });
-      if (!d) return;
-      var form = document.getElementById('docForm');
-      form.id.value = d.id;
-      form.studentId.value = d.studentId;
-      form.category.value = d.category;
-      form.title.value = d.title || '';
-      // File is required only on create — make optional on edit
-      form.file.removeAttribute('required');
-      document.getElementById('modalTitle').textContent = 'Edit Document';
-      document.getElementById('docModal').classList.remove('hidden');
-    };
-    window.deleteDoc = async function(id) {
-      if (!confirm('Delete this document record? The file itself will remain on storage.')) return;
-      await fetch('/api/dashboard/student-documents', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id }) });
-      window.location.reload();
-    };
-    window.filterDocs = function() {
-      var q = document.getElementById('searchInput').value.toLowerCase();
-      var c = document.getElementById('categoryFilter').value;
-      document.querySelectorAll('.doc-card').forEach(function(card) {
-        var matchQ = !q || card.dataset.student.indexOf(q) >= 0 || card.dataset.title.indexOf(q) >= 0;
-        var matchC = !c || card.dataset.category === c;
-        card.style.display = (matchQ && matchC) ? '' : 'none';
-      });
-    };
-    document.getElementById('docForm')?.addEventListener('submit', async function(e) {
-      e.preventDefault();
-      var fd = new FormData(this);
-      var id = fd.get('id');
-      var fileInput = this.querySelector('[name="file"]');
-      var fileUrl, fileName, fileType;
-      if (fileInput.files && fileInput.files[0]) {
-        // Upload file first
-        var uploadFd = new FormData();
-        uploadFd.append('file', fileInput.files[0]);
-        uploadFd.append('folder', 'student-docs');
-        var uploadRes = await fetch('/api/upload', { method: 'POST', body: uploadFd });
-        if (!uploadRes.ok) { alert('File upload failed'); return; }
-        var uploadData = await uploadRes.json();
-        fileUrl = uploadData.url || uploadData.secure_url;
-        fileName = fileInput.files[0].name;
-        fileType = fileInput.files[0].type;
-      } else if (id) {
-        var existing = allDocs.find(function(x){ return x.id === parseInt(id); });
-        fileUrl = existing.fileUrl; fileName = existing.fileName; fileType = existing.fileType;
-      } else {
-        alert('Please select a file'); return;
-      }
-      var payload = {
-        studentId: fd.get('studentId'), category: fd.get('category'), title: fd.get('title'),
-        fileUrl: fileUrl, fileName: fileName, fileType: fileType,
-      };
-      var method = id ? 'PUT' : 'POST';
-      if (id) payload.id = parseInt(id);
-      var res = await fetch('/api/dashboard/student-documents', { method: method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-      if (res.ok) window.location.reload();
-      else { var err = await res.json(); alert(err.error || 'Failed to save document'); }
-    });
-  })();`} />
 </DashboardLayout>

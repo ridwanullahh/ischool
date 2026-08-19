@@ -1,274 +1,69 @@
 ---
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import ListToolbar from '../../components/ListToolbar.astro';
 import { getUserSchoolId } from '../../lib/school.js';
 import { getDb } from '../../lib/db/index.js';
 import { admissionPeriods, admissionApplications } from '../../lib/db/schema.js';
 import { eq, desc } from 'drizzle-orm';
-import { getSchoolPrograms } from '../../lib/school-safe.ts';
 
 const user = Astro.locals.user!;
-if (!user) return Astro.redirect('/auth/login');
 const schoolId = getUserSchoolId(user);
-if (!schoolId) return Astro.redirect('/dashboard');
-
 const db = getDb();
-const periods = await db.select().from(admissionPeriods).where(eq(admissionPeriods.schoolId, schoolId)).orderBy(desc(admissionPeriods.createdAt)).all();
-const applications = await db.select().from(admissionApplications).where(eq(admissionApplications.schoolId, schoolId)).orderBy(desc(admissionApplications.createdAt)).all();
-const programs = getSchoolPrograms(schoolId);
+let periods: any[] = [];
+let applications: any[] = [];
+if (schoolId) {
+  try {
+    periods = await db.select().from(admissionPeriods).where(eq(admissionPeriods.schoolId, schoolId)).orderBy(desc(admissionPeriods.createdAt)).all() || [];
+    applications = await db.select().from(admissionApplications).where(eq(admissionApplications.schoolId, schoolId)).orderBy(desc(admissionApplications.createdAt)).limit(20).all() || [];
+  } catch {}
+}
 const success = Astro.url.searchParams.get('success');
-
-const today = new Date().toISOString().split('T')[0];
-const statusColors: Record<string, string> = {
-  submitted: 'bg-blue-100 text-blue-700',
-  reviewing: 'bg-yellow-100 text-yellow-700',
-  interview_scheduled: 'bg-purple-100 text-purple-700',
-  accepted: 'bg-green-100 text-green-700',
-  rejected: 'bg-red-100 text-red-700',
-  enrolled: 'bg-emerald-100 text-emerald-700',
-  waitlisted: 'bg-orange-100 text-orange-700',
-};
-
-const formatDate = (d: string | null) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A';
 ---
 
 <DashboardLayout title="Admissions - iSchool">
-  <div class="space-y-6">
-    {success && (
-      <div class="p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
-        {success === 'period_created' && 'Admission period created successfully. Announcement auto-generated.'}
-        {success === 'period_updated' && 'Admission period updated.'}
-        {success === 'period_deleted' && 'Admission period deleted.'}
-        {success === 'application_updated' && 'Application status updated.'}
-      </div>
-    )}
+  {success && <div class="mosaic-card p-4 mb-4" style="border-color:#05B34D;background:rgba(5,179,77,0.05);"><p class="text-sm font-medium" style="color:#05B34D;">Admission saved successfully.</p></div>}
 
-    <div class="flex items-center justify-between">
-      <div>
-        <h2 class="text-2xl font-bold text-gray-900">Admissions</h2>
-        <p class="text-sm text-gray-500 mt-1">Manage admission periods, applications, and enrollment workflow.</p>
-      </div>
-      <button onclick="document.getElementById('createPeriodModal').classList.remove('hidden')" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">Schedule Admission Period</button>
-    </div>
+  <div class="mb-6"><h1 class="text-2xl font-bold mb-1" style="font-family:'Space Grotesk',sans-serif;color:var(--mosaic-text);">Admissions</h1><p class="text-sm" style="color:var(--mosaic-text-muted);">Manage admission periods and applications.</p></div>
 
-    <!-- Stats -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-      <div class="bg-white rounded-xl border border-gray-200 p-4">
-        <p class="text-xs text-gray-500 uppercase tracking-wider">Total Applications</p>
-        <p class="text-2xl font-bold text-gray-900 mt-1">{applications.length}</p>
-      </div>
-      <div class="bg-white rounded-xl border border-gray-200 p-4">
-        <p class="text-xs text-gray-500 uppercase tracking-wider">Pending Review</p>
-        <p class="text-2xl font-bold text-blue-600 mt-1">{applications.filter(a => a.status === 'submitted').length}</p>
-      </div>
-      <div class="bg-white rounded-xl border border-gray-200 p-4">
-        <p class="text-xs text-gray-500 uppercase tracking-wider">Accepted</p>
-        <p class="text-2xl font-bold text-green-600 mt-1">{applications.filter(a => a.status === 'accepted').length}</p>
-      </div>
-      <div class="bg-white rounded-xl border border-gray-200 p-4">
-        <p class="text-xs text-gray-500 uppercase tracking-wider">Active Periods</p>
-        <p class="text-2xl font-bold text-purple-600 mt-1">{periods.filter(p => p.isActive && p.openDate <= today && p.closeDate >= today).length}</p>
-      </div>
-    </div>
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+    <div class="mosaic-card p-4"><p class="text-[10px] font-medium uppercase tracking-wider mb-1" style="color:var(--mosaic-text-subtle);">Periods</p><p class="text-2xl font-bold" style="font-family:'Space Grotesk',sans-serif;color:var(--mosaic-text);">{periods.length}</p></div>
+    <div class="mosaic-card p-4"><p class="text-[10px] font-medium uppercase tracking-wider mb-1" style="color:var(--mosaic-text-subtle);">Applications</p><p class="text-2xl font-bold" style="font-family:'Space Grotesk',sans-serif;color:#3B82F6;">{applications.length}</p></div>
+    <div class="mosaic-card p-4"><p class="text-[10px] font-medium uppercase tracking-wider mb-1" style="color:var(--mosaic-text-subtle);">Active Periods</p><p class="text-2xl font-bold" style="font-family:'Space Grotesk',sans-serif;color:#05B34D;">{periods.filter(p => p.isActive ?? p.is_active).length}</p></div>
+    <div class="mosaic-card p-4"><p class="text-[10px] font-medium uppercase tracking-wider mb-1" style="color:var(--mosaic-text-subtle);">Pending</p><p class="text-2xl font-bold" style="font-family:'Space Grotesk',sans-serif;color:#F2B91C;">{applications.filter(a => (a.status||'')==='pending').length}</p></div>
+  </div>
 
-    <!-- Admission Periods -->
-    <div class="bg-white rounded-xl border border-gray-200 p-6">
-      <h3 class="text-base font-semibold text-gray-900 mb-4">Admission Periods</h3>
-      {periods.length > 0 ? (
-        <div class="space-y-3">
-          {periods.map(p => {
-            const o = String(p.openDate || '');
-            const c = String(p.closeDate || '');
-            const isActive = p.isActive && o <= today && c >= today;
-            const isUpcoming = o > today;
-            const isPast = c < today;
-            return (
-              <div class="border rounded-lg p-4 flex items-center justify-between">
-                <div>
-                  <div class="flex items-center gap-2">
-                    <h4 class="font-semibold text-gray-900">{p.title}</h4>
-                    <span class={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${isActive ? 'bg-green-100 text-green-700' : isUpcoming ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>
-                      {isActive ? 'Open' : isUpcoming ? 'Upcoming' : 'Closed'}
-                    </span>
-                  </div>
-                  <p class="text-sm text-gray-500 mt-1">AY {p.academicYear} | {formatDate(p.openDate)} to {formatDate(p.closeDate)}</p>
-                  {p.description && <p class="text-xs text-gray-400 mt-1">{p.description}</p>}
-                </div>
-                <div class="flex items-center gap-2">
-                  <form method="POST" action="/api/dashboard/admissions" class="inline">
-                    <input type="hidden" name="action" value="delete_period" />
-                    <input type="hidden" name="id" value={p.id} />
-                    <button type="submit" class="text-xs text-red-600 hover:text-red-700 font-medium" onclick="return confirm('Delete this admission period')">Delete</button>
-                  </form>
-                </div>
-              </div>
-            );
-          })}
+  <div class="mb-6">
+    <h2 class="text-sm font-bold mb-3" style="font-family:'Space Grotesk',sans-serif;color:var(--mosaic-text);">Admission Periods</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {periods.length === 0 ? (
+        <div class="col-span-full mosaic-card p-8 text-center"><p class="text-sm" style="color:var(--mosaic-text-muted);">No admission periods yet.</p></div>
+      ) : periods.map(p => (
+        <div class="mosaic-card p-5 group">
+          <div class="flex items-center justify-between mb-3">
+            <span class:list={["text-[10px] font-bold px-2 py-0.5 rounded-full",(p.isActive ?? p.is_active)?"bg-green-100 text-green-700":"bg-gray-100 text-gray-600"]}>{(p.isActive ?? p.is_active) ? 'Active' : 'Closed'}</span>
+            <span class="text-[11px]" style="color:var(--mosaic-text-subtle);">{p.openDate || p.open_date} → {p.closeDate || p.close_date}</span>
+          </div>
+          <h3 class="text-sm font-bold mb-1" style="color:var(--mosaic-text);">{p.name}</h3>
+          <p class="text-xs line-clamp-2" style="color:var(--mosaic-text-muted);">{p.description || ''}</p>
+          <div class="mt-3"><a href={`/dashboard/admissions/${p.id}/edit`} class="text-xs font-medium" style="color:#05B34D;">Manage →</a></div>
         </div>
-      ) : (
-        <p class="text-sm text-gray-500 text-center py-8">No admission periods yet. Create one to start accepting applications.</p>
-      )}
-    </div>
-
-    <!-- Applications -->
-    <div class="bg-white rounded-xl border border-gray-200 p-6">
-      <h3 class="text-base font-semibold text-gray-900 mb-4">Applications ({applications.length})</h3>
-      {applications.length > 0 ? (
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="border-b text-left text-xs text-gray-500 uppercase tracking-wider">
-                <th class="pb-2 pr-4">App #</th>
-                <th class="pb-2 pr-4">Student</th>
-                <th class="pb-2 pr-4">Parent</th>
-                <th class="pb-2 pr-4">Program</th>
-                <th class="pb-2 pr-4">Status</th>
-                <th class="pb-2 pr-4">Date</th>
-                <th class="pb-2">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {applications.map(app => (
-                <tr class="border-b">
-                  <td class="py-3 pr-4 font-mono text-xs text-gray-600">{app.applicationNumber}</td>
-                  <td class="py-3 pr-4">
-                    <p class="font-medium text-gray-900">{app.studentFirstName} {app.studentLastName}</p>
-                    {app.studentDateOfBirth && <p class="text-xs text-gray-500">DOB: {formatDate(app.studentDateOfBirth)}</p>}
-                  </td>
-                  <td class="py-3 pr-4">
-                    <p class="text-gray-900">{app.parentName}</p>
-                    <p class="text-xs text-gray-500">{app.parentEmail}</p>
-                    <p class="text-xs text-gray-500">{app.parentPhone}</p>
-                  </td>
-                  <td class="py-3 pr-4 text-gray-600">{app.programName || 'N/A'}</td>
-                  <td class="py-3 pr-4">
-                    <span class={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${statusColors[app.status] || 'bg-gray-100 text-gray-600'}`}>{app.status.replace(/_/g, ' ')}</span>
-                  </td>
-                  <td class="py-3 pr-4 text-xs text-gray-500">{formatDate(app.createdAt)}</td>
-                  <td class="py-3">
-                    <button onclick={`viewApplication(${app.id})`} class="text-xs text-primary-600 hover:text-primary-700 font-medium">View</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <p class="text-sm text-gray-500 text-center py-8">No applications yet.</p>
-      )}
+      ))}
     </div>
   </div>
 
-  <!-- Create Period Modal -->
-  <div id="createPeriodModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 overflow-y-auto">
-    <div class="bg-white rounded-2xl p-6 max-w-2xl w-full my-8 max-h-[90vh] overflow-y-auto">
-      <h3 class="text-lg font-bold text-gray-900 mb-4">Schedule Admission Period</h3>
-      <form method="POST" action="/api/dashboard/admissions" class="space-y-4">
-        <input type="hidden" name="action" value="create_period" />
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Title *</label>
-            <input type="text" name="title" required placeholder="e.g., Fall 2026 Admissions" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Academic Year *</label>
-            <input type="text" name="academicYear" required placeholder="e.g., 2026-2027" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-          </div>
+  <div>
+    <h2 class="text-sm font-bold mb-3" style="font-family:'Space Grotesk',sans-serif;color:var(--mosaic-text);">Recent Applications</h2>
+    <ListToolbar searchPlaceholder="Search applications..." filterOptions={[{value:'pending',label:'Pending'},{value:'accepted',label:'Accepted'},{value:'rejected',label:'Rejected'}]} filterField="status" />
+    <div id="list-container" class="space-y-3">
+      {applications.length === 0 ? (
+        <div class="mosaic-card p-8 text-center"><p class="text-sm" style="color:var(--mosaic-text-muted);">No applications yet.</p></div>
+      ) : applications.map(a => (
+        <div data-list-item data-title={a.studentName||a.student_name||''} data-status={a.status||'pending'} data-date={a.createdAt||a.created_at||''} class="mosaic-card p-4 group flex items-center gap-4">
+          <div class="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold text-white" style="background:linear-gradient(135deg,#05B34D 0%,#049940 100%);">{(a.studentName||a.student_name||'A').charAt(0)}</div>
+          <div class="flex-1 min-w-0"><p class="text-sm font-semibold" style="color:var(--mosaic-text);">{a.studentName || a.student_name || 'Unknown'}</p><p class="text-xs" style="color:var(--mosaic-text-muted);">{a.parentName || a.parent_name || ''} · {a.parentEmail || a.parent_email || ''}</p></div>
+          <span class:list={["text-[10px] font-bold uppercase px-2 py-1 rounded-full",(a.status||'pending')==='accepted'?"bg-green-100 text-green-700":(a.status||'pending')==='rejected'?"bg-red-100 text-red-700":"bg-amber-100 text-amber-700"]}>{a.status || 'pending'}</span>
         </div>
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Opening Date *</label>
-            <input type="date" name="openDate" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Closing Date *</label>
-            <input type="date" name="closeDate" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-          </div>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-          <textarea name="description" rows="3" placeholder="Describe the admission period..." class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"></textarea>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Eligible Grades</label>
-            <input type="text" name="eligibleGrades" placeholder="e.g., Pre-K to Grade 8" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Available Seats</label>
-            <input type="number" name="availableSeats" placeholder="e.g., 50" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Application Fee</label>
-            <input type="number" name="applicationFee" placeholder="e.g., 50" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-          </div>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Requirements (one per line)</label>
-          <textarea name="requirementsText" rows="4" placeholder="Completed online application form&#10;Birth certificate copy&#10;Previous school records" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"></textarea>
-          <p class="text-xs text-gray-500 mt-1">Enter each requirement on a new line. These will show on the public detail page.</p>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Contact Email</label>
-          <input type="email" name="contactEmail" placeholder="admissions@school.edu" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Contact Phone</label>
-          <input type="tel" name="contactPhone" placeholder="+1 (555) 123-4567" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-        </div>
-        <label class="flex items-center gap-2">
-          <input type="checkbox" name="autoAnnounce" checked class="rounded" />
-          <span class="text-sm text-gray-700">Auto-generate announcement when admissions open</span>
-        </label>
-        <div class="flex gap-3 pt-2">
-          <button type="button" onclick="document.getElementById('createPeriodModal').classList.add('hidden')" class="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
-          <button type="submit" class="flex-1 px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">Create</button>
-        </div>
-      </form>
+      ))}
     </div>
   </div>
-
-  <!-- Application Detail Modal -->
-  <div id="applicationModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-      <div id="applicationContent"></div>
-    </div>
-  </div>
-
-  <script is:inline define:vars={{ applications: applications.map(a => ({...a, createdAt: a.createdAt?.toString?.() || a.createdAt, updatedAt: a.updatedAt?.toString?.() || a.updatedAt})) }}>
-    window.viewApplication = function(id) {
-      var app = applications.find(function(a) { return a.id === id; });
-      if (!app) return;
-      var statusOptions = ['submitted', 'reviewing', 'interview_scheduled', 'accepted', 'rejected', 'enrolled', 'waitlisted'];
-      var statusOptionsHtml = statusOptions.map(function(s) {
-        return '<option value="' + s + '"' + (s === app.status ? ' selected' : '') + '>' + s.replace(/_/g, ' ') + '</option>';
-      }).join('');
-      var content = document.getElementById('applicationContent');
-      content.innerHTML = '<div class="flex items-center justify-between mb-4">' +
-        '<h3 class="text-lg font-bold text-gray-900">Application Details</h3>' +
-        '<button onclick="document.getElementById(\'applicationModal\').classList.add(\'hidden\')" class="text-gray-400 hover:text-gray-600">' +
-        '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button></div>' +
-        '<div class="space-y-4 text-sm">' +
-        '<div class="grid grid-cols-2 gap-4"><div><p class="text-xs text-gray-500">Application Number</p><p class="font-mono text-gray-900">' + app.applicationNumber + '</p></div>' +
-        '<div><p class="text-xs text-gray-500">Status</p><p class="font-semibold text-gray-900 capitalize">' + app.status.replace(/_/g, ' ') + '</p></div></div>' +
-        '<div class="border-t pt-4"><h4 class="font-semibold text-gray-900 mb-2">Student Information</h4>' +
-        '<div class="grid grid-cols-2 gap-2 text-gray-600"><p>Name: ' + app.studentFirstName + ' ' + app.studentLastName + '</p><p>DOB: ' + (app.studentDateOfBirth || 'N/A') + '</p>' +
-        '<p>Gender: ' + (app.studentGender || 'N/A') + '</p><p>Nationality: ' + (app.studentNationality || 'N/A') + '</p>' +
-        '<p>Current School: ' + (app.studentCurrentSchool || 'N/A') + '</p></div></div>' +
-        '<div class="border-t pt-4"><h4 class="font-semibold text-gray-900 mb-2">Parent/Guardian</h4>' +
-        '<div class="grid grid-cols-2 gap-2 text-gray-600"><p>Name: ' + app.parentName + '</p><p>Relationship: ' + (app.parentRelationship || 'N/A') + '</p>' +
-        '<p>Email: ' + app.parentEmail + '</p><p>Phone: ' + app.parentPhone + '</p>' +
-        '<p>Occupation: ' + (app.parentOccupation || 'N/A') + '</p><p>Address: ' + (app.parentAddress || 'N/A') + '</p></div></div>' +
-        '<div class="border-t pt-4"><h4 class="font-semibold text-gray-900 mb-2">Program Selection</h4>' +
-        '<p class="text-gray-600">Program: ' + (app.programName || 'N/A') + '</p><p class="text-gray-600">Preferred Class: ' + (app.preferredClass || 'N/A') + '</p></div>' +
-        (app.message ? '<div class="border-t pt-4"><h4 class="font-semibold text-gray-900 mb-2">Message</h4><p class="text-gray-600">' + app.message + '</p></div>' : '') +
-        '<div class="border-t pt-4"><form method="POST" action="/api/dashboard/admissions" class="space-y-3">' +
-        '<input type="hidden" name="action" value="update_application_status" /><input type="hidden" name="id" value="' + app.id + '" />' +
-        '<div><label class="block text-xs font-medium text-gray-500 mb-1">Update Status</label><select name="status" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">' + statusOptionsHtml + '</select></div>' +
-        '<div><label class="block text-xs font-medium text-gray-500 mb-1">Interview Date</label><input type="date" name="interviewDate" value="' + (app.interviewDate || '') + '" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /></div>' +
-        '<div><label class="block text-xs font-medium text-gray-500 mb-1">Review Notes</label><textarea name="reviewNotes" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">' + (app.reviewNotes || '') + '</textarea></div>' +
-        '<div><label class="block text-xs font-medium text-gray-500 mb-1">Interview Notes</label><textarea name="interviewNotes" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">' + (app.interviewNotes || '') + '</textarea></div>' +
-        '<button type="submit" class="w-full px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">Update Application</button></form></div></div>';
-      document.getElementById('applicationModal').classList.remove('hidden');
-    };
-  </script>
 </DashboardLayout>

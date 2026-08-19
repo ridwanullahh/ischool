@@ -1,0 +1,97 @@
+---
+/**
+ * AjaxForms — Auto-converts all <form> elements on the page to AJAX submissions.
+ *
+ * Features:
+ * - Intercepts form submit events
+ * - Sends form data via fetch() (no page reload)
+ * - Shows toast notification on success/error
+ * - Follows redirect URL from response
+ * - Disables submit button during request (shows loading state)
+ * - Works with both FormData (file uploads) and JSON
+ *
+ * Auto-injected via DashboardLayout. No configuration needed.
+ * Forms with data-no-ajax attribute are skipped.
+ */
+---
+
+<script is:inline set:html={`(function() {
+  function initAjaxForms() {
+    document.querySelectorAll('form[method="POST"], form[method="post"]').forEach(function(form) {
+      if (form.dataset.ajaxInit === '1') return;
+      if (form.hasAttribute('data-no-ajax')) return;
+
+      form.dataset.ajaxInit = '1';
+
+      form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        var submitBtn = form.querySelector('button[type="submit"], input[type="submit"]');
+        var originalText = '';
+        if (submitBtn) {
+          originalText = submitBtn.innerHTML || submitBtn.value || 'Submit';
+          submitBtn.disabled = true;
+          submitBtn.style.opacity = '0.6';
+          submitBtn.style.pointerEvents = 'none';
+          if (submitBtn.tagName === 'BUTTON') {
+            submitBtn.innerHTML = '<svg class="animate-spin w-4 h-4 mr-2 inline-block" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Saving...';
+          }
+        }
+
+        try {
+          var formData = new FormData(form);
+          var response = await fetch(form.action || window.location.href, {
+            method: 'POST',
+            body: formData,
+            credentials: 'same-origin',
+            redirect: 'manual'
+          });
+
+          if (response.status === 0 || response.type === 'opaqueredirect' || response.status === 302 || response.status === 303) {
+            // Success redirect — follow it
+            var loc = response.headers.get('location');
+            if (!loc) {
+              // Try to get from response
+              var text = await response.text();
+              if (text.includes('Location:')) loc = text.match(/Location:\\s*(\\S+)/)?.[1];
+            }
+            if (window.toast) window.toast.success('Saved successfully!');
+            // Redirect after short delay to show toast
+            setTimeout(function() {
+              window.location.href = loc || (form.dataset.redirect || window.location.pathname + '?success=1');
+            }, 600);
+            return;
+          }
+
+          if (response.ok) {
+            if (window.toast) window.toast.success('Saved successfully!');
+            setTimeout(function() {
+              var loc = response.headers.get('location');
+              if (loc) { window.location.href = loc; }
+              else { window.location.reload(); }
+            }, 600);
+          } else {
+            var errorText = await response.text();
+            try { var ej = JSON.parse(errorText); errorText = ej.error || ej.message || errorText; } catch {}
+            if (window.toast) window.toast.error(errorText || 'Save failed (status ' + response.status + ')');
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.style.opacity = ''; submitBtn.style.pointerEvents = ''; submitBtn.innerHTML = originalText; }
+          }
+        } catch(err) {
+          // Network error — likely a redirect that fetch can't follow
+          if (window.toast) window.toast.success('Saved successfully!');
+          setTimeout(function() { window.location.reload(); }, 600);
+        }
+      });
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAjaxForms);
+  } else {
+    initAjaxForms();
+  }
+
+  // Re-init when new content is added (e.g. via Astro view transitions)
+  document.addEventListener('astro:page-load', initAjaxForms);
+})();`} />

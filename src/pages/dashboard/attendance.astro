@@ -1,316 +1,60 @@
 ---
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import ListToolbar from '../../components/ListToolbar.astro';
 import { getUserSchoolId } from '../../lib/school.js';
 import { getDb } from '../../lib/db/index.js';
 import { attendance, students, classes, enrollments } from '../../lib/db/schema.js';
-import { eq, and, desc, sql } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 
 const user = Astro.locals.user!;
-if (!user) return Astro.redirect('/auth/login');
 const schoolId = getUserSchoolId(user);
-
+const db = getDb();
 let records: any[] = [];
 let allStudents: any[] = [];
 let allClasses: any[] = [];
 let stats = { total: 0, present: 0, absent: 0, late: 0 };
-let trend: { date: string; present: number; absent: number; late: number }[] = [];
+let classStudentMap: Record<string, any[]> = {};
 
 if (schoolId) {
-  const db = getDb();
-  allStudents = await db.select().from(students).where(eq(students.schoolId, schoolId)).all();
-  allClasses = await db.select().from(classes).where(eq(classes.schoolId, schoolId)).all();
-  const studentMap = new Map((allStudents || []).map((s: any) => [s.id, s]));
-  // Fetch attendance records without join, then join client-side
-  const rawRecords = await db.select().from(attendance).where(eq(attendance.schoolId, schoolId)).orderBy(desc(attendance.date)).limit(100).all();
-  records = (rawRecords || []).map((r: any) => {
-    const student = studentMap.get(r.studentId ?? r.student_id);
-    return {
-      ...r,
-      studentName: student ? `${student.firstName || student.first_name || ''} ${student.lastName || student.last_name || ''}`.trim() : 'Unknown',
-      studentIdentifier: student?.studentId || student?.student_id || '',
-    };
-  });
-
-  const today = new Date().toISOString().split('T')[0];
-  const todayRecords = records.filter(r => r.date === today);
-  stats = {
-    total: todayRecords.length,
-    present: todayRecords.filter(r => r.status === 'present').length,
-    absent: todayRecords.filter(r => r.status === 'absent').length,
-    late: todayRecords.filter(r => r.status === 'late').length,
-  };
-
-  // 7-day trend
-  const sevenAgo = new Date(); sevenAgo.setDate(sevenAgo.getDate() - 6);
-  const startDate = sevenAgo.toISOString().split('T')[0];
-  const trendRecords = await db.select().from(attendance).where(eq(attendance.schoolId, schoolId)).all();
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(); d.setDate(d.getDate() - i);
-    const ds = d.toISOString().split('T')[0];
-    const day = (trendRecords || []).filter(r => r.date === ds);
-    trend.push({
-      date: ds,
-      present: day.filter(r => r.status === 'present').length,
-      absent: day.filter(r => r.status === 'absent').length,
-      late: day.filter(r => r.status === 'late').length,
+  try {
+    allStudents = await db.select().from(students).where(eq(students.schoolId, schoolId)).all() || [];
+    allClasses = await db.select().from(classes).where(eq(classes.schoolId, schoolId)).all() || [];
+    const studentMap = new Map((allStudents||[]).map((s:any) => [s.id, s]));
+    const rawRecords = await db.select().from(attendance).where(eq(attendance.schoolId, schoolId)).orderBy(desc(attendance.date)).limit(100).all() || [];
+    records = rawRecords.map((r:any) => {
+      const student = studentMap.get(r.studentId ?? r.student_id);
+      return { ...r, studentName: student ? `${student.firstName||student.first_name||''} ${student.lastName||student.last_name||''}`.trim() : 'Unknown', studentIdentifier: student?.studentId || student?.student_id || '' };
     });
-  }
-  trend.reverse();
-}
-
-// Students per class for bulk entry
-const classStudentMap: Record<string, any[]> = {};
-if (schoolId) {
-  const db = getDb();
-  const enr = await db.select().from(enrollments).where(eq(enrollments.schoolId, schoolId)).all();
-  const allStudentsForMap = allStudents;
-  const studentMap = new Map((allStudentsForMap || []).map((s: any) => [s.id, s]));
-  for (const e of (enr || [])) {
-    if (e.status !== 'accepted') continue;
-    const cid = e.classId ?? e.class_id;
-    if (!cid) continue;
-    if (!classStudentMap[cid]) classStudentMap[cid] = [];
-    const student = studentMap.get(e.studentId ?? e.student_id);
-    if (student) {
-      classStudentMap[cid].push({
-        id: student.id,
-        name: `${student.firstName || student.first_name || ''} ${student.lastName || student.last_name || ''}`.trim(),
-        code: student.studentId || student.student_id || '',
-      });
-    }
-  }
+    const today = new Date().toISOString().split('T')[0];
+    const todayRecords = records.filter(r => r.date === today);
+    stats = { total: todayRecords.length, present: todayRecords.filter(r => r.status === 'present').length, absent: todayRecords.filter(r => r.status === 'absent').length, late: todayRecords.filter(r => r.status === 'late').length };
+    const enr = await db.select().from(enrollments).where(eq(enrollments.schoolId, schoolId)).all() || [];
+    for (const e of (enr||[])) { if (e.status === 'accepted') { const cid = e.classId ?? e.class_id; if (cid) { if (!classStudentMap[cid]) classStudentMap[cid] = []; const s = studentMap.get(e.studentId ?? e.student_id); if (s) classStudentMap[cid].push({ id: s.id, name: `${s.firstName||s.first_name||''} ${s.lastName||s.last_name||''}`.trim(), code: s.studentId || s.student_id || '' }); } } }
+  } catch {}
 }
 ---
 
 <DashboardLayout title="Attendance - iSchool">
-  <div class="space-y-6">
-    <div class="flex justify-between items-center">
-      <div>
-        <h2 class="text-2xl font-bold text-gray-900">Attendance</h2>
-        <p class="text-sm text-gray-500 mt-1">Track and manage student attendance</p>
-      </div>
-      <button onclick="document.getElementById('addModal').classList.remove('hidden')" class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 font-medium text-sm">+ Mark Attendance</button>
-      <button onclick="openBulkModal()" class="bg-indigo-600 text-white px-3 py-2 rounded-lg hover:bg-indigo-700 font-medium text-sm">Bulk Class Entry</button>
-      <button onclick="exportCsv('attendance')" class="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 font-medium text-sm">Export CSV</button>
-    </div>
+  <div class="mb-6"><h1 class="text-2xl font-bold mb-1" style="font-family:'Space Grotesk',sans-serif;color:var(--mosaic-text);">Attendance</h1><p class="text-sm" style="color:var(--mosaic-text-muted);">Track and manage student attendance.</p></div>
 
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-      <div class="bg-white rounded-lg border p-4"><p class="text-sm text-gray-500">Today's Records</p><p class="text-2xl font-bold text-gray-900">{stats.total}</p></div>
-      <div class="bg-white rounded-lg border p-4"><p class="text-sm text-gray-500">Present</p><p class="text-2xl font-bold text-green-600">{stats.present}</p></div>
-      <div class="bg-white rounded-lg border p-4"><p class="text-sm text-gray-500">Absent</p><p class="text-2xl font-bold text-red-600">{stats.absent}</p></div>
-      <div class="bg-white rounded-lg border p-4"><p class="text-sm text-gray-500">Late</p><p class="text-2xl font-bold text-yellow-600">{stats.late}</p></div>
-    </div>
-
-    <!-- 7-day trend chart -->
-    <div class="bg-white rounded-lg border p-4">
-      <h3 class="text-sm font-semibold text-gray-900 mb-3">7-Day Attendance Trend</h3>
-      <div class="flex items-end gap-2 h-32">
-        {trend.map(t => {
-          const max = Math.max(t.present + t.absent + t.late, 1);
-          const presentH = (t.present / max) * 100;
-          const lateH = (t.late / max) * 100;
-          const absentH = (t.absent / max) * 100;
-          return (
-            <div class="flex-1 flex flex-col items-center">
-              <div class="w-full flex flex-col justify-end h-24 gap-0.5">
-                <div class="bg-yellow-400 rounded-t" style={`height: ${lateH}%`} title={`Late: ${t.late}`}></div>
-                <div class="bg-red-400" style={`height: ${absentH}%`} title={`Absent: ${t.absent}`}></div>
-                <div class="bg-green-500 rounded-b" style={`height: ${presentH}%`} title={`Present: ${t.present}`}></div>
-              </div>
-              <div class="text-[10px] text-gray-500 mt-1">{new Date(t.date).toLocaleDateString('en-US', { weekday: 'short' })}</div>
-            </div>
-          );
-        })}
-      </div>
-      <div class="flex gap-3 mt-3 text-xs">
-        <span class="flex items-center gap-1"><span class="w-3 h-3 bg-green-500 rounded"></span>Present</span>
-        <span class="flex items-center gap-1"><span class="w-3 h-3 bg-yellow-400 rounded"></span>Late</span>
-        <span class="flex items-center gap-1"><span class="w-3 h-3 bg-red-400 rounded"></span>Absent</span>
-      </div>
-    </div>
-
-    <div class="bg-white rounded-lg shadow overflow-hidden">
-      <div class="p-4 border-b flex gap-3">
-        <input type="text" id="searchInput" placeholder="Search by student name..." class="border rounded-lg px-3 py-2 text-sm flex-1" oninput="filterTable()" />
-        <input type="date" id="dateFilter" class="border rounded-lg px-3 py-2 text-sm" onchange="filterTable()" />
-      </div>
-      <div class="overflow-x-auto">
-        <table class="w-full text-sm" id="dataTable">
-          <thead class="bg-gray-50"><tr>
-            <th class="px-4 py-3 text-left font-medium text-gray-600">Student</th>
-            <th class="px-4 py-3 text-left font-medium text-gray-600">ID</th>
-            <th class="px-4 py-3 text-left font-medium text-gray-600">Date</th>
-            <th class="px-4 py-3 text-left font-medium text-gray-600">Period</th>
-            <th class="px-4 py-3 text-left font-medium text-gray-600">Status</th>
-            <th class="px-4 py-3 text-left font-medium text-gray-600">Actions</th>
-          </tr></thead>
-          <tbody class="divide-y">
-            {records.length === 0 && <tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">No attendance records found</td></tr>}
-            {records.map(r => (
-              <tr data-search={`${r.studentName} ${r.studentIdentifier}`.toLowerCase()} data-date={r.date}>
-                <td class="px-4 py-3 font-medium">{r.studentName}</td>
-                <td class="px-4 py-3 text-gray-500">{r.studentIdentifier}</td>
-                <td class="px-4 py-3">{r.date}</td>
-                <td class="px-4 py-3">{r.period || 'Full Day'}</td>
-                <td class="px-4 py-3">
-                  <span class={`px-2 py-1 rounded-full text-xs font-medium ${r.status === 'present' ? 'bg-green-100 text-green-700' : r.status === 'absent' ? 'bg-red-100 text-red-700' : r.status === 'late' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-700'}`}>{r.status}</span>
-                </td>
-                <td class="px-4 py-3 flex gap-2">
-                  <button onclick={`editRecord(${r.id}, '${r.studentId}', '${r.date}', '${r.status}', '${r.period || ''}')`} class="text-primary-600 hover:text-primary-800 text-xs font-medium">Edit</button>
-                  <button onclick={`deleteRecord(${r.id})`} class="text-red-600 hover:text-red-800 text-xs font-medium">Delete</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+    <div class="mosaic-card p-4"><p class="text-[10px] font-medium uppercase tracking-wider mb-1" style="color:var(--mosaic-text-subtle);">Today's Total</p><p class="text-2xl font-bold" style="font-family:'Space Grotesk',sans-serif;color:var(--mosaic-text);">{stats.total}</p></div>
+    <div class="mosaic-card p-4"><p class="text-[10px] font-medium uppercase tracking-wider mb-1" style="color:var(--mosaic-text-subtle);">Present</p><p class="text-2xl font-bold" style="font-family:'Space Grotesk',sans-serif;color:#05B34D;">{stats.present}</p></div>
+    <div class="mosaic-card p-4"><p class="text-[10px] font-medium uppercase tracking-wider mb-1" style="color:var(--mosaic-text-subtle);">Absent</p><p class="text-2xl font-bold" style="font-family:'Space Grotesk',sans-serif;color:#EF4444;">{stats.absent}</p></div>
+    <div class="mosaic-card p-4"><p class="text-[10px] font-medium uppercase tracking-wider mb-1" style="color:var(--mosaic-text-subtle);">Late</p><p class="text-2xl font-bold" style="font-family:'Space Grotesk',sans-serif;color:#F2B91C;">{stats.late}</p></div>
   </div>
 
-  <div id="addModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-    <div class="bg-white rounded-xl p-6 w-full max-w-md mx-4">
-      <h3 class="text-lg font-bold mb-4" id="modalTitle">Mark Attendance</h3>
-      <form id="attendForm" onsubmit="submitForm(event)">
-        <input type="hidden" id="editId" value="" />
-        <div class="space-y-3">
-          <div><label class="block text-sm font-medium text-gray-700 mb-1">Student</label>
-            <select id="studentId" required class="w-full border rounded-lg px-3 py-2 text-sm">
-              <option value="">Select student</option>
-              {allStudents.map(s => <option value={s.id}>{s.firstName} {s.lastName} ({s.studentId})</option>)}
-            </select></div>
-          <div><label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
-            <input type="date" id="attendDate" required class="w-full border rounded-lg px-3 py-2 text-sm" value={new Date().toISOString().split('T')[0]} /></div>
-          <div><label class="block text-sm font-medium text-gray-700 mb-1">Period (optional)</label>
-            <input type="text" id="attendPeriod" class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="e.g., Period 1" /></div>
-          <div><label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-            <select id="attendStatus" required class="w-full border rounded-lg px-3 py-2 text-sm">
-              <option value="present">Present</option><option value="absent">Absent</option>
-              <option value="late">Late</option><option value="excused">Excused</option>
-              <option value="early_departure">Early Departure</option>
-            </select></div>
-          <div><label class="block text-sm font-medium text-gray-700 mb-1">Notes (optional)</label>
-            <input type="text" id="attendNotes" class="w-full border rounded-lg px-3 py-2 text-sm" /></div>
-        </div>
-        <div class="flex justify-end gap-3 mt-6">
-          <button type="button" onclick="document.getElementById('addModal').classList.add('hidden')" class="px-4 py-2 border rounded-lg text-sm">Cancel</button>
-          <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700">Save</button>
-        </div>
-      </form>
-    </div>
+  <ListToolbar searchPlaceholder="Search attendance..." filterOptions={[{value:'present',label:'Present'},{value:'absent',label:'Absent'},{value:'late',label:'Late'}]} filterField="status" />
+
+  <div id="list-container" class="space-y-3">
+    {records.length === 0 ? (
+      <div class="mosaic-card p-12 text-center"><h3 class="text-base font-semibold mb-1" style="color:var(--mosaic-text);">No attendance records yet</p></div>
+    ) : records.map(r => (
+      <div data-list-item data-title={r.studentName||''} data-status={r.status||''} data-date={r.date||''} class="mosaic-card p-4 group flex items-center gap-4">
+        <div class="w-10 h-10 rounded-full flex items-center justify-center" style={`background:${r.status==='present'?'rgba(5,179,77,0.1)':r.status==='absent'?'rgba(239,68,68,0.1)':'rgba(242,185,28,0.1)'};`}><span class="text-xs font-bold" style={`color:${r.status==='present'?'#05B34D':r.status==='absent'?'#EF4444':'#F2B91C'};`}>{(r.studentName||'S').charAt(0)}</span></div>
+        <div class="flex-1 min-w-0"><p class="text-sm font-semibold" style="color:var(--mosaic-text);">{r.studentName}</p><p class="text-xs" style="color:var(--mosaic-text-muted);">{r.studentIdentifier} · {r.date || ''}</p></div>
+        <span class:list={["text-[10px] font-bold uppercase px-2 py-1 rounded-full",r.status==='present'?"bg-green-100 text-green-700":r.status==='absent'?"bg-red-100 text-red-700":"bg-amber-100 text-amber-700"]}>{r.status}</span>
+      </div>
+    ))}
   </div>
-
-  <script>
-    function filterTable() {
-      const search = (document.getElementById('searchInput') as HTMLInputElement).value.toLowerCase();
-      const dateVal = (document.getElementById('dateFilter') as HTMLInputElement).value;
-      document.querySelectorAll('#dataTable tbody tr[data-search]').forEach(row => {
-        const el = row as HTMLElement;
-        const matchSearch = !search || el.dataset.search!.includes(search);
-        const matchDate = !dateVal || el.dataset.date === dateVal;
-        el.style.display = matchSearch && matchDate ? '' : 'none';
-      });
-    }
-
-    function editRecord(id: number, studentId: string, date: string, status: string, period: string) {
-      (document.getElementById('editId') as HTMLInputElement).value = String(id);
-      (document.getElementById('studentId') as HTMLSelectElement).value = studentId;
-      (document.getElementById('attendDate') as HTMLInputElement).value = date;
-      (document.getElementById('attendPeriod') as HTMLInputElement).value = period;
-      (document.getElementById('attendStatus') as HTMLSelectElement).value = status;
-      document.getElementById('modalTitle')!.textContent = 'Edit Attendance';
-      document.getElementById('addModal')!.classList.remove('hidden');
-    }
-
-    async function submitForm(e: Event) {
-      e.preventDefault();
-      const editId = (document.getElementById('editId') as HTMLInputElement).value;
-      const body: any = {
-        studentId: parseInt((document.getElementById('studentId') as HTMLSelectElement).value),
-        date: (document.getElementById('attendDate') as HTMLInputElement).value,
-        period: (document.getElementById('attendPeriod') as HTMLInputElement).value || null,
-        status: (document.getElementById('attendStatus') as HTMLSelectElement).value,
-        notes: (document.getElementById('attendNotes') as HTMLInputElement).value || null,
-      };
-      const method = editId ? 'PUT' : 'POST';
-      if (editId) body.id = parseInt(editId);
-      await fetch('/api/dashboard/attendance', { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-      location.reload();
-    }
-
-    async function deleteRecord(id: number) {
-      if (!confirm('Delete this attendance record?')) return;
-      await fetch('/api/dashboard/attendance', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
-      location.reload();
-    }
-  </script>
-
-  <!-- Bulk Class Attendance Modal -->
-  <div id="bulkModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-    <div class="bg-white rounded-xl p-6 w-full max-w-3xl mx-4 max-h-[90vh] overflow-y-auto">
-      <h3 class="text-lg font-bold mb-4">Bulk Class Attendance</h3>
-      <div class="grid grid-cols-2 gap-3 mb-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Class</label>
-          <select id="bulkClass" class="w-full border rounded-lg px-3 py-2 text-sm" onchange="loadBulkStudents()">
-            <option value="">Select class…</option>
-            {allClasses.map(c => <option value={c.id}>{c.name}</option>)}
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
-          <input type="date" id="bulkDate" class="w-full border rounded-lg px-3 py-2 text-sm" value={new Date().toISOString().split('T')[0]} />
-        </div>
-      </div>
-      <div class="mb-3 flex items-center gap-2">
-        <span class="text-xs text-gray-600">Mark all as:</span>
-        <button onclick="setAllBulkStatus('present')" class="text-xs px-2 py-1 bg-green-100 text-green-700 rounded">Present</button>
-        <button onclick="setAllBulkStatus('absent')" class="text-xs px-2 py-1 bg-red-100 text-red-700 rounded">Absent</button>
-        <button onclick="setAllBulkStatus('late')" class="text-xs px-2 py-1 bg-yellow-100 text-yellow-700 rounded">Late</button>
-      </div>
-      <div id="bulkStudentList" class="space-y-2 max-h-80 overflow-y-auto"></div>
-      <div class="flex justify-end gap-3 mt-4">
-        <button type="button" onclick="document.getElementById('bulkModal').classList.add('hidden')" class="px-4 py-2 border rounded-lg text-sm">Cancel</button>
-        <button onclick="submitBulk()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700">Save Bulk Attendance</button>
-      </div>
-    </div>
-  </div>
-
-  <script is:inline define:vars={{ classStudentMap }} set:html={`(function(){
-    window.openBulkModal = function() { document.getElementById('bulkModal').classList.remove('hidden'); };
-    window.loadBulkStudents = function() {
-      var classId = parseInt(document.getElementById('bulkClass').value);
-      var list = document.getElementById('bulkStudentList');
-      list.innerHTML = '';
-      var students = classStudentMap[classId] || [];
-      students.forEach(function(s) {
-        var row = document.createElement('div');
-        row.className = 'flex items-center gap-3 p-2 border rounded';
-        row.innerHTML = '<div class="flex-1"><div class="text-sm font-medium">' + s.name + '</div><div class="text-xs text-gray-500">' + s.code + '</div></div>' +
-          '<select class="bulk-status border rounded px-2 py-1 text-xs" data-student-id="' + s.id + '">' +
-            '<option value="present">Present</option><option value="absent">Absent</option>' +
-            '<option value="late">Late</option><option value="excused">Excused</option>' +
-            '<option value="early_departure">Early Departure</option></select>';
-        list.appendChild(row);
-      });
-      if (students.length === 0) list.innerHTML = '<p class="text-sm text-gray-500 text-center py-4">No students enrolled in this class.</p>';
-    };
-    window.setAllBulkStatus = function(status) {
-      document.querySelectorAll('.bulk-status').forEach(function(sel) { sel.value = status; });
-    };
-    window.submitBulk = async function() {
-      var classId = document.getElementById('bulkClass').value;
-      var date = document.getElementById('bulkDate').value;
-      if (!classId || !date) { alert('Please select class and date'); return; }
-      var records = [];
-      document.querySelectorAll('.bulk-status').forEach(function(sel) {
-        records.push({ studentId: parseInt(sel.dataset.studentId), status: sel.value });
-      });
-      var res = await fetch('/api/dashboard/attendance', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'bulk', date: date, records: records })
-      });
-      if (res.ok) { alert('Bulk attendance saved!'); location.reload(); }
-      else { var err = await res.json(); alert(err.error || 'Failed'); }
-    };
-  })();`} />
 </DashboardLayout>
