@@ -18,7 +18,7 @@
 
 // ─── Configuration ────────────────────────────────────────
 const API_KEY = process.env.LIGHTBASE_API_KEY || '';
-const PROJECT = process.env.LIGHTBASE_PROJECT || 'edulink';
+const PROJECT = process.env.LIGHTBASE_PROJECT || 'ischool-beta';
 const BASE_URL = process.env.LIGHTBASE_BASE_URL || '';
 
 if (!API_KEY || !BASE_URL) {

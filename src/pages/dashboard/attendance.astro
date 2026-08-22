@@ -48,7 +48,7 @@ if (schoolId) {
 
   <div id="list-container" class="space-y-3">
     {records.length === 0 ? (
-      <div class="mosaic-card p-12 text-center"><h3 class="text-base font-semibold mb-1" style="color:var(--mosaic-text);">No attendance records yet</p></div>
+      <div class="mosaic-card p-12 text-center"><h3 class="text-base font-semibold mb-1" style="color:var(--mosaic-text);">No attendance records yet</h3></div>
     ) : records.map(r => (
       <div data-list-item data-title={r.studentName||''} data-status={r.status||''} data-date={r.date||''} class="mosaic-card p-4 group flex items-center gap-4">
         <div class="w-10 h-10 rounded-full flex items-center justify-center" style={`background:${r.status==='present'?'rgba(5,179,77,0.1)':r.status==='absent'?'rgba(239,68,68,0.1)':'rgba(242,185,28,0.1)'};`}><span class="text-xs font-bold" style={`color:${r.status==='present'?'#05B34D':r.status==='absent'?'#EF4444':'#F2B91C'};`}>{(r.studentName||'S').charAt(0)}</span></div>

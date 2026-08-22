@@ -27,7 +27,8 @@ const allRooms = allHostels.length > 0
       <button onclick="document.getElementById('addModal').classList.remove('hidden')" class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 font-medium">+ Add Hostel</button>
       <button onclick="exportCsv('hostel')" class="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 font-medium text-sm">Export CSV</button>
     </div>
-    </div> grid-cols-1 md:grid-cols-3 gap-4">
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
       <div class="bg-white rounded-lg shadow p-5"><div class="text-sm text-gray-500">Hostels</div><div class="text-2xl font-bold text-gray-900 mt-1">{allHostels.length}</div></div>
       <div class="bg-white rounded-lg shadow p-5"><div class="text-sm text-gray-500">Total Rooms</div><div class="text-2xl font-bold text-gray-900 mt-1">{allRooms.length}</div></div>
       <div class="bg-white rounded-lg shadow p-5"><div class="text-sm text-gray-500">Available</div><div class="text-2xl font-bold text-green-600 mt-1">{allRooms.filter((r: any) => r.status === 'available').length}</div></div>
