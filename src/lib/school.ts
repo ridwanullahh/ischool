@@ -15,6 +15,7 @@ import { isLightbase } from './db/index.js';
 import { schools, schoolMembers, navigationItems, contactInfo } from './db/schema.js';
 import { eq, asc } from 'drizzle-orm';
 import { generateDefaultPalette, mergePalette, type Palette } from './palette.js';
+import { getFontPreset as _getFontPreset } from './font-presets.js';
 
 // Re-export everything from school-safe so callers using either
 // './school.ts' or './school-safe.ts' get the same implementations.
@@ -80,8 +81,7 @@ export function getSchoolFontPreset(school: any): { headingFont: string; bodyFon
     const settings = parseJsonCol(school?.settings, {});
     const fontPresetId = settings?.fontPresetId;
     if (!fontPresetId) return null;
-    const { getFontPreset } = (await import('./font-presets.js')).('./font-presets.js');
-    const preset = getFontPreset(fontPresetId);
+    const preset = _getFontPreset(fontPresetId);
     if (!preset) return null;
     return {
       headingFont: preset.headingFont,
