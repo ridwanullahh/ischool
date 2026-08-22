@@ -90,7 +90,6 @@ const rtl = ['ar','he','fa','ur'].includes(locale);
 </head>
 <body>
   <div class="nova-grid-top"></div>
-  <!-- Header with glowing logo -->
   <header class="sticky top-0 z-40 border-b nova-border" style="background:color-mix(in srgb, var(--bg) 85%, transparent);backdrop-filter:blur(12px)">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
       <a href={`${prefix}/`} class="flex items-center gap-3" aria-label={`${school.name} home`}>
@@ -136,7 +135,6 @@ const rtl = ['ar','he','fa','ur'].includes(locale);
     <slot />
   </main>
 
-  <!-- Footer with circuit top border -->
   <footer class="mt-20 border-t nova-border" style="background:var(--surface)">
     <div class="nova-grid-top"></div>
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -195,7 +193,6 @@ const rtl = ['ar','he','fa','ur'].includes(locale);
 
   <SchoolBannerPopup school={school} />
 
-  <!-- Terminal chat widget -->
   <button id="nova-chat-toggle" type="button" class="fixed bottom-6 right-6 z-50 nova-btn nova-glow px-4 py-3 flex items-center gap-2" aria-label="Open terminal" aria-expanded="false" aria-controls="nova-chat-panel">
     <span class="nova-mono text-sm font-bold" style="color:var(--primary)">{'>_'}</span>
     <span class="nova-mono text-xs font-bold uppercase tracking-wider" style="color:var(--primary)">AI</span>

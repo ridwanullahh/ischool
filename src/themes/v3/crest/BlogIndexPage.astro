@@ -13,7 +13,6 @@ const posts = Array.isArray(items) ? items : [];
     <h1 class="text-4xl font-extrabold mb-4" style="color:var(--text)">Blog &amp; News</h1>
     <p class="text-sm mb-8" style="color:var(--muted)">Insights, stories, and updates from our school community.</p>
 
-    <!-- Search & Sort Bar -->
     <div class="crest-card rounded-2xl p-4 mb-8 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
       <div class="flex-1 flex gap-2">
         <div class="relative flex-1">
@@ -34,7 +33,6 @@ const posts = Array.isArray(items) ? items : [];
       </div>
     </div>
 
-    <!-- Results count -->
     <div id="results-count" class="mb-6 text-sm" style="color:var(--muted)">
       {search ? (
         <span>Found <strong style="color:var(--text)">{total}</strong> article{total !== 1 ? 's' : ''} matching "<em style="color:var(--primary)">{search}</em>"</span>
@@ -43,7 +41,6 @@ const posts = Array.isArray(items) ? items : [];
       )}
     </div>
 
-    <!-- Results grid (will be updated by AJAX) -->
     <div id="results-grid">
       {posts.length > 0 ? (
         <div id="results-inner" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

@@ -36,7 +36,6 @@ const allRoutes = schoolId ? await db.select().from(transportRoutes).where(eq(tr
       <div class="bg-white rounded-lg shadow p-5"><div class="text-sm text-gray-500">Routes</div><div class="text-2xl font-bold text-blue-600 mt-1">{allRoutes.length}</div></div>
     </div>
 
-    <!-- Vehicles -->
     <div class="bg-white rounded-lg shadow">
       <div class="p-4 border-b border-gray-200"><h3 class="text-lg font-semibold">Vehicles</h3></div>
       <div class="overflow-x-auto">
@@ -65,7 +64,7 @@ const allRoutes = schoolId ? await db.select().from(transportRoutes).where(eq(tr
                     <span class={`px-2 py-1 text-xs font-medium rounded ${v.status === 'active' ? 'bg-green-100 text-green-700' : v.status === 'maintenance' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-700'}`}>{v.status}</span>
                   </td>
                   <td class="px-6 py-4 text-sm">
-                    <button onclick={`confirmDelete(${v.id}, '${v.name.replace(/'/g, "\\'")}')`} class="text-red-600 hover:text-red-700">Delete</button>
+                    <button onclick={`confirmDelete(${v.id}, '${v.name.replace(/'/g, "\'")}')`} class="text-red-600 hover:text-red-700">Delete</button>
                   </td>
                 </tr>
               ))
@@ -75,7 +74,6 @@ const allRoutes = schoolId ? await db.select().from(transportRoutes).where(eq(tr
       </div>
     </div>
 
-    <!-- Routes -->
     <div class="bg-white rounded-lg shadow">
       <div class="p-4 border-b border-gray-200"><h3 class="text-lg font-semibold">Routes</h3></div>
       <div class="overflow-x-auto">
@@ -101,7 +99,7 @@ const allRoutes = schoolId ? await db.select().from(transportRoutes).where(eq(tr
                     <td class="px-6 py-4 text-sm text-gray-600">{vehicle?.name || '-'}</td>
                     <td class="px-6 py-4 text-sm text-gray-600">{stops.length}</td>
                     <td class="px-6 py-4 text-sm">
-                      <button onclick={`confirmDeleteRoute(${r.id}, '${r.name.replace(/'/g, "\\'")}')`} class="text-red-600 hover:text-red-700">Delete</button>
+                      <button onclick={`confirmDeleteRoute(${r.id}, '${r.name.replace(/'/g, "\'")}')`} class="text-red-600 hover:text-red-700">Delete</button>
                     </td>
                   </tr>
                 );
@@ -113,7 +111,6 @@ const allRoutes = schoolId ? await db.select().from(transportRoutes).where(eq(tr
     </div>
   </div>
 
-  <!-- Add Vehicle Modal -->
   <div id="addVehicleModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
     <div class="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4">
       <div class="p-6 border-b border-gray-200 flex justify-between items-center">
@@ -142,7 +139,6 @@ const allRoutes = schoolId ? await db.select().from(transportRoutes).where(eq(tr
     </div>
   </div>
 
-  <!-- Add Route Modal -->
   <div id="addRouteModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
     <div class="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4">
       <div class="p-6 border-b border-gray-200 flex justify-between items-center">
@@ -167,7 +163,6 @@ const allRoutes = schoolId ? await db.select().from(transportRoutes).where(eq(tr
     </div>
   </div>
 
-  <!-- Delete Modal -->
   <div id="deleteModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
     <div class="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4 p-6">
       <h3 class="text-lg font-semibold text-gray-900 mb-2">Confirm Delete</h3>

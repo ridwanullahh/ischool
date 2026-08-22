@@ -54,7 +54,7 @@ const primaryContact = contacts[0];
   `} />
 </head>
 <body>
-  <!-- Header: ultra-minimal split layout -->
+  
     <SchoolBannerPopup school={school} currentPage={Astro.url.pathname} />
 
 <header class="border-b horizon-line" style="background:var(--bg)">
@@ -83,7 +83,6 @@ const primaryContact = contacts[0];
 
   <main><slot /></main>
 
-  <!-- Footer: minimal -->
   <footer class="border-t horizon-line mt-32" style="background:var(--bg)">
     <div class="max-w-7xl mx-auto px-6 lg:px-10 py-16">
       <div class="grid grid-cols-1 md:grid-cols-12 gap-12">

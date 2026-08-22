@@ -99,7 +99,6 @@ const rtl = ['ar','he','fa','ur'].includes(locale);
   <div class="harmony-orb harmony-orb-1" aria-hidden="true"></div>
   <div class="harmony-orb harmony-orb-2" aria-hidden="true"></div>
 
-  <!-- Floating glass navigation pill -->
   <header class="relative z-50 px-4 sm:px-6 pt-4">
     <nav class="harmony-glass-strong max-w-6xl mx-auto rounded-2xl shadow-xl shadow-black/5">
       <div class="flex items-center justify-between h-16 px-5">
@@ -143,7 +142,6 @@ const rtl = ['ar','he','fa','ur'].includes(locale);
         </div>
       </div>
 
-      <!-- Mobile nav drawer -->
       <div id="harmony-mobile-nav" class="lg:hidden hidden border-t" style="border-color:color-mix(in srgb, var(--border) 50%, transparent)">
         <div class="px-5 py-4 space-y-1">
           {nav.map(item => {
@@ -160,12 +158,10 @@ const rtl = ['ar','he','fa','ur'].includes(locale);
     </nav>
   </header>
 
-  <!-- Main content slot -->
   <main class="relative z-10">
     <slot />
   </main>
 
-  <!-- Glassmorphism footer -->
   <footer class="relative z-10 mt-20">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 pb-10">
       <div class="harmony-glass rounded-2xl p-8 sm:p-10">
@@ -228,7 +224,7 @@ const rtl = ['ar','he','fa','ur'].includes(locale);
 
   <SchoolBannerPopup school={school} />
 
-  <!-- Theme-specific floating chat widget (glassmorphism design) -->
+  
   <button id="harmony-chat-toggle" type="button" class="fixed bottom-6 right-6 z-50 harmony-glass-strong p-4 rounded-2xl shadow-2xl hover:scale-105 transition-all" style="color:var(--primary)" aria-label="Open chat assistant" aria-expanded="false" aria-controls="harmony-chat-panel">
     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
   </button>

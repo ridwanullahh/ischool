@@ -58,7 +58,6 @@ const primaryContact = contacts[0];
 <body>
   <div class="lumina-bg" aria-hidden="true"></div>
 
-  <!-- Top utility bar -->
   <div class="relative z-10 border-b" style="background:color-mix(in srgb, var(--surface) 70%, transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-color:var(--border)">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 h-10 flex items-center justify-between text-xs">
       <div class="flex items-center gap-4" style="color:var(--muted)">
@@ -73,7 +72,6 @@ const primaryContact = contacts[0];
     </div>
   </div>
 
-  <!-- Header -->
     <SchoolBannerPopup school={school} currentPage={Astro.url.pathname} />
 
 <header class="relative z-50 px-4 sm:px-6 pt-5">
@@ -100,7 +98,6 @@ const primaryContact = contacts[0];
 
   <main class="relative z-10"><slot /></main>
 
-  <!-- Footer: warm luminous -->
   <footer class="relative z-10 mt-20 px-4 pb-8">
     <div class="max-w-7xl mx-auto lumina-card rounded-3xl p-8 sm:p-12">
       <div class="grid grid-cols-1 md:grid-cols-4 gap-8">

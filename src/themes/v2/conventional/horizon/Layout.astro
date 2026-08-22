@@ -61,7 +61,6 @@ const rtl = ['ar','he','fa','ur'].includes(locale);
   `}</style>
 </head>
 <body>
-  <!-- Centered masthead with inline nav — no header bar -->
   <header class="px-6 pt-12 pb-8 sm:pt-16">
     <div class="max-w-4xl mx-auto text-center">
       <a href={`${prefix}/`} class="inline-block" aria-label={`${school.name} home`}>
@@ -96,7 +95,6 @@ const rtl = ['ar','he','fa','ur'].includes(locale);
     <slot />
   </main>
 
-  <!-- Hairline minimal footer -->
   <footer class="px-6 mt-24 pb-12">
     <div class="max-w-4xl mx-auto">
       <div class="border-t pt-8" style="border-color:var(--border)"></div>
@@ -137,7 +135,7 @@ const rtl = ['ar','he','fa','ur'].includes(locale);
 
   <SchoolBannerPopup school={school} />
 
-  <!-- Minimal text-link chat widget -->
+  
   <button id="horizon-chat-toggle" type="button" class="fixed bottom-6 right-6 z-50 horizon-mono text-[11px] uppercase tracking-[0.2em] transition-opacity hover:opacity-60 flex items-center gap-2" style="color:var(--text)" aria-label="Open chat" aria-expanded="false" aria-controls="horizon-chat-panel">
     <span class="inline-block w-2 h-2 rounded-full" style="background:var(--primary)"></span>
     <span>Ask</span>

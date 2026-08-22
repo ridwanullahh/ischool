@@ -108,9 +108,8 @@ const quickActions = [
 ---
 
 <DashboardLayout title="Dashboard - iSchool">
-  <!-- Hero Welcome Card - Mosaic Bento -->
+  
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-    <!-- Welcome -->
     <div class="lg:col-span-2 mosaic-card mosaic-glow p-6 lg:p-8 relative overflow-hidden" style="background: linear-gradient(135deg, var(--mosaic-surface) 0%, var(--mosaic-surface-2) 100%);">
       <div class="relative z-10">
         <div class="flex items-center gap-2 mb-3">
@@ -125,12 +124,10 @@ const quickActions = [
         </h2>
         <p class="text-sm" style="color: var(--mosaic-text-muted);">Here's what's happening at your school today.</p>
       </div>
-      <!-- Decorative gradient circle -->
       <div class="absolute -top-12 -right-12 w-48 h-48 rounded-full opacity-20" style="background: radial-gradient(circle, #05B34D 0%, transparent 70%);"></div>
       <div class="absolute -bottom-8 -right-8 w-32 h-32 rounded-full opacity-10" style="background: radial-gradient(circle, #F2B91C 0%, transparent 70%);"></div>
     </div>
 
-    <!-- Quick Stats -->
     <div class="mosaic-card p-6">
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-xs font-bold uppercase tracking-wider" style="color: var(--mosaic-text-subtle);">Today's Summary</h3>
@@ -157,7 +154,7 @@ const quickActions = [
     </div>
   </div>
 
-  <!-- Quick Actions - Mosaic Grid -->
+  
   <div class="mb-6">
     <div class="flex items-center justify-between mb-3">
       <h3 class="text-sm font-bold" style="font-family: 'Space Grotesk', sans-serif; color: var(--mosaic-text);">Quick Actions</h3>
@@ -174,9 +171,8 @@ const quickActions = [
     </div>
   </div>
 
-  <!-- Bento Mosaic Grid -->
   <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-    <!-- Revenue - Large card -->
+    
     <div class="md:col-span-2 mosaic-card p-6 relative overflow-hidden">
       <div class="relative z-10">
         <div class="flex items-center justify-between mb-4">
@@ -201,7 +197,6 @@ const quickActions = [
       <div class="absolute -bottom-8 -right-8 w-40 h-40 rounded-full opacity-5" style="background: #05B34D;"></div>
     </div>
 
-    <!-- Events -->
     <a href="/dashboard/events" class="mosaic-card p-6 group">
       <div class="w-10 h-10 rounded-xl flex items-center justify-center mb-3" style="background: rgba(99,102,241,0.1);">
         <svg class="w-5 h-5" style="color: #6366F1;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
@@ -211,7 +206,6 @@ const quickActions = [
       <p class="text-xs" style="color: var(--mosaic-text-muted);">Scheduled events</p>
     </a>
 
-    <!-- Messages -->
     <a href="/dashboard/messages" class="mosaic-card p-6 group">
       <div class="w-10 h-10 rounded-xl flex items-center justify-center mb-3" style="background: rgba(242,185,28,0.1);">
         <svg class="w-5 h-5" style="color: #F2B91C;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
@@ -222,7 +216,6 @@ const quickActions = [
     </a>
   </div>
 
-  <!-- CMS Module Cards -->
   <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
     {[
       { label: 'Announcements', count: cmsStats.announcements, href: '/dashboard/announcements', color: '#05B34D' },
@@ -242,9 +235,7 @@ const quickActions = [
     ))}
   </div>
 
-  <!-- Recent Activity + Quick Links -->
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-    <!-- Recent Activity -->
     <div class="lg:col-span-2 mosaic-card p-6">
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-sm font-bold" style="font-family: 'Space Grotesk', sans-serif; color: var(--mosaic-text);">Recent Activity</h3>
@@ -277,7 +268,6 @@ const quickActions = [
       )}
     </div>
 
-    <!-- Quick Links -->
     <div class="mosaic-card p-6">
       <h3 class="text-sm font-bold mb-4" style="font-family: 'Space Grotesk', sans-serif; color: var(--mosaic-text);">Quick Links</h3>
       <div class="space-y-2">

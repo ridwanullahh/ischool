@@ -70,8 +70,8 @@ const allCandidates = allExams.length > 0
                     <span class={`px-2 py-1 text-xs font-medium rounded ${exam.status === 'published' ? 'bg-green-100 text-green-700' : exam.status === 'closed' ? 'bg-gray-100 text-gray-700' : exam.status === 'archived' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}>{exam.status}</span>
                   </td>
                   <td class="px-6 py-4 text-sm flex gap-2">
-                    <button onclick={`editExam(${exam.id}, '${exam.title.replace(/'/g, "\\'")}', '${exam.type}', ${exam.duration || 'null'}, ${exam.totalMarks || 'null'}, '${exam.accessMode}', '${exam.status}', ${exam.proctoring ? 'true' : 'false'}, ${exam.lockdown ? 'true' : 'false'}, ${exam.negativeMarking ? 'true' : 'false'})`} class="text-primary-600 hover:text-primary-700">Edit</button>
-                    <button onclick={`confirmDelete(${exam.id}, '${exam.title.replace(/'/g, "\\'")}')`} class="text-red-600 hover:text-red-700">Delete</button>
+                    <button onclick={`editExam(${exam.id}, '${exam.title.replace(/'/g, "\'")}', '${exam.type}', ${exam.duration || 'null'}, ${exam.totalMarks || 'null'}, '${exam.accessMode}', '${exam.status}', ${exam.proctoring ? 'true' : 'false'}, ${exam.lockdown ? 'true' : 'false'}, ${exam.negativeMarking ? 'true' : 'false'})`} class="text-primary-600 hover:text-primary-700">Edit</button>
+                    <button onclick={`confirmDelete(${exam.id}, '${exam.title.replace(/'/g, "\'")}')`} class="text-red-600 hover:text-red-700">Delete</button>
                   </td>
                 </tr>
               ))
@@ -82,7 +82,6 @@ const allCandidates = allExams.length > 0
     </div>
   </div>
 
-  <!-- Add CBT Exam Modal -->
   <div id="addModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
     <div class="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
       <div class="p-6 border-b border-gray-200 flex justify-between items-center">
@@ -128,7 +127,6 @@ const allCandidates = allExams.length > 0
     </div>
   </div>
 
-  <!-- Edit CBT Exam Modal -->
   <div id="editModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
     <div class="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
       <div class="p-6 border-b border-gray-200 flex justify-between items-center">
@@ -168,7 +166,6 @@ const allCandidates = allExams.length > 0
     </div>
   </div>
 
-  <!-- Delete Modal -->
   <div id="deleteModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
     <div class="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4 p-6">
       <h3 class="text-lg font-semibold text-gray-900 mb-2">Confirm Delete</h3>

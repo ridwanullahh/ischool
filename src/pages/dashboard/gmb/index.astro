@@ -25,7 +25,6 @@ const avgRating = reviews.length > 0 ? (reviews.reduce((sum, r) => sum + (r.rati
       <p class="text-sm text-gray-500 mt-1">Manage your Google Business profile for better local search visibility.</p>
     </div>
 
-    <!-- Connection Status -->
     <div class="bg-white rounded-xl border border-gray-200 p-6">
       {connection?.isConnected ? (
         <div class="flex items-center justify-between">
@@ -60,7 +59,6 @@ const avgRating = reviews.length > 0 ? (reviews.reduce((sum, r) => sum + (r.rati
 
     {connection?.isConnected && (
       <>
-        <!-- Stats -->
         <div class="grid grid-cols-3 gap-4">
           <div class="bg-white rounded-xl border border-gray-200 p-4">
             <p class="text-xs text-gray-500 uppercase tracking-wider">Average Rating</p>
@@ -76,7 +74,6 @@ const avgRating = reviews.length > 0 ? (reviews.reduce((sum, r) => sum + (r.rati
           </div>
         </div>
 
-        <!-- Recent Reviews -->
         {reviews.length > 0 && (
           <div class="bg-white rounded-xl border border-gray-200 p-6">
             <h3 class="text-base font-semibold text-gray-900 mb-4">Recent Reviews</h3>
@@ -103,7 +100,6 @@ const avgRating = reviews.length > 0 ? (reviews.reduce((sum, r) => sum + (r.rati
           </div>
         )}
 
-        <!-- GMB Posts -->
         <div class="bg-white rounded-xl border border-gray-200 p-6">
           <h3 class="text-base font-semibold text-gray-900 mb-4">GMB Posts</h3>
           {posts.length > 0 ? (

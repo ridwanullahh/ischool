@@ -59,7 +59,6 @@ const formatDate = (d: string | Date | null) => {
       <p class="text-sm text-gray-500 mt-1">View and submit your assignments</p>
     </div>
 
-    <!-- Pending assignments -->
     <div class="bg-white rounded-xl border border-gray-200 p-6">
       <h2 class="text-base font-semibold text-gray-900 mb-4">To Do ({pending.length})</h2>
       {pending.length > 0 ? (
@@ -96,7 +95,6 @@ const formatDate = (d: string | Date | null) => {
       )}
     </div>
 
-    <!-- Submitted/graded assignments -->
     {submitted.length > 0 && (
       <div class="bg-white rounded-xl border border-gray-200 p-6">
         <h2 class="text-base font-semibold text-gray-900 mb-4">Submitted ({submitted.length})</h2>
@@ -132,7 +130,6 @@ const formatDate = (d: string | Date | null) => {
     )}
   </div>
 
-  <!-- Submit modal -->
   <div id="submitModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
     <div class="bg-white rounded-xl shadow-xl max-w-lg w-full p-6">
       <div class="flex items-center justify-between mb-4">

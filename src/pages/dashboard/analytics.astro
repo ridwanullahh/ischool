@@ -29,7 +29,6 @@ const activeStudents = schoolId ? await db.select().from(students).where(eq(stud
       <p class="text-sm text-gray-500 mt-1">School performance insights and metrics</p>
     </div>
 
-    <!-- Key Metrics -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
       <div class="bg-white rounded-xl shadow p-6">
         <div class="text-sm text-gray-500 mb-1">Students</div>
@@ -53,7 +52,6 @@ const activeStudents = schoolId ? await db.select().from(students).where(eq(stud
       </div>
     </div>
 
-    <!-- Financial Overview -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
       <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow p-6 text-white">
         <div class="text-sm opacity-80 mb-1">Total Revenue (Paid)</div>
@@ -72,7 +70,6 @@ const activeStudents = schoolId ? await db.select().from(students).where(eq(stud
       </div>
     </div>
 
-    <!-- Resource Overview -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div class="bg-white rounded-xl shadow p-6">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">Resource Summary</h3>

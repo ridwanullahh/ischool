@@ -30,14 +30,12 @@ const draftPosts = posts.filter(p => p.status === 'draft');
       <a href="/dashboard/social/composer" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">New Post</a>
     </div>
 
-    <!-- Stats -->
     <div class="grid grid-cols-3 gap-4">
       <div class="bg-white rounded-xl border border-gray-200 p-4"><p class="text-xs text-gray-500 uppercase">Scheduled</p><p class="text-2xl font-bold text-blue-600 mt-1">{scheduledPosts.length}</p></div>
       <div class="bg-white rounded-xl border border-gray-200 p-4"><p class="text-xs text-gray-500 uppercase">Published</p><p class="text-2xl font-bold text-green-600 mt-1">{publishedPosts.length}</p></div>
       <div class="bg-white rounded-xl border border-gray-200 p-4"><p class="text-xs text-gray-500 uppercase">Drafts</p><p class="text-2xl font-bold text-gray-600 mt-1">{draftPosts.length}</p></div>
     </div>
 
-    <!-- Calendar Grid -->
     <div class="bg-white rounded-xl border border-gray-200 p-6 overflow-x-auto">
       <div class="grid grid-cols-7 gap-1 min-w-[700px]">
         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => <div class="text-center text-xs font-semibold text-gray-500 py-2">{d}</div>)}
@@ -57,7 +55,6 @@ const draftPosts = posts.filter(p => p.status === 'draft');
       </div>
     </div>
 
-    <!-- Upcoming Scheduled -->
     <div class="bg-white rounded-xl border border-gray-200 p-6">
       <h3 class="text-base font-semibold text-gray-900 mb-4">Upcoming Scheduled Posts</h3>
       {scheduledPosts.length > 0 ? (

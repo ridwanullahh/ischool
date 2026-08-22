@@ -88,7 +88,7 @@ const statusColors: Record<string, string> = {
                           </div>
                           <div class="flex gap-2">
                             <button onclick={`openLessonModal(${c.id}, ${u.id})`} class="text-xs text-primary-600 font-medium">+ Lesson</button>
-                            <button onclick={`editUnit(${u.id}, '${u.title.replace(/'/g, "\\'")}', '${(u.description || '').replace(/'/g, "\\'")}', ${u.sortOrder || 0})`} class="text-xs text-amber-600 font-medium">Edit</button>
+                            <button onclick={`editUnit(${u.id}, '${u.title.replace(/'/g, "\'")}', '${(u.description || '').replace(/'/g, "\'")}', ${u.sortOrder || 0})`} class="text-xs text-amber-600 font-medium">Edit</button>
                             <button onclick={`deleteUnit(${u.id})`} class="text-xs text-red-600 font-medium">Delete</button>
                           </div>
                         </div>
@@ -104,7 +104,7 @@ const statusColors: Record<string, string> = {
                                   {l.duration && <div class="text-xs text-gray-500">{l.duration} min</div>}
                                 </div>
                                 <span class={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${typeColors[l.type || 'text']}`}>{l.type || 'text'}</span>
-                                <button onclick={`editLesson(${l.id}, '${l.title.replace(/'/g, "\\'")}', '${l.type || 'text'}', ${l.duration || 0}, ${l.sortOrder || 0})`} class="text-xs text-amber-600 font-medium">Edit</button>
+                                <button onclick={`editLesson(${l.id}, '${l.title.replace(/'/g, "\'")}', '${l.type || 'text'}', ${l.duration || 0}, ${l.sortOrder || 0})`} class="text-xs text-amber-600 font-medium">Edit</button>
                                 <button onclick={`deleteLesson(${l.id})`} class="text-xs text-red-600 font-medium">Delete</button>
                               </div>
                             ))}
@@ -122,7 +122,6 @@ const statusColors: Record<string, string> = {
     )}
   </div>
 
-  <!-- Unit Modal -->
   <div id="unitModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl p-6 max-w-md w-full">
       <h3 class="text-lg font-bold text-gray-900 mb-4" id="unitModalTitle">New Unit</h3>
@@ -145,7 +144,6 @@ const statusColors: Record<string, string> = {
     </div>
   </div>
 
-  <!-- Lesson Modal -->
   <div id="lessonModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
       <h3 class="text-lg font-bold text-gray-900 mb-4" id="lessonModalTitle">New Lesson</h3>

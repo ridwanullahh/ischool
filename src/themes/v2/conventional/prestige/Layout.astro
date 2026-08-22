@@ -82,7 +82,6 @@ const rtl = ['ar','he','fa','ur'].includes(locale);
   `}</style>
 </head>
 <body>
-  <!-- Centered wordmark with hairline gold rules -->
   <header class="px-4 pt-10 pb-6">
     <div class="max-w-5xl mx-auto">
       <div class="flex items-center justify-center gap-4">
@@ -103,7 +102,6 @@ const rtl = ['ar','he','fa','ur'].includes(locale);
     </div>
   </header>
 
-  <!-- Centered nav with gold underline -->
   <nav class="sticky top-0 z-40 border-y" style="background:var(--surface);border-color:color-mix(in srgb, var(--primary) 20%, transparent)" aria-label="Primary">
     <div class="max-w-5xl mx-auto px-4">
       <div class="hidden lg:flex items-center justify-center h-14 gap-8">
@@ -139,7 +137,6 @@ const rtl = ['ar','he','fa','ur'].includes(locale);
     <slot />
   </main>
 
-  <!-- Ornamental footer -->
   <footer class="px-4 mt-24 pb-10">
     <div class="max-w-5xl mx-auto">
       <div class="prestige-rule mb-10"></div>
@@ -189,7 +186,6 @@ const rtl = ['ar','he','fa','ur'].includes(locale);
 
   <SchoolBannerPopup school={school} />
 
-  <!-- Concierge chat widget -->
   <button id="prestige-chat-toggle" type="button" class="fixed bottom-6 right-6 z-50 prestige-btn px-5 py-3 text-[10px] uppercase tracking-[0.3em] font-medium" aria-label="Open concierge" aria-expanded="false" aria-controls="prestige-chat-panel">
     Concierge
   </button>

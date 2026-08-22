@@ -10,8 +10,18 @@
  * All functions are SYNCHRONOUS and SAFE to call from .astro frontmatter.
  */
 
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
+// Lazy require for CommonJS modules (may not work on Cloudflare Workers)
+let _require: any = null;
+function getRequire() {
+  if (_require !== null) return _require;
+  try {
+    const { createRequire } = (globalThis as any).require('module');
+    _require = createRequire(import.meta.url);
+  } catch {
+    _require = (globalThis as any).require || null;
+  }
+  return _require;
+}
 import { isLightbase } from './db/index.js';
 import { getLightbaseDb } from './db/lightbase-adapter.js';
 
@@ -84,7 +94,7 @@ export async function preloadSchoolData(slug: string): Promise<void> {
 // ═══════════════════════════════════════════════════════
 
 function rawDb(): any {
-  const { getDb } = require('./db/index.js');
+  const { getDb } = getRequire()('./db/index.js');
   return getDb();
 }
 
@@ -435,7 +445,7 @@ export function getSchoolFormBySlug(schoolId: any, slug: string): any {
 
 export function getSchoolPalette(school: any): any {
   try {
-    const { generateDefaultPalette, mergePalette } = require('./palette.js');
+    const { generateDefaultPalette, mergePalette } = getRequire()('./palette.js');
     const settings = parseJsonCol(school?.settings, {});
     const stored = settings?.palette;
     return mergePalette(stored, school?.primaryColor || '#05B34D');
@@ -457,7 +467,7 @@ export function getSchoolFontPresetSafe(school: any): any {
     const settings = parseJsonCol(school?.settings, {});
     const fontPresetId = settings?.fontPresetId;
     if (!fontPresetId) return null;
-    const { getFontPreset } = require('./font-presets.js');
+    const { getFontPreset } = getRequire()('./font-presets.js');
     const preset = getFontPreset(fontPresetId);
     if (!preset) return null;
     return {

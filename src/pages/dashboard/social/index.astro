@@ -35,7 +35,6 @@ const PLATFORMS = [
       <button onclick="document.getElementById('postModal').classList.remove('hidden')" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">New Post</button>
     </div>
 
-    <!-- Stats -->
     <div class="grid grid-cols-2 gap-4">
       <div class="bg-white rounded-xl border border-gray-200 p-4">
         <p class="text-xs text-gray-500 uppercase tracking-wider">Total Posts</p>
@@ -47,7 +46,6 @@ const PLATFORMS = [
       </div>
     </div>
 
-    <!-- Connected Accounts -->
     <div class="bg-white rounded-xl border border-gray-200 p-6">
       <h3 class="text-base font-semibold text-gray-900 mb-4">Connected Accounts</h3>
       <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -65,7 +63,6 @@ const PLATFORMS = [
       </div>
     </div>
 
-    <!-- Posts -->
     <div class="bg-white rounded-xl border border-gray-200 p-6">
       <h3 class="text-base font-semibold text-gray-900 mb-4">Recent Posts</h3>
       {posts.length > 0 ? (
@@ -89,7 +86,6 @@ const PLATFORMS = [
     </div>
   </div>
 
-  <!-- New Post Modal -->
   <div id="postModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
       <h3 class="text-lg font-bold text-gray-900 mb-4">Create Social Post</h3>

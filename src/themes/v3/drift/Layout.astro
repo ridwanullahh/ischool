@@ -56,7 +56,6 @@ const rtl = ['ar','he','fa','ur'].includes(locale);
   <div class="drift-blob drift-blob-1" aria-hidden="true"></div>
   <div class="drift-blob drift-blob-2" aria-hidden="true"></div>
 
-  <!-- Asymmetric floating header -->
     <SchoolBannerPopup school={school} currentPage={Astro.url.pathname} />
 
 <header class="relative z-50 px-4 sm:px-6 pt-6">
@@ -85,7 +84,6 @@ const rtl = ['ar','he','fa','ur'].includes(locale);
 
   <main class="relative z-10"><slot /></main>
 
-  <!-- Footer with wave divider -->
   <div class="drift-wave-divider relative z-10" aria-hidden="true">
     <svg viewBox="0 0 1440 60" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" class="absolute inset-0 w-full h-full"><path d="M0,30 C240,60 480,0 720,30 C960,60 1200,0 1440,30 L1440,60 L0,60 Z" fill="var(--surface)" /></svg>
   </div>

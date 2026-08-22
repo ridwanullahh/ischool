@@ -1,6 +1,20 @@
-import nodemailer from 'nodemailer';
 import { getDb } from './db/index.js';
 import { emailLogs } from './db/schema.js';
+
+// Lazy-load nodemailer only when needed (not available on Cloudflare Workers)
+let _nodemailer: any = null;
+async function getNodemailer() {
+  if (!_nodemailer) {
+    try {
+      const mod = await import('nodemailer');
+      _nodemailer = mod.default || mod;
+    } catch (e) {
+      console.error('[email] nodemailer not available:', (e as any)?.message);
+      return null;
+    }
+  }
+  return _nodemailer;
+}
 
 const smtpHost = process.env.SMTP_HOST;
 const smtpPort = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT) : 587;
@@ -38,7 +52,10 @@ const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
  * - Uses TLS (port 587 with STARTTLS or port 465 with SSL)
  */
 
-function createTransport() {
+async function createTransport() {
+  const nodemailer = await getNodemailer();
+  if (!nodemailer) return null;
+
   // Mode 2: Google OAuth2
   if (googleRefreshToken && googleClientId && googleClientSecret && smtpUser) {
     return nodemailer.createTransport({
@@ -61,7 +78,6 @@ function createTransport() {
       secure: smtpPort === 465,
       auth: { user: smtpUser, pass: smtpPass },
       tls: {
-        // Do not fail on self-signed certs (some mail servers need this)
         rejectUnauthorized: false,
       },
     });
@@ -70,8 +86,13 @@ function createTransport() {
   return null;
 }
 
-const transport = createTransport();
-const isDev = !transport;
+let _transport: any = null;
+let _isDev = true;
+
+// Initialize transport asynchronously
+createTransport().then(t => { _transport = t; _isDev = !t; }).catch(() => {});
+
+const isDev = _isDev;
 
 export interface EmailOptions {
   to: string;

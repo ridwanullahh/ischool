@@ -45,7 +45,6 @@ const today = new Date().toLocaleDateString('en-US', { year:'numeric', month:'lo
   `}</style>
 </head>
 <body>
-  <!-- Newspaper masthead -->
   <header class="border-b-2 heritage-rule" style="background:var(--surface)">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center">
       <div class="flex items-center justify-between text-[10px] uppercase tracking-widest mb-3" style="color:var(--muted)">
@@ -74,7 +73,7 @@ const today = new Date().toLocaleDateString('en-US', { year:'numeric', month:'lo
     </div>
   </nav>
   <main><slot /></main>
-  <!-- Dense multi-column footer with vertical rules -->
+  
   <footer class="border-t-2 heritage-rule mt-20" style="background:var(--surface)">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div class="text-center mb-8 pb-6 border-b heritage-rule">

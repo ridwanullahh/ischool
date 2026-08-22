@@ -14,7 +14,7 @@ const posts = Array.isArray(data.recentPosts) ? data.recentPosts : [];
 const programs = Array.isArray(data.schoolPrograms) ? data.schoolPrograms : [];
 ---
 <div class="space-y-0">
-  <!-- Hero: ultra-minimal centered with whitespace -->
+  
   <section class="px-6 lg:px-10 py-32 sm:py-48">
     <div class="max-w-4xl mx-auto">
       <span class="horizon-label" style="color:var(--muted)">— {new Date().getFullYear() - 50} — Established</span>
@@ -27,7 +27,6 @@ const programs = Array.isArray(data.schoolPrograms) ? data.schoolPrograms : [];
     </div>
   </section>
 
-  <!-- Stats: minimal grid -->
   {stats.length > 0 && (
     <section class="border-y horizon-line" style="background:var(--surface)">
       <div class="max-w-7xl mx-auto px-6 lg:px-10 py-16">
@@ -43,7 +42,6 @@ const programs = Array.isArray(data.schoolPrograms) ? data.schoolPrograms : [];
     </section>
   )}
 
-  <!-- Value proposition -->
   {about.valueProposition && (
     <section class="px-6 lg:px-10 py-32">
       <div class="max-w-4xl mx-auto">
@@ -53,7 +51,6 @@ const programs = Array.isArray(data.schoolPrograms) ? data.schoolPrograms : [];
     </section>
   )}
 
-  <!-- Features: minimal cards with thin borders -->
   {features.length > 0 && (
     <section class="px-6 lg:px-10 py-24 border-t horizon-line">
       <div class="max-w-7xl mx-auto">
@@ -76,7 +73,7 @@ const programs = Array.isArray(data.schoolPrograms) ? data.schoolPrograms : [];
     </section>
   )}
 
-  <!-- Programs: minimal text-led -->
+  
   {programs.length > 0 && (
     <section class="px-6 lg:px-10 py-24 border-t horizon-line">
       <div class="max-w-7xl mx-auto">
@@ -102,7 +99,6 @@ const programs = Array.isArray(data.schoolPrograms) ? data.schoolPrograms : [];
     </section>
   )}
 
-  <!-- Latest announcements + blog -->
   {(announcements.length > 0 || posts.length > 0) && (
     <section class="px-6 lg:px-10 py-24 border-t horizon-line">
       <div class="max-w-7xl mx-auto grid lg:grid-cols-2 gap-16">
@@ -144,7 +140,6 @@ const programs = Array.isArray(data.schoolPrograms) ? data.schoolPrograms : [];
     </section>
   )}
 
-  <!-- CTA -->
   <section class="px-6 lg:px-10 py-32 border-t horizon-line">
     <div class="max-w-4xl mx-auto text-center">
       <span class="horizon-label" style="color:var(--muted)">— Admissions Open</span>

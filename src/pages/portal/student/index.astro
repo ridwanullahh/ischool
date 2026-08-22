@@ -77,13 +77,11 @@ const formatDate = (d: string | Date | null) => {
 
 <StudentPortalLayout title="Dashboard - Student Portal">
   <div class="space-y-6">
-    <!-- Welcome header -->
     <div class="bg-gradient-to-r from-primary-600 to-primary-700 rounded-xl p-6 text-white">
       <h1 class="text-2xl font-bold">As-salamu alaykum, {student.firstName}!</h1>
       <p class="text-primary-100 mt-1 text-sm">Here is your overview for today, {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}.</p>
     </div>
 
-    <!-- Stats grid -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
       <div class="bg-white rounded-xl border border-gray-200 p-5">
         <div class="flex items-center justify-between">
@@ -123,7 +121,6 @@ const formatDate = (d: string | Date | null) => {
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <!-- Today's schedule -->
       <div class="bg-white rounded-xl border border-gray-200 p-6">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-base font-semibold text-gray-900">Today's Schedule</h2>
@@ -149,7 +146,6 @@ const formatDate = (d: string | Date | null) => {
         )}
       </div>
 
-      <!-- Pending assignments -->
       <div class="bg-white rounded-xl border border-gray-200 p-6">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-base font-semibold text-gray-900">Pending Assignments</h2>
@@ -181,7 +177,6 @@ const formatDate = (d: string | Date | null) => {
         )}
       </div>
 
-      <!-- Recent grades -->
       <div class="bg-white rounded-xl border border-gray-200 p-6">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-base font-semibold text-gray-900">Recent Grades</h2>
@@ -207,7 +202,6 @@ const formatDate = (d: string | Date | null) => {
         )}
       </div>
 
-      <!-- Recent quiz attempts -->
       <div class="bg-white rounded-xl border border-gray-200 p-6">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-base font-semibold text-gray-900">Recent Quizzes</h2>

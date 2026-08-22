@@ -27,7 +27,6 @@ const periodTypeColors: Record<string, string> = { lesson: 'bg-blue-50 text-blue
       <p class="text-sm text-gray-500 mt-1">Define academic years, terms, and Adhan-aligned daily prayer schedules (Fajr, Dhuhr, Asr, Maghrib, Isha, Jumu'ah).</p>
     </div>
 
-    <!-- Academic Periods -->
     <div class="bg-white rounded-xl border border-gray-200 p-6">
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-base font-semibold text-gray-900">Academic Years & Terms</h3>
@@ -54,7 +53,6 @@ const periodTypeColors: Record<string, string> = { lesson: 'bg-blue-50 text-blue
       ) : (<p class="text-sm text-gray-500 text-center py-8">No academic periods yet. Create one to get started.</p>)}
     </div>
 
-    <!-- Islamic Prayer Schedules -->
     <div class="bg-white rounded-xl border border-gray-200 p-6">
       <div class="flex items-center justify-between mb-4">
         <div>
@@ -117,7 +115,6 @@ const periodTypeColors: Record<string, string> = { lesson: 'bg-blue-50 text-blue
     </div>
   </div>
 
-  <!-- Period Modal -->
   <div id="periodModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl p-6 max-w-md w-full">
       <h3 class="text-lg font-bold text-gray-900 mb-4">New Academic Period</h3>
@@ -137,7 +134,6 @@ const periodTypeColors: Record<string, string> = { lesson: 'bg-blue-50 text-blue
     </div>
   </div>
 
-  <!-- Prayer Schedule Modal -->
   <div id="prayerModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl p-6 max-w-3xl w-full max-h-[90vh] overflow-y-auto">
       <h3 class="text-lg font-bold text-gray-900 mb-4" id="prayerModalTitle">New Islamic Prayer Schedule</h3>
@@ -188,7 +184,7 @@ const periodTypeColors: Record<string, string> = { lesson: 'bg-blue-50 text-blue
         '<span class="text-gray-400 text-xs">-</span>' +
         '<input type="time" name="periodEnd" class="px-2 py-1.5 border border-gray-300 rounded text-xs" value="' + (per.end||'') + '" />' +
         '<select name="periodType" class="px-2 py-1.5 border border-gray-300 rounded text-xs"><option value="lesson"' + (per.type==='lesson'?' selected':'') + '>Lesson</option><option value="break"' + (per.type==='break'?' selected':'') + '>Break</option><option value="prayer"' + (per.type==='prayer'?' selected':'') + '>Prayer</option><option value="assembly"' + (per.type==='assembly'?' selected':'') + '>Assembly</option></select>' +
-        '<select name="prayerName" class="px-2 py-1.5 border border-gray-300 rounded text-xs"><option value="">—</option><option value="fajr"' + (per.prayerName==='fajr'?' selected':'') + '>Fajr</option><option value="dhuhr"' + (per.prayerName==='dhuhr'?' selected':'') + '>Dhuhr</option><option value="asr"' + (per.prayerName==='asr'?' selected':'') + '>Asr</option><option value="maghrib"' + (per.prayerName==='maghrib'?' selected':'') + '>Maghrib</option><option value="isha"' + (per.prayerName==='isha'?' selected':'') + '>Isha</option><option value="jumuah"' + (per.prayerName==='jumuah'?' selected':'') + '>Jumu\\'ah</option></select>' +
+        '<select name="prayerName" class="px-2 py-1.5 border border-gray-300 rounded text-xs"><option value="">—</option><option value="fajr"' + (per.prayerName==='fajr'?' selected':'') + '>Fajr</option><option value="dhuhr"' + (per.prayerName==='dhuhr'?' selected':'') + '>Dhuhr</option><option value="asr"' + (per.prayerName==='asr'?' selected':'') + '>Asr</option><option value="maghrib"' + (per.prayerName==='maghrib'?' selected':'') + '>Maghrib</option><option value="isha"' + (per.prayerName==='isha'?' selected':'') + '>Isha</option><option value="jumuah"' + (per.prayerName==='jumuah'?' selected':'') + '>Jumu\'ah</option></select>' +
         '<button type="button" onclick="this.parentElement.remove()" class="text-red-500 text-xs px-2">×</button>';
       return row;
     }

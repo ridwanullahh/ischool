@@ -51,7 +51,6 @@ const primaryContact = contacts[0];
   `} />
 </head>
 <body>
-  <!-- Top utility bar -->
   <div class="ember-grad text-white">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 h-10 flex items-center justify-between text-xs">
       <div class="flex items-center gap-4">
@@ -66,7 +65,6 @@ const primaryContact = contacts[0];
     </div>
   </div>
 
-  <!-- Header with split layout -->
     <SchoolBannerPopup school={school} currentPage={Astro.url.pathname} />
 
 <header class="border-b ember-texture" style="background:var(--bg);border-color:var(--border)">
@@ -94,7 +92,6 @@ const primaryContact = contacts[0];
 
   <main><slot /></main>
 
-  <!-- Footer: warm and inviting -->
   <footer class="mt-20 ember-grad text-white">
     <div class="max-w-7xl mx-auto px-4 py-14">
       <div class="grid grid-cols-1 md:grid-cols-4 gap-8">

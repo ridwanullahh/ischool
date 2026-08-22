@@ -76,7 +76,6 @@ const today = new Date().toLocaleDateString(locale === 'en' ? 'en-US' : locale, 
   `}</style>
 </head>
 <body>
-  <!-- Utility strip: date + contact -->
   <div class="ember-warm-bg border-b ember-border-warm">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-9 flex items-center justify-between text-xs">
       <span class="ember-serif italic" style="color:var(--muted)">{today}</span>
@@ -96,7 +95,6 @@ const today = new Date().toLocaleDateString(locale === 'en' ? 'en-US' : locale, 
     </div>
   </div>
 
-  <!-- Masthead -->
   <header class="border-b-2 ember-border-warm" style="background:var(--surface)">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center">
       <a href={`${prefix}/`} class="inline-flex flex-col items-center gap-2" aria-label={`${school.name} home`}>
@@ -111,7 +109,7 @@ const today = new Date().toLocaleDateString(locale === 'en' ? 'en-US' : locale, 
     </div>
   </header>
 
-  <!-- Two-row nav -->
+  
   <nav class="sticky top-0 z-40 border-b ember-border-warm shadow-sm" style="background:var(--surface)" aria-label="Primary">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="hidden lg:flex items-center justify-between h-12">
@@ -152,10 +150,9 @@ const today = new Date().toLocaleDateString(locale === 'en' ? 'en-US' : locale, 
     <slot />
   </main>
 
-  <!-- Magazine-style footer -->
+  
   <footer class="border-t-2 ember-border-warm" style="background:var(--surface)">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <!-- Masthead repeat -->
       <div class="text-center mb-10 pb-8 border-b ember-border-warm">
         <p class="ember-serif text-2xl font-bold" style="color:var(--text)">{school.name}</p>
         {school.tagline && <p class="ember-tag mt-1">{school.tagline}</p>}
@@ -208,7 +205,7 @@ const today = new Date().toLocaleDateString(locale === 'en' ? 'en-US' : locale, 
 
   <SchoolBannerPopup school={school} />
 
-  <!-- Handwritten note-style chat widget -->
+  
   <button id="ember-chat-toggle" type="button" class="fixed bottom-6 right-6 z-50 ember-btn px-5 py-3 shadow-lg flex items-center gap-2" aria-label="Open chat" aria-expanded="false" aria-controls="ember-chat-panel">
     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
     <span class="ember-serif text-sm font-semibold">Leave a note</span>

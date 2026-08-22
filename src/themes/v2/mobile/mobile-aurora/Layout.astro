@@ -73,7 +73,6 @@ const moreNav = nav.slice(5);
   `}</style>
 </head>
 <body>
-  <!-- App header -->
   <header class="mobile-aurora-header" style="background:var(--surface);border-bottom:1px solid var(--border)">
     <button id="mobile-aurora-menu-toggle" type="button" style="color:var(--text)" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-aurora-drawer">
       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
@@ -86,7 +85,7 @@ const moreNav = nav.slice(5);
     </button>
   </header>
 
-  <!-- Slide-in drawer for full nav -->
+  
   <div id="mobile-aurora-drawer" class="fixed inset-0 z-[70] hidden">
     <div class="absolute inset-0 bg-black/50" data-drawer-close></div>
     <div class="absolute left-0 top-0 bottom-0 w-72 overflow-y-auto p-5" style="background:var(--surface)">
@@ -120,7 +119,6 @@ const moreNav = nav.slice(5);
 
   <main><slot /></main>
 
-  <!-- Mini footer (compact for mobile) -->
   <footer class="px-4 py-6 border-t mt-8" style="background:var(--surface);border-color:var(--border)">
     <div class="text-center">
       <p class="text-xs" style="color:var(--muted)">© {new Date().getFullYear()} {school.name}</p>
@@ -130,7 +128,6 @@ const moreNav = nav.slice(5);
 
   <SchoolBannerPopup school={school} />
 
-  <!-- Bottom tab bar -->
   <nav class="mobile-aurora-tabbar" style="background:var(--surface);border-top:1px solid var(--border)" aria-label="Primary mobile">
     {tabs.map(item => { const active = pathname === `${prefix}${item.url}`; return (
       <a href={`${prefix}${item.url}`} data-active={active} class="mobile-aurora-tab">
@@ -146,7 +143,7 @@ const moreNav = nav.slice(5);
     )}
   </nav>
 
-  <!-- Slide-up chat panel -->
+  
   <div id="mobile-aurora-chat-panel" class="mobile-aurora-chat-panel" style="background:var(--surface);border-top:1px solid var(--border);border-radius:1rem 1rem 0 0">
     <div class="px-4 py-3 border-b flex items-center justify-between" style="border-color:var(--border)">
       <p class="text-sm font-bold" style="color:var(--text)">{school.name}</p>

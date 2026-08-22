@@ -1,29 +1,47 @@
 import * as schema from './schema.js';
-import { resolve } from 'path';
-import { existsSync } from 'fs';
-import { createRequire } from 'module';
 import { getLightbaseDb } from './lightbase-adapter.js';
 
 // Create require for loading CommonJS native modules (better-sqlite3)
-const require = createRequire(import.meta.url);
+// On Cloudflare Workers, createRequire may not work — that's fine, we use Lightbase.
+let _require: any = null;
+function getRequire() {
+  if (_require !== null) return _require;
+  try {
+    // Try to use createRequire from Node.js module system
+    const { createRequire } = globalThis.require('module');
+    _require = createRequire(import.meta.url);
+  } catch {
+    try {
+      _require = (globalThis as any).require || null;
+    } catch { _require = null; }
+  }
+  return _require;
+}
 
-// Lazy-load better-sqlite3 only when SQLite is the provider
 let Database: any = null;
 let drizzle: any = null;
 function loadSqliteSync() {
   if (Database) return;
+  const req = getRequire();
+  if (!req) throw new Error('Cannot load better-sqlite3: require() not available on this platform. Set DB_PROVIDER=lightbase.');
   try {
-    Database = require('better-sqlite3');
-    drizzle = require('drizzle-orm/better-sqlite3').drizzle;
+    Database = req('better-sqlite3');
+    drizzle = req('drizzle-orm/better-sqlite3').drizzle;
   } catch (e: any) {
-    // If better-sqlite3 is not available, fall back to Lightbase automatically
-    console.warn('[DB] better-sqlite3 not available, falling back to Lightbase. Set DB_PROVIDER=lightbase explicitly to silence this warning.');
+    console.warn('[DB] better-sqlite3 not available, falling back to Lightbase.');
     Database = null;
     throw e;
   }
 }
 
-const DB_PATH = resolve(process.cwd(), 'ischool.db');
+let DB_PATH = './ischool.db';
+try {
+  const req = getRequire();
+  if (req) {
+    const { resolve } = req('path');
+    DB_PATH = resolve(process.cwd(), 'ischool.db');
+  }
+} catch { /* path module not available on Workers */ }
 
 let _db: ReturnType<typeof drizzle> | null = null;
 let _migrated = false;

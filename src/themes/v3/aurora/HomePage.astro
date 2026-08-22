@@ -14,7 +14,7 @@ const locale = school.locale || 'en';
 const formatDate = (d: string | Date | null) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
 ---
 <div class="space-y-0">
-  <!-- Hero: full-screen gradient mesh with centered glass text -->
+  
   <section class="relative overflow-hidden min-h-[70vh] flex items-center justify-center px-4 py-20">
     <div class="relative z-10 max-w-4xl mx-auto text-center">
       <div class="aurora-glass-strong rounded-3xl p-8 sm:p-12 shadow-2xl">
@@ -28,7 +28,6 @@ const formatDate = (d: string | Date | null) => d ? new Date(d).toLocaleDateStri
     </div>
   </section>
 
-  <!-- Latest announcement bar -->
   {data.recentAnnouncements?.length > 0 && (
     <a href={`/${school.slug}/announcements/${data.recentAnnouncements[0].slug}`} class="block aurora-glass mx-4 max-w-6xl mb-8 rounded-2xl p-4 hover:scale-[1.01] transition-transform">
       <div class="max-w-6xl mx-auto flex items-center gap-3">
@@ -38,7 +37,6 @@ const formatDate = (d: string | Date | null) => d ? new Date(d).toLocaleDateStri
     </a>
   )}
 
-  <!-- Value proposition -->
   {data.about?.valueProposition && (
     <section class="px-4 py-16">
       <div class="max-w-4xl mx-auto text-center">
@@ -47,7 +45,6 @@ const formatDate = (d: string | Date | null) => d ? new Date(d).toLocaleDateStri
     </section>
   )}
 
-  <!-- Features: floating glass cards -->
   {data.features?.length > 0 && (
     <section class="px-4 py-16">
       <div class="max-w-6xl mx-auto">
@@ -65,7 +62,6 @@ const formatDate = (d: string | Date | null) => d ? new Date(d).toLocaleDateStri
     </section>
   )}
 
-  <!-- Programs: glass cards with gradient accent -->
   {data.schoolPrograms?.length > 0 && (
     <section class="px-4 py-16">
       <div class="max-w-6xl mx-auto">
@@ -84,7 +80,6 @@ const formatDate = (d: string | Date | null) => d ? new Date(d).toLocaleDateStri
     </section>
   )}
 
-  <!-- Stats: gradient bar -->
   {data.stats?.length > 0 && (
     <section class="aurora-grad py-16 mx-4 rounded-3xl mb-16">
       <div class="max-w-6xl mx-auto px-4">
@@ -100,7 +95,6 @@ const formatDate = (d: string | Date | null) => d ? new Date(d).toLocaleDateStri
     </section>
   )}
 
-  <!-- Latest news: glass cards -->
   {data.recentPosts?.length > 0 && (
     <section class="px-4 py-16">
       <div class="max-w-6xl mx-auto">
@@ -123,7 +117,6 @@ const formatDate = (d: string | Date | null) => d ? new Date(d).toLocaleDateStri
     </section>
   )}
 
-  <!-- CTA -->
   <section class="px-4 py-20">
     <div class="aurora-glass-strong max-w-4xl mx-auto rounded-3xl p-8 sm:p-12 text-center shadow-2xl">
       <h2 class="text-3xl font-bold mb-4" style="color:var(--text)">Ready to Join {school.name}?</h2>

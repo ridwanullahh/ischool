@@ -93,7 +93,6 @@ const rtl = ['ar','he','fa','ur'].includes(locale);
   `}</style>
 </head>
 <body>
-  <!-- Fixed left side rail with vertical socials -->
   <aside class="apex-rail" aria-label="Social links">
     {socialEntries.slice(0, 4).map(([platform, handle]) => (
       <a href={normalizeSocialUrl(handle, platform)} target="_blank" rel="noopener noreferrer" class="apex-mono" style="color:var(--muted)" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--muted)'">
@@ -102,10 +101,8 @@ const rtl = ['ar','he','fa','ur'].includes(locale);
     ))}
   </aside>
 
-  <!-- Split header: logo block | divider | nav block -->
   <header class="sticky top-0 z-40 border-b" style="background:var(--surface);border-color:var(--border)">
     <div class="flex items-stretch">
-      <!-- Left: logo block -->
       <div class="flex-1 flex items-center px-4 sm:px-6 lg:px-8 h-16">
         <a href={`${prefix}/`} class="flex items-center gap-3" aria-label={`${school.name} home`}>
           {school.logoUrl ? (
@@ -119,7 +116,6 @@ const rtl = ['ar','he','fa','ur'].includes(locale);
 
       <div class="apex-divider-v"></div>
 
-      <!-- Right: nav block -->
       <div class="hidden lg:flex items-center px-4 sm:px-6 lg:px-8 h-16 gap-1">
         {nav.map(item => {
           const active = pathname === `${prefix}${item.url}`;
@@ -131,7 +127,6 @@ const rtl = ['ar','he','fa','ur'].includes(locale);
 
       <div class="apex-divider-v"></div>
 
-      <!-- Far right: actions -->
       <div class="flex items-center px-4 sm:px-6 lg:px-8 h-16 gap-3">
         <LanguageSelector />
         <button id="theme-toggle" type="button" class="apex-hard p-2 transition-colors" style="color:var(--muted)" aria-label="Toggle light, dark, or system mode">
@@ -145,7 +140,6 @@ const rtl = ['ar','he','fa','ur'].includes(locale);
       </div>
     </div>
 
-    <!-- Mobile nav drawer -->
     <div id="apex-mobile-nav" class="lg:hidden hidden border-t" style="border-color:var(--border)">
       <div class="px-4 py-3 space-y-1">
         {nav.map(item => {
@@ -163,10 +157,9 @@ const rtl = ['ar','he','fa','ur'].includes(locale);
     <slot />
   </main>
 
-  <!-- Asymmetric two-column footer -->
+  
   <footer class="border-t" style="background:var(--surface);border-color:var(--border)">
     <div class="grid grid-cols-1 lg:grid-cols-12">
-      <!-- Large left block: brand + statement -->
       <div class="lg:col-span-7 px-4 sm:px-6 lg:px-8 py-12 lg:py-16 border-b lg:border-b-0 lg:border-r" style="border-color:var(--border)">
         <a href={`${prefix}/`} class="inline-flex items-center gap-3 mb-6" aria-label={`${school.name} home`}>
           {school.logoUrl ? (
@@ -185,7 +178,6 @@ const rtl = ['ar','he','fa','ur'].includes(locale);
         </div>
       </div>
 
-      <!-- Right block: split into nav + contact -->
       <div class="lg:col-span-5 grid grid-cols-2">
         <div class="px-4 sm:px-6 py-8 border-r" style="border-color:var(--border)">
           <p class="apex-mono text-[10px] uppercase tracking-widest mb-4" style="color:var(--muted)">// Navigate</p>
@@ -218,7 +210,7 @@ const rtl = ['ar','he','fa','ur'].includes(locale);
 
   <SchoolBannerPopup school={school} />
 
-  <!-- Command-console chat widget docked to the left -->
+  
   <button id="apex-chat-toggle" type="button" class="fixed bottom-6 left-6 z-50 apex-hard px-4 py-3 shadow-lg border-2 transition-all hover:-translate-y-0.5 lg:bottom-6 lg:left-24" style="background:var(--surface);border-color:var(--primary);color:var(--primary)" aria-label="Open console" aria-expanded="false" aria-controls="apex-chat-panel">
     <span class="flex items-center gap-2">
       <span class="apex-mono text-xs font-bold">{'>_'}</span>

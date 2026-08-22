@@ -53,7 +53,6 @@ const primaryContact = contacts[0];
   `} />
 </head>
 <body>
-  <!-- Top utility bar -->
   <div class="border-b marble-rule" style="background:var(--surface)">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 h-10 flex items-center justify-between text-xs">
       <div class="flex items-center gap-4" style="color:var(--muted)">
@@ -68,7 +67,6 @@ const primaryContact = contacts[0];
     </div>
   </div>
 
-  <!-- Masthead: refined centered -->
     <SchoolBannerPopup school={school} currentPage={Astro.url.pathname} />
 
 <header class="border-b marble-rule marble-texture" style="background:var(--bg)">
@@ -81,7 +79,6 @@ const primaryContact = contacts[0];
     </div>
   </header>
 
-  <!-- Nav -->
   <nav class="sticky top-0 z-40 border-b marble-rule" style="background:var(--surface)" aria-label="Primary">
     <div class="max-w-7xl mx-auto px-4">
       <div class="hidden lg:flex items-center justify-center h-14 gap-10">
@@ -98,7 +95,6 @@ const primaryContact = contacts[0];
 
   <main><slot /></main>
 
-  <!-- Footer: elegant with rules -->
   <footer class="border-t marble-rule mt-20" style="background:var(--surface)">
     <div class="max-w-7xl mx-auto px-4 py-14">
       <div class="text-center mb-10 pb-8 border-b marble-rule">

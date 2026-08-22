@@ -20,7 +20,6 @@ const posts = Array.isArray(data.recentPosts) ? data.recentPosts : [];
 const programs = Array.isArray(data.schoolPrograms) ? data.schoolPrograms : [];
 ---
 <div class="space-y-0">
-  <!-- Hero: elegant editorial -->
   <section class="marble-texture border-b marble-rule" style="background:var(--bg)">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28 text-center">
       <span class="marble-pill">A Refined Education</span>
@@ -33,7 +32,6 @@ const programs = Array.isArray(data.schoolPrograms) ? data.schoolPrograms : [];
     </div>
   </section>
 
-  <!-- Stats: refined with thin separators -->
   {stats.length > 0 && (
     <section class="border-b marble-rule" style="background:var(--surface)">
       <div class="max-w-7xl mx-auto px-4 py-12">
@@ -49,7 +47,6 @@ const programs = Array.isArray(data.schoolPrograms) ? data.schoolPrograms : [];
     </section>
   )}
 
-  <!-- Value proposition -->
   {about.valueProposition && (
     <section class="py-20" style="background:var(--bg)">
       <div class="max-w-3xl mx-auto px-4 text-center">
@@ -59,7 +56,6 @@ const programs = Array.isArray(data.schoolPrograms) ? data.schoolPrograms : [];
     </section>
   )}
 
-  <!-- Features: elegant numbered cards -->
   {features.length > 0 && (
     <section class="py-20" style="background:var(--surface)">
       <div class="max-w-7xl mx-auto px-4">
@@ -83,7 +79,6 @@ const programs = Array.isArray(data.schoolPrograms) ? data.schoolPrograms : [];
     </section>
   )}
 
-  <!-- Programs: refined cards -->
   {programs.length > 0 && (
     <section class="py-20" style="background:var(--bg)">
       <div class="max-w-7xl mx-auto px-4">
@@ -111,7 +106,6 @@ const programs = Array.isArray(data.schoolPrograms) ? data.schoolPrograms : [];
     </section>
   )}
 
-  <!-- Latest announcements + blog -->
   {(announcements.length > 0 || posts.length > 0) && (
     <section class="py-20" style="background:var(--surface)">
       <div class="max-w-7xl mx-auto px-4 grid lg:grid-cols-2 gap-12">
@@ -153,7 +147,6 @@ const programs = Array.isArray(data.schoolPrograms) ? data.schoolPrograms : [];
     </section>
   )}
 
-  <!-- CTA -->
   <section class="py-20" style="background:var(--bg)">
     <div class="max-w-3xl mx-auto px-4 text-center">
       <span class="marble-pill">Admissions Open</span>

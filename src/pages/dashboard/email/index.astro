@@ -34,7 +34,6 @@ const statusColors: Record<string, string> = { draft: 'bg-gray-100 text-gray-600
       <a href="/dashboard/email/campaigns/new" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">New Campaign</a>
     </div>
 
-    <!-- Quick Nav Cards -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
       <a href="/dashboard/email/campaigns" class="bg-white rounded-xl border border-gray-200 p-5 hover:border-primary-300 transition-colors">
         <div class="w-10 h-10 rounded-lg bg-primary-50 flex items-center justify-center mb-3"><svg class="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg></div>
@@ -58,7 +57,6 @@ const statusColors: Record<string, string> = { draft: 'bg-gray-100 text-gray-600
       </a>
     </div>
 
-    <!-- Stats Grid -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
       <div class="bg-white rounded-xl border border-gray-200 p-4"><p class="text-xs text-gray-500 uppercase tracking-wider">Total Subscribers</p><p class="text-2xl font-bold text-gray-900 mt-1">{totalSubs}</p></div>
       <div class="bg-white rounded-xl border border-gray-200 p-4"><p class="text-xs text-gray-500 uppercase tracking-wider">Active</p><p class="text-2xl font-bold text-green-600 mt-1">{activeSubs}</p></div>
@@ -66,7 +64,6 @@ const statusColors: Record<string, string> = { draft: 'bg-gray-100 text-gray-600
       <div class="bg-white rounded-xl border border-gray-200 p-4"><p class="text-xs text-gray-500 uppercase tracking-wider">Templates</p><p class="text-2xl font-bold text-purple-600 mt-1">{templates.length}</p></div>
     </div>
 
-    <!-- Recent Campaigns -->
     <div class="bg-white rounded-xl border border-gray-200 p-6">
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-base font-semibold text-gray-900">Recent Campaigns</h3>

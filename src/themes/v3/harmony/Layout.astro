@@ -56,7 +56,6 @@ const rtl = ['ar','he','fa','ur'].includes(locale);
 <body>
   <div class="harmony-mesh" aria-hidden="true"></div>
 
-  <!-- Floating glass header -->
     <SchoolBannerPopup school={school} currentPage={Astro.url.pathname} />
 
 <header class="relative z-50 px-4 sm:px-6 pt-5">
@@ -85,7 +84,6 @@ const rtl = ['ar','he','fa','ur'].includes(locale);
 
   <main class="relative z-10"><slot /></main>
 
-  <!-- Footer: floating glass -->
   <footer class="relative z-10 mt-20 px-4 pb-8">
     <div class="max-w-7xl mx-auto harmony-float rounded-3xl p-8 sm:p-12">
       <div class="grid grid-cols-1 md:grid-cols-4 gap-8">

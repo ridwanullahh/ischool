@@ -25,7 +25,6 @@ const ratingDistribution = [5, 4, 3, 2, 1].map(stars => ({
   <div class="space-y-6">
     <div><h2 class="text-2xl font-bold text-gray-900">Insights</h2><p class="text-sm text-gray-500 mt-1">Analytics for your Google Business profile.</p></div>
 
-    <!-- Overview Stats -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
       <div class="bg-white rounded-xl border border-gray-200 p-4"><p class="text-xs text-gray-500 uppercase">Avg Rating</p><p class="text-2xl font-bold text-amber-500 mt-1">{avgRating}</p></div>
       <div class="bg-white rounded-xl border border-gray-200 p-4"><p class="text-xs text-gray-500 uppercase">Total Reviews</p><p class="text-2xl font-bold text-gray-900 mt-1">{reviews.length}</p></div>
@@ -33,7 +32,6 @@ const ratingDistribution = [5, 4, 3, 2, 1].map(stars => ({
       <div class="bg-white rounded-xl border border-gray-200 p-4"><p class="text-xs text-gray-500 uppercase">Verification</p><p class="text-2xl font-bold text-green-600 mt-1 capitalize">{connection?.verificationStatus || 'N/A'}</p></div>
     </div>
 
-    <!-- Rating Distribution -->
     <div class="bg-white rounded-xl border border-gray-200 p-6">
       <h3 class="text-base font-semibold text-gray-900 mb-4">Rating Distribution</h3>
       <div class="space-y-2">
@@ -52,7 +50,6 @@ const ratingDistribution = [5, 4, 3, 2, 1].map(stars => ({
       </div>
     </div>
 
-    <!-- Search Performance (placeholder until API connected) -->
     <div class="bg-white rounded-xl border border-gray-200 p-6">
       <h3 class="text-base font-semibold text-gray-900 mb-4">Search Performance</h3>
       {connection?.isConnected ? (
@@ -67,7 +64,6 @@ const ratingDistribution = [5, 4, 3, 2, 1].map(stars => ({
       )}
     </div>
 
-    <!-- Customer Actions -->
     <div class="bg-white rounded-xl border border-gray-200 p-6">
       <h3 class="text-base font-semibold text-gray-900 mb-4">Customer Actions</h3>
       {connection?.isConnected ? (

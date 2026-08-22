@@ -55,7 +55,6 @@ const moreNav = nav.slice(6);
   `}</style>
 </head>
 <body>
-  <!-- Utility row -->
   <div class="border-b" style="background:var(--surface);border-color:var(--border)">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-9 flex items-center justify-between text-xs">
       <div class="flex items-center gap-4" style="color:var(--muted)">
@@ -71,7 +70,6 @@ const moreNav = nav.slice(6);
       </div>
     </div>
   </div>
-  <!-- Main nav bar -->
   <header class="sticky top-0 z-40 border-b shadow-sm" style="background:var(--surface);border-color:var(--border)">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
       <a href={`${prefix}/`} class="flex items-center gap-3" aria-label={`${school.name} home`}>
@@ -102,7 +100,7 @@ const moreNav = nav.slice(6);
 
   <main><slot /></main>
 
-  <!-- 4-column sitemap footer -->
+  
   <footer class="border-t mt-20" style="background:var(--surface);border-color:var(--border)">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
@@ -145,7 +143,7 @@ const moreNav = nav.slice(6);
 
   <SchoolBannerPopup school={school} />
 
-  <!-- Side-sliding professional chat panel -->
+  
   <button id="slate-chat-toggle" type="button" class="fixed bottom-6 right-6 z-50 px-5 py-3 shadow-lg flex items-center gap-2 transition-all hover:-translate-y-0.5" style="background:var(--primary);color:#fff" aria-label="Open chat" aria-expanded="false" aria-controls="slate-chat-panel">
     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
     <span class="text-sm font-semibold">Support</span>

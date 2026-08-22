@@ -80,7 +80,7 @@ export function getSchoolFontPreset(school: any): { headingFont: string; bodyFon
     const settings = parseJsonCol(school?.settings, {});
     const fontPresetId = settings?.fontPresetId;
     if (!fontPresetId) return null;
-    const { getFontPreset } = require('./font-presets.js');
+    const { getFontPreset } = (await import('./font-presets.js')).('./font-presets.js');
     const preset = getFontPreset(fontPresetId);
     if (!preset) return null;
     return {

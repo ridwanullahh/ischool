@@ -20,7 +20,6 @@ const { name, value = '', id = 'rich-editor', placeholder = 'Start writing...', 
 ---
 
 <div class="rich-editor-wrapper" data-editor-id={id}>
-  <!-- Toolbar -->
   <div class="flex flex-wrap items-center gap-1 p-2 border border-gray-200 border-b-0 rounded-t-lg bg-gray-50">
     <button type="button" data-cmd="bold" class="rte-btn" title="Bold (Ctrl+B)"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 4h8a4 4 0 014 4 4 4 0 01-4 4H6V4zm0 8h9a4 4 0 014 4 4 4 0 01-4 4H6v-8z"/></svg></button>
     <button type="button" data-cmd="italic" class="rte-btn" title="Italic (Ctrl+I)"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 4h-9M14 20H5M15 4L9 20"/></svg></button>
@@ -39,7 +38,6 @@ const { name, value = '', id = 'rich-editor', placeholder = 'Start writing...', 
     <div class="w-px h-6 bg-gray-300 mx-1"></div>
     <button type="button" data-cmd="removeFormat" class="rte-btn" title="Clear Formatting"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6a2 2 0 012 2v8"/></svg></button>
 
-    <!-- AI Tools -->
     <div class="w-px h-6 bg-gray-300 mx-1"></div>
     <div class="relative">
       <button type="button" id={id + '-ai-btn'} class="rte-btn rte-ai-btn flex items-center gap-1" title="AI Writing Assistant">
@@ -60,13 +58,10 @@ const { name, value = '', id = 'rich-editor', placeholder = 'Start writing...', 
     </div>
   </div>
 
-  <!-- Editor -->
   <div id={id + '-editor'} class="rich-editor-content prose max-w-none min-h-[300px] p-4 border border-gray-200 rounded-b-lg focus:outline-none" contenteditable="true" data-placeholder={placeholder}></div>
 
-  <!-- Hidden textarea for form submission -->
   <textarea name={name} id={id + '-hidden'} class="hidden">{value}</textarea>
 
-  <!-- AI Status -->
   <div id={id + '-ai-status'} class="hidden mt-2 p-2 rounded-lg text-xs"></div>
 </div>
 

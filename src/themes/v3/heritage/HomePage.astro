@@ -14,7 +14,7 @@ const locale = school.locale || 'en';
 const formatDate = (d: string | Date | null) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
 ---
 <div class="space-y-0">
-  <!-- Hero: editorial masthead-style -->
+  
   <section class="border-b-2 heritage-rule" style="background:var(--bg)">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28">
       <div class="max-w-3xl">
@@ -28,7 +28,6 @@ const formatDate = (d: string | Date | null) => d ? new Date(d).toLocaleDateStri
     </div>
   </section>
 
-  <!-- Latest announcement -->
   {data.recentAnnouncements?.length > 0 && (
     <a href={`/${school.slug}/announcements/${data.recentAnnouncements[0].slug}`} class="block border-b hover:bg-amber-50/50" style="border-color:var(--border)">
       <div class="max-w-7xl mx-auto px-4 py-4 flex items-center gap-3">
@@ -38,7 +37,6 @@ const formatDate = (d: string | Date | null) => d ? new Date(d).toLocaleDateStri
     </a>
   )}
 
-  <!-- Value proposition: centered editorial -->
   {data.about?.valueProposition && (
     <section class="py-20" style="background:var(--surface)">
       <div class="max-w-3xl mx-auto px-4 text-center">
@@ -48,7 +46,7 @@ const formatDate = (d: string | Date | null) => d ? new Date(d).toLocaleDateStri
     </section>
   )}
 
-  <!-- Features: multi-column with rules -->
+  
   {data.features?.length > 0 && (
     <section class="py-20">
       <div class="max-w-7xl mx-auto px-4">
@@ -65,7 +63,6 @@ const formatDate = (d: string | Date | null) => d ? new Date(d).toLocaleDateStri
     </section>
   )}
 
-  <!-- Programs: editorial cards with rules -->
   {data.schoolPrograms?.length > 0 && (
     <section class="py-20" style="background:var(--surface)">
       <div class="max-w-7xl mx-auto px-4">
@@ -85,7 +82,7 @@ const formatDate = (d: string | Date | null) => d ? new Date(d).toLocaleDateStri
     </section>
   )}
 
-  <!-- Stats: full-width bar -->
+  
   {data.stats?.length > 0 && (
     <section class="py-16" style="background:var(--primary)">
       <div class="max-w-7xl mx-auto px-4">
@@ -96,7 +93,7 @@ const formatDate = (d: string | Date | null) => d ? new Date(d).toLocaleDateStri
     </section>
   )}
 
-  <!-- News: editorial multi-column -->
+  
   {data.recentPosts?.length > 0 && (
     <section class="py-20">
       <div class="max-w-7xl mx-auto px-4">
@@ -118,7 +115,6 @@ const formatDate = (d: string | Date | null) => d ? new Date(d).toLocaleDateStri
     </section>
   )}
 
-  <!-- CTA -->
   <section class="py-20" style="background:var(--surface)">
     <div class="max-w-3xl mx-auto px-4 text-center">
       <h2 class="heritage-serif text-3xl font-bold mb-4" style="color:var(--text)">Ready to Join {school.name}?</h2>

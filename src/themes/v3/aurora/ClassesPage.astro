@@ -14,7 +14,6 @@ const getVal = (obj: any, camel: string, snake: string) => obj?.[camel] ?? obj?.
     <h1 class="text-4xl font-extrabold mb-4" style="color:var(--text)">Classes</h1>
     <p class="text-sm mb-8" style="color:var(--muted)">Explore our classes and learning groups.</p>
 
-    <!-- Search & Sort Bar -->
     <div class="aurora-glass rounded-2xl p-4 mb-8 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
       <div class="flex-1 flex gap-2">
         <div class="relative flex-1">
@@ -35,7 +34,6 @@ const getVal = (obj: any, camel: string, snake: string) => obj?.[camel] ?? obj?.
       </div>
     </div>
 
-    <!-- Results count -->
     <div id="results-count" class="mb-6 text-sm" style="color:var(--muted)">
       {search ? (
         <span>Found <strong style="color:var(--text)">{total}</strong> class{total !== 1 ? 'es' : ''} matching "<em style="color:var(--primary)">{search}</em>"</span>
@@ -44,7 +42,6 @@ const getVal = (obj: any, camel: string, snake: string) => obj?.[camel] ?? obj?.
       )}
     </div>
 
-    <!-- Results grid -->
     <div id="results-grid">
       {classes.length > 0 ? (
         <div id="results-inner" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

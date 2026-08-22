@@ -51,10 +51,8 @@ const primaryContact = contacts[0];
   `} />
 </head>
 <body>
-  <!-- Top bar with industrial stripe -->
   <div class="forge-stripe h-2" aria-hidden="true"></div>
 
-  <!-- Utility bar -->
   <div class="border-b-2" style="background:var(--surface);border-color:var(--text)">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 h-9 flex items-center justify-between text-xs">
       <div class="flex items-center gap-4 forge-cond font-semibold uppercase tracking-wider" style="color:var(--muted)">
@@ -69,7 +67,6 @@ const primaryContact = contacts[0];
     </div>
   </div>
 
-  <!-- Header: bold industrial -->
     <SchoolBannerPopup school={school} currentPage={Astro.url.pathname} />
 
 <header class="border-b-2 forge-grid-bg" style="background:var(--bg);border-color:var(--text)">
@@ -97,7 +94,6 @@ const primaryContact = contacts[0];
 
   <main><slot /></main>
 
-  <!-- Footer: industrial bold -->
   <footer class="border-t-2 mt-20" style="background:var(--surface);border-color:var(--text)">
     <div class="forge-stripe h-2" aria-hidden="true"></div>
     <div class="max-w-7xl mx-auto px-4 py-14">

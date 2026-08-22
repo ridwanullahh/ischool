@@ -57,8 +57,8 @@ const allCourses = schoolId
                 {course.gradeLevel && <span class="bg-purple-50 text-purple-700 px-2 py-1 rounded">Grade {course.gradeLevel}</span>}
               </div>
               <div class="flex justify-end gap-2 pt-3 border-t border-gray-100">
-                <button onclick={`editCourse(${course.id}, '${course.title.replace(/'/g, "\\'")}', '${course.slug}', '${course.description?.replace(/'/g, "\\'") || ''}', '${course.subject || ''}', '${course.gradeLevel || ''}', '${course.status}')`} class="text-primary-600 hover:text-primary-700 text-sm font-medium">Edit</button>
-                <button onclick={`confirmDelete(${course.id}, '${course.title.replace(/'/g, "\\'")}')`} class="text-red-600 hover:text-red-700 text-sm font-medium">Delete</button>
+                <button onclick={`editCourse(${course.id}, '${course.title.replace(/'/g, "\'")}', '${course.slug}', '${course.description?.replace(/'/g, "\'") || ''}', '${course.subject || ''}', '${course.gradeLevel || ''}', '${course.status}')`} class="text-primary-600 hover:text-primary-700 text-sm font-medium">Edit</button>
+                <button onclick={`confirmDelete(${course.id}, '${course.title.replace(/'/g, "\'")}')`} class="text-red-600 hover:text-red-700 text-sm font-medium">Delete</button>
               </div>
             </div>
           </div>
@@ -67,7 +67,6 @@ const allCourses = schoolId
     </div>
   </div>
 
-  <!-- Add Course Modal -->
   <div id="addModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
     <div class="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
       <div class="p-6 border-b border-gray-200 flex justify-between items-center">
@@ -116,7 +115,6 @@ const allCourses = schoolId
     </div>
   </div>
 
-  <!-- Edit Course Modal -->
   <div id="editModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
     <div class="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
       <div class="p-6 border-b border-gray-200 flex justify-between items-center">
@@ -166,7 +164,6 @@ const allCourses = schoolId
     </div>
   </div>
 
-  <!-- Delete Modal -->
   <div id="deleteModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
     <div class="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4 p-6">
       <h3 class="text-lg font-semibold text-gray-900 mb-2">Confirm Delete</h3>

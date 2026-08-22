@@ -45,7 +45,6 @@ const primaryContact = contacts[0];
   `} />
 </head>
 <body>
-  <!-- Utility bar -->
   <div class="border-b" style="background:var(--surface);border-color:var(--border)">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-10 flex items-center justify-between text-xs">
       <div class="flex items-center gap-4" style="color:var(--muted)">
@@ -59,7 +58,6 @@ const primaryContact = contacts[0];
       </div>
     </div>
   </div>
-  <!-- Masthead -->
     <SchoolBannerPopup school={school} currentPage={Astro.url.pathname} />
 
 <header class="border-b-2 heritage-rule" style="background:var(--bg)">
@@ -71,7 +69,6 @@ const primaryContact = contacts[0];
       </a>
     </div>
   </header>
-  <!-- Nav -->
   <nav class="sticky top-0 z-40 border-y heritage-rule" style="background:var(--surface)" aria-label="Primary">
     <div class="max-w-7xl mx-auto px-4">
       <div class="hidden lg:flex items-center justify-center h-12 gap-8">
@@ -86,7 +83,6 @@ const primaryContact = contacts[0];
     </div>
   </nav>
   <main><slot /></main>
-  <!-- Footer -->
   <footer class="border-t-2 heritage-rule mt-20" style="background:var(--surface)">
     <div class="max-w-7xl mx-auto px-4 py-12">
       <div class="text-center mb-8 pb-6 border-b heritage-rule"><p class="heritage-serif text-2xl font-bold" style="color:var(--text)">{school.name}</p>{school.tagline && <p class="heritage-serif italic text-xs mt-1" style="color:var(--muted)">— {school.tagline} —</p>}</div>

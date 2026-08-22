@@ -20,7 +20,6 @@ const posts = Array.isArray(data.recentPosts) ? data.recentPosts : [];
 const programs = Array.isArray(data.schoolPrograms) ? data.schoolPrograms : [];
 ---
 <div class="space-y-0">
-  <!-- Hero: heraldic banner -->
   <section class="border-b" style="background:var(--bg);border-color:var(--border)">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 text-center">
       <div class="crest-divider max-w-xs mx-auto mb-6"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2L4 6v6c0 5 3.5 9 8 10 4.5-1 8-5 8-10V6l-8-4z"/></svg></div>
@@ -34,7 +33,6 @@ const programs = Array.isArray(data.schoolPrograms) ? data.schoolPrograms : [];
     </div>
   </section>
 
-  <!-- Latest announcement bar -->
   {announcements.length > 0 && (
     <a href={`${prefix}/announcements/${announcements[0].slug || announcements[0].id}`} class="block border-b hover:opacity-90" style="background:var(--primary);border-color:var(--border)">
       <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-center gap-3">
@@ -44,7 +42,6 @@ const programs = Array.isArray(data.schoolPrograms) ? data.schoolPrograms : [];
     </a>
   )}
 
-  <!-- Value proposition -->
   {about.valueProposition && (
     <section class="py-16" style="background:var(--surface)">
       <div class="max-w-3xl mx-auto px-4 text-center">
@@ -54,7 +51,6 @@ const programs = Array.isArray(data.schoolPrograms) ? data.schoolPrograms : [];
     </section>
   )}
 
-  <!-- Features: heraldic shield cards -->
   {features.length > 0 && (
     <section class="py-20">
       <div class="max-w-7xl mx-auto px-4">
@@ -78,7 +74,7 @@ const programs = Array.isArray(data.schoolPrograms) ? data.schoolPrograms : [];
     </section>
   )}
 
-  <!-- Programs: shield-numbered cards -->
+  
   {programs.length > 0 && (
     <section class="py-20" style="background:var(--surface)">
       <div class="max-w-7xl mx-auto px-4">
@@ -100,7 +96,7 @@ const programs = Array.isArray(data.schoolPrograms) ? data.schoolPrograms : [];
     </section>
   )}
 
-  <!-- Stats: full-width bar -->
+  
   {stats.length > 0 && (
     <section class="py-14 crest-grad">
       <div class="max-w-7xl mx-auto px-4">
@@ -116,7 +112,6 @@ const programs = Array.isArray(data.schoolPrograms) ? data.schoolPrograms : [];
     </section>
   )}
 
-  <!-- Latest news + announcements -->
   {(announcements.length > 0 || posts.length > 0) && (
     <section class="py-20">
       <div class="max-w-7xl mx-auto px-4 grid lg:grid-cols-2 gap-10">
@@ -158,7 +153,6 @@ const programs = Array.isArray(data.schoolPrograms) ? data.schoolPrograms : [];
     </section>
   )}
 
-  <!-- CTA -->
   <section class="py-20" style="background:var(--surface)">
     <div class="max-w-3xl mx-auto px-4 text-center">
       <div class="crest-divider max-w-xs mx-auto mb-4"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2L4 6v6c0 5 3.5 9 8 10 4.5-1 8-5 8-10V6l-8-4z"/></svg></div>

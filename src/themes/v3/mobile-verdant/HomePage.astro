@@ -13,7 +13,6 @@ const posts = Array.isArray(data.recentPosts) ? data.recentPosts : [];
 const programs = Array.isArray(data.schoolPrograms) ? data.schoolPrograms : [];
 ---
 <div class="space-y-4">
-  <!-- Welcome Card -->
   <div class="mobile-verdant-card p-5">
     <div class="flex items-center gap-3 mb-3">
       {school.logoUrl ? <img src={school.logoUrl} alt={school.name} class="w-12 h-12 rounded-xl" /> : <div class="w-12 h-12 rounded-xl mobile-verdant-grad flex items-center justify-center text-white font-bold text-lg">{school.name.charAt(0)}</div>}
@@ -25,7 +24,6 @@ const programs = Array.isArray(data.schoolPrograms) ? data.schoolPrograms : [];
     <a href={`${prefix}/admissions`} class="mobile-verdant-btn mobile-verdant-btn-primary w-full">Apply for Admission</a>
   </div>
 
-  <!-- Stats -->
   {stats.length > 0 && (
     <div class="flex gap-3 overflow-x-auto pb-2" style="scrollbar-width:none">
       {stats.slice(0, 4).map(s => (
@@ -37,14 +35,12 @@ const programs = Array.isArray(data.schoolPrograms) ? data.schoolPrograms : [];
     </div>
   )}
 
-  <!-- Value Proposition -->
   {about.valueProposition && (
     <div class="mobile-verdant-card p-5">
       <p class="text-sm font-medium leading-relaxed" style="color:var(--text)">{about.valueProposition}</p>
     </div>
   )}
 
-  <!-- Features -->
   {features.length > 0 && (
     <div>
       <h2 class="text-sm font-bold uppercase tracking-wider mb-3 px-1" style="color:var(--muted)">Highlights</h2>
@@ -60,7 +56,6 @@ const programs = Array.isArray(data.schoolPrograms) ? data.schoolPrograms : [];
     </div>
   )}
 
-  <!-- Programs -->
   {programs.length > 0 && (
     <div>
       <h2 class="text-sm font-bold uppercase tracking-wider mb-3 px-1" style="color:var(--muted)">Programs</h2>
@@ -79,7 +74,6 @@ const programs = Array.isArray(data.schoolPrograms) ? data.schoolPrograms : [];
     </div>
   )}
 
-  <!-- Latest News -->
   {announcements.length > 0 && (
     <div>
       <h2 class="text-sm font-bold uppercase tracking-wider mb-3 px-1" style="color:var(--muted)">Latest News</h2>
@@ -97,7 +91,6 @@ const programs = Array.isArray(data.schoolPrograms) ? data.schoolPrograms : [];
     </div>
   )}
 
-  <!-- CTA -->
   <div class="mobile-verdant-card p-6 text-center" style="background:var(--primary)">
     <h2 class="text-base font-bold text-white mb-2">Ready to Apply?</h2>
     <p class="text-xs text-white/80 mb-4">Join our community of learners today.</p>
