@@ -15,7 +15,7 @@ const user = Astro.locals.user;
 if (!user) return Astro.redirect('/auth/login?redirect=/portal/parent');
 
 const children = getChildrenForParent(user.id);
-const schoolId = getUserSchoolId(user);
+const schoolId = (user as any).schoolId ?? null;
 const db = getDb();
 
 // Build per-child summary
@@ -24,7 +24,7 @@ const allAssignments = schoolId ? await db.select().from(assignments).where(eq(a
 const allSubmissions = await db.select().from(submissions).all();
 const allInvoices = await db.select().from(invoices).all();
 
-const childSummaries = children.map(child => {
+const childSummaries = await Promise.all(children.map(async child => {
   const childAttendance = allAttendance.filter(a => a.studentId === child.id);
   const totalDays = childAttendance.length;
   const presentDays = childAttendance.filter(a => a.status === 'present').length;
@@ -37,10 +37,10 @@ const childSummaries = children.map(child => {
   const outstandingInvoices = allInvoices.filter(i => i.studentId === child.id && i.status !== 'paid');
   const outstandingFees = outstandingInvoices.reduce((s, i) => s + (i.balance || 0), 0);
 
-  const className = getStudentClassName(child.id);
+  const className = await getStudentClassName(child.id);
 
   return { child, attendanceRate, pendingAssignments, overdueAssignments, outstandingFees, className };
-});
+}));
 ---
 
 <ParentPortalLayout title="Dashboard - Parent Portal">

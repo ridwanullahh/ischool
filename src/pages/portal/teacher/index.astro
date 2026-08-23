@@ -16,8 +16,8 @@ if (!user) return Astro.redirect('/auth/login?redirect=/portal/teacher');
 
 const todayString = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
-const staff = getStaffForUser(user.id);
-const schoolId = getUserSchoolId(user);
+const staff = await getStaffForUser(user.id);
+const schoolId = (user as any).schoolId ?? null;
 const db = getDb();
 
 // Today's schedule

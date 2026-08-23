@@ -28,9 +28,9 @@ if (!pageGuard(user, 'quizzes.take')) {
 const quizId = parseInt(Astro.url.searchParams.get('id') || '0');
 if (!quizId) return Astro.redirect('/portal/student/quizzes');
 
-const student = getStudentForUser(user.id);
+const student = await getStudentForUser(user.id);
 if (!student) return Astro.redirect('/portal/no-profile');
-const schoolId = getUserSchoolId(user) ?? student.schoolId;
+const schoolId = (user as any).schoolId ?? null;
 const db = getDb();
 
 const quiz = await db.select().from(quizzes).where(and(eq(quizzes.id, quizId), eq(quizzes.schoolId, schoolId))).get();

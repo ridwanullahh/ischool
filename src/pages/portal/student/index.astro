@@ -14,11 +14,11 @@ import { getStudentForUser, getUserSchoolId } from '../../../lib/portal.js';
 const user = Astro.locals.user;
 if (!user) return Astro.redirect('/auth/login?redirect=/portal/student');
 
-const student = getStudentForUser(user.id);
+const student = await getStudentForUser(user.id);
 if (!student) {
   return Astro.redirect('/portal/no-profile');
 }
-const schoolId = getUserSchoolId(user) ?? student.schoolId;
+const schoolId = (user as any).schoolId ?? null;
 const db = getDb();
 
 // Attendance rate

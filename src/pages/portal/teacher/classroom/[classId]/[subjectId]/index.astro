@@ -18,7 +18,7 @@ import { getStaffForUser, getUserSchoolId } from '../../../../../../lib/portal.j
 const user = Astro.locals.user;
 if (!user) return Astro.redirect('/auth/login');
 const myStaff = getStaffForUser(user.id);
-const schoolId = getUserSchoolId(user);
+const schoolId = (user as any).schoolId ?? null;
 const classId = parseInt(Astro.params.classId);
 const subjectId = parseInt(Astro.params.subjectId);
 const db = getDb();

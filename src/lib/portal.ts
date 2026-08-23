@@ -11,7 +11,7 @@ import { eq, and } from 'drizzle-orm';
  * Resolves the schoolId for a user from their school_members entry.
  * Returns null if the user has no school membership.
  */
-export function getUserSchoolId(userId: number): number | null {
+export function getUserSchoolId(userId: any): any {
   const db = getDb();
   const membership = db.select().from(schoolMembers).where(eq(schoolMembers.userId, userId)).get();
   return membership?.schoolId ?? null;
@@ -22,18 +22,22 @@ export function getUserSchoolId(userId: number): number | null {
  * A user with role 'student' has a linked student record via students.userId.
  * Returns null if not found.
  */
-export function getStudentForUser(userId: number) {
+export async function getStudentForUser(userId: number) {
   const db = getDb();
-  return db.select().from(students).where(eq(students.userId, userId)).get() ?? null;
+  try {
+    return await db.select().from(students).where(eq(students.userId, userId)).get() ?? null;
+  } catch { return null; }
 }
 
 /**
  * Resolves the staff record for a user (teachers, accountants, librarians, etc.).
  * Returns null if not found.
  */
-export function getStaffForUser(userId: number) {
+export async function getStaffForUser(userId: number) {
   const db = getDb();
-  return db.select().from(staff).where(eq(staff.userId, userId)).get() ?? null;
+  try {
+    return await db.select().from(staff).where(eq(staff.userId, userId)).get() ?? null;
+  } catch { return null; }
 }
 
 /**
@@ -48,12 +52,14 @@ export function getChildrenForParent(userId: number) {
 /**
  * Returns the class/section name for a student via their active enrollment.
  */
-export function getStudentClassName(studentId: number): string | null {
-  const db = getDb();
-  const enrollment = db.select().from(enrollments).where(eq(enrollments.studentId, studentId)).get();
-  if (!enrollment?.classId) return null;
-  const cls = db.select().from(classes).where(eq(classes.id, enrollment.classId)).get();
-  return cls ? `${cls.name}${cls.section ? ' - ' + cls.section : ''}` : null;
+export async function getStudentClassName(studentId: number): Promise<string | null> {
+  try {
+    const db = getDb();
+    const enrollment = await db.select().from(enrollments).where(eq(enrollments.studentId, studentId)).get();
+    if (!enrollment?.classId) return null;
+    const cls = await db.select().from(classes).where(eq(classes.id, enrollment.classId)).get();
+    return cls ? `${cls.name}${cls.section ? ' - ' + cls.section : ''}` : null;
+  } catch { return null; }
 }
 
 /**

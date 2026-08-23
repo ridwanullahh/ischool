@@ -16,9 +16,9 @@ import { getStudentForUser, getUserSchoolId } from '../../../../../../lib/portal
 
 const user = Astro.locals.user;
 if (!user) return Astro.redirect('/auth/login');
-const student = getStudentForUser(user.id);
+const student = await getStudentForUser(user.id);
 if (!student) return Astro.redirect('/portal/no-profile');
-const schoolId = getUserSchoolId(user) ?? student.schoolId;
+const schoolId = (user as any).schoolId ?? null;
 const classId = parseInt(Astro.params.classId);
 const subjectId = parseInt(Astro.params.subjectId);
 const db = getDb();
