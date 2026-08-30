@@ -10,7 +10,7 @@ import { getDb } from '../../../lib/db/index.js';
 import { payments, invoices } from '../../../lib/db/schema.js';
 import { eq } from 'drizzle-orm';
 import { guardPermission } from '../../../lib/rbac.js';
-import { initializePayment, verifyPayment, generatePaymentReference, type GatewayType } from '../../../lib/payments.js';
+import { initializePayment, verifyPayment, generatePaymentReference, resolveActiveGateway, type GatewayType } from '../../../lib/payments.js';
 
 // Initiate payment
 export const POST: APIRoute = async ({ request, locals, url }) => {
@@ -32,7 +32,10 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
 };
 
 async function initiatePayment(body: any, user: any) {
-  const { invoiceId, gateway, schoolId } = body;
+  const { invoiceId, schoolId } = body;
+  // Smart default: BirrPay (reversible via PAYMENTS_PROVIDER) when the caller
+  // does not pin a gateway explicitly.
+  const gateway: GatewayType = body.gateway ?? resolveActiveGateway();
 
   if (!invoiceId || !gateway) {
     return new Response(JSON.stringify({ error: 'Missing invoice ID or gateway' }), { status: 400, headers: { 'Content-Type': 'application/json' } });

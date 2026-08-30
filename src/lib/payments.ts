@@ -2,15 +2,29 @@
  * Payment Gateway Integration Library
  *
  * Provides a unified interface for multiple payment gateways:
- * - Stripe (international cards)
- * - Paystack (Africa-focused)
+ * - BirrPay (PRIMARY — aggregates Flutterwave/Paystack/KoraPay/PayPal behind
+ *   one API + one hosted checkout + one webhook relay)
+ * - Stripe (international cards) — kept for reversibility, disabled by default
+ * - Paystack (Africa-focused) — kept for reversibility
  * - Bank transfer / cash (manual recording)
  *
  * Each gateway implements the same interface so the frontend can
  * work with any gateway transparently.
  */
 
-export type GatewayType = 'stripe' | 'paystack' | 'bank_transfer' | 'cash';
+export type GatewayType = 'birrpay' | 'stripe' | 'paystack' | 'bank_transfer' | 'cash';
+
+/** Smart active-gateway resolution (reversible via PAYMENTS_PROVIDER). */
+export function resolveActiveGateway(): GatewayType {
+  const requested = (process.env.PAYMENTS_PROVIDER ?? 'birrpay').toLowerCase();
+  if (requested === 'birrpay') {
+    if (process.env.BIRRPAY_SECRET_KEY) return 'birrpay';
+    if (process.env.PAYSTACK_SECRET_KEY) return 'paystack';
+    return 'bank_transfer'; // manual recording always works
+  }
+  const allowed: GatewayType[] = ['birrpay', 'stripe', 'paystack', 'bank_transfer', 'cash'];
+  return (allowed as string[]).includes(requested) ? (requested as GatewayType) : 'birrpay';
+}
 
 export interface PaymentInitResult {
   ok: boolean;
@@ -42,6 +56,8 @@ export async function initializePayment(
   metadata: Record<string, any> = {}
 ): Promise<PaymentInitResult> {
   switch (gateway) {
+    case 'birrpay':
+      return initBirrPayPayment(amount, reference, metadata);
     case 'stripe':
       return initStripePayment(amount, reference, metadata);
     case 'paystack':
@@ -66,6 +82,8 @@ export async function verifyPayment(
   reference: string
 ): Promise<PaymentVerifyResult> {
   switch (gateway) {
+    case 'birrpay':
+      return verifyBirrPayPayment(reference);
     case 'stripe':
       return verifyStripePayment(reference);
     case 'paystack':
@@ -199,6 +217,87 @@ async function verifyPaystackPayment(reference: string): Promise<PaymentVerifyRe
     const data = await res.json();
     const status = data.data?.status === 'success' ? 'completed' : data.data?.status === 'pending' ? 'pending' : 'failed';
     return { ok: true, status, reference, amount: (data.data?.amount || 0) / 100 };
+  } catch {
+    return { ok: false, status: 'failed', reference, message: 'Network error' };
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// BirrPay Integration (PRIMARY gateway)
+// BirrPay aggregates Flutterwave/Paystack/KoraPay/PayPal behind one API.
+// Amounts arrive in MAJOR units (matching the other gateways here) and are
+// converted to minor units for the BirrPay session API.
+// ═══════════════════════════════════════════════════════
+
+function birrPayBaseUrl(): string {
+  return (process.env.BIRRPAY_BASE_URL ?? 'https://birrpay-beta1b.pages.dev').replace(/\/+$/, '');
+}
+
+async function initBirrPayPayment(amount: number, reference: string, metadata: Record<string, any>): Promise<PaymentInitResult> {
+  const secretKey = process.env.BIRRPAY_SECRET_KEY;
+  if (!secretKey) {
+    return { ok: false, gateway: 'birrpay', reference, message: 'BirrPay not configured' };
+  }
+
+  try {
+    const flatMeta: Record<string, string | number | boolean> = {};
+    for (const [k, v] of Object.entries(metadata ?? {})) {
+      if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') flatMeta[k] = v;
+    }
+    const res = await fetch(birrPayBaseUrl() + '/api/v1/checkout/sessions', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + secretKey,
+        'Content-Type': 'application/json',
+        'Idempotency-Key': 'ischool:' + reference,
+      },
+      body: JSON.stringify({
+        amount: Math.round(amount * 100),
+        currency: (process.env.BIRRPAY_CURRENCY ?? 'NGN'),
+        customer: { email: String(metadata.email ?? 'student@ischool.app') },
+        reference,
+        callback_url: metadata.callback_url || undefined,
+        metadata: flatMeta,
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      return { ok: false, gateway: 'birrpay', reference, message: err.error?.message || 'BirrPay init failed' };
+    }
+
+    const data = await res.json();
+    return {
+      ok: true,
+      gateway: 'birrpay',
+      reference,
+      authorizationUrl: data.data?.checkout_url,
+      message: 'Redirect the student to checkout_url.',
+    };
+  } catch {
+    return { ok: false, gateway: 'birrpay', reference, message: 'Network error' };
+  }
+}
+
+async function verifyBirrPayPayment(reference: string): Promise<PaymentVerifyResult> {
+  const secretKey = process.env.BIRRPAY_SECRET_KEY;
+  if (!secretKey) {
+    return { ok: false, status: 'failed', reference, message: 'BirrPay not configured' };
+  }
+
+  try {
+    const res = await fetch(birrPayBaseUrl() + '/api/v1/transactions/' + encodeURIComponent(reference), {
+      headers: { 'Authorization': 'Bearer ' + secretKey },
+    });
+
+    if (!res.ok) {
+      return { ok: false, status: 'failed', reference, message: 'Verification failed' };
+    }
+
+    const data = await res.json();
+    const tx = data.data ?? {};
+    const status = tx.status === 'succeeded' ? 'completed' : tx.status === 'pending' ? 'pending' : 'failed';
+    return { ok: true, status, reference, amount: (tx.amount || 0) / 100 };
   } catch {
     return { ok: false, status: 'failed', reference, message: 'Network error' };
   }

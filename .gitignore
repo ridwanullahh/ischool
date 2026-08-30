@@ -30,3 +30,4 @@ pnpm-debug.log*
 uploads/
 .backups/
 .github/workflows/
+.env.gcp
