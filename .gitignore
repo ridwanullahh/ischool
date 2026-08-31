@@ -31,3 +31,4 @@ uploads/
 .backups/
 .github/workflows/
 .env.gcp
+.wrangler/
