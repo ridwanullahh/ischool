@@ -2,7 +2,7 @@
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
 import ListToolbar from '../../components/ListToolbar.astro';
 import { getUserSchoolId } from '../../lib/school.js';
-import { getDb } from '../../lib/db/index.js';
+import { getDb, isLightbase, batchSelectAll } from '../../lib/db/index.js';
 import { enrollments, students, classes } from '../../lib/db/schema.js';
 import { eq, desc } from 'drizzle-orm';
 
@@ -14,14 +14,37 @@ let allStudents: any[] = [];
 let allClasses: any[] = [];
 let stats = { total: 0, accepted: 0, pending: 0, rejected: 0 };
 
+// Path A §B3 browser-direct wiring: the public SDK config is injected via a
+// data attribute — NO hardcoded keys. It activates only when a scoped,
+// read-mostly LIGHTBASE_PUBLIC_API_KEY is provisioned (blueprint §B4);
+// without it the client stays dormant and the SSR data below stands.
+const lbPublicConfig = JSON.stringify({
+  baseUrl: process.env.LIGHTBASE_BASE_URL || 'https://lightbase.pages.dev',
+  project: process.env.LIGHTBASE_PROJECT || 'ischool-beta',
+  apiKey: process.env.LIGHTBASE_PUBLIC_API_KEY || '',
+});
+
 if (schoolId) {
   try {
-    allStudents = await db.select().from(students).where(eq(students.schoolId, schoolId)).all() || [];
-    allClasses = await db.select().from(classes).where(eq(classes.schoolId, schoolId)).all() || [];
-    const rawRecords = await db.select().from(enrollments).where(eq(enrollments.schoolId, schoolId)).orderBy(desc(enrollments.createdAt)).all() || [];
+    // Path A §A3: three independent school-scoped selects coalesced into ONE
+    // /batch call per render (previously 3 sequential GET /docs requests).
+    if (isLightbase()) {
+      const rawRecords = await batchSelectAll([
+        { table: students, where: eq(students.schoolId, schoolId) },
+        { table: classes, where: eq(classes.schoolId, schoolId) },
+        { table: enrollments, where: eq(enrollments.schoolId, schoolId), orderBy: desc(enrollments.createdAt) },
+      ]);
+      allStudents = rawRecords[0] || [];
+      allClasses = rawRecords[1] || [];
+      records = rawRecords[2] || [];
+    } else {
+      allStudents = await db.select().from(students).where(eq(students.schoolId, schoolId)).all() || [];
+      allClasses = await db.select().from(classes).where(eq(classes.schoolId, schoolId)).all() || [];
+      records = await db.select().from(enrollments).where(eq(enrollments.schoolId, schoolId)).orderBy(desc(enrollments.createdAt)).all() || [];
+    }
     const studentMap = new Map((allStudents||[]).map((s:any) => [s.id, s]));
     const classMap = new Map((allClasses||[]).map((c:any) => [c.id, c.name]));
-    records = rawRecords.map((r:any) => {
+    records = records.map((r:any) => {
       const student = studentMap.get(r.studentId ?? r.student_id);
       return { ...r, studentName: student ? `${student.firstName||student.first_name||''} ${student.lastName||student.last_name||''}`.trim() : 'Unknown', studentIdentifier: student?.studentId || student?.student_id || '', className: classMap.get(r.classId ?? r.class_id) || '—' };
     });
@@ -34,10 +57,10 @@ if (schoolId) {
   <div class="mb-6"><h1 class="text-2xl font-bold mb-1" style="font-family:'Space Grotesk',sans-serif;color:var(--mosaic-text);">Enrollments</h1><p class="text-sm" style="color:var(--mosaic-text-muted);">Manage student enrollment records.</p></div>
 
   <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-    <div class="mosaic-card p-4"><p class="text-[10px] font-medium uppercase tracking-wider mb-1" style="color:var(--mosaic-text-subtle);">Total</p><p class="text-2xl font-bold" style="font-family:'Space Grotesk',sans-serif;color:var(--mosaic-text);">{stats.total}</p></div>
-    <div class="mosaic-card p-4"><p class="text-[10px] font-medium uppercase tracking-wider mb-1" style="color:var(--mosaic-text-subtle);">Accepted</p><p class="text-2xl font-bold" style="font-family:'Space Grotesk',sans-serif;color:#05B34D;">{stats.accepted}</p></div>
-    <div class="mosaic-card p-4"><p class="text-[10px] font-medium uppercase tracking-wider mb-1" style="color:var(--mosaic-text-subtle);">Pending</p><p class="text-2xl font-bold" style="font-family:'Space Grotesk',sans-serif;color:#F2B91C;">{stats.pending}</p></div>
-    <div class="mosaic-card p-4"><p class="text-[10px] font-medium uppercase tracking-wider mb-1" style="color:var(--mosaic-text-subtle);">Rejected</p><p class="text-2xl font-bold" style="font-family:'Space Grotesk',sans-serif;color:#EF4444;">{stats.rejected}</p></div>
+    <div class="mosaic-card p-4"><p class="text-[10px] font-medium uppercase tracking-wider mb-1" style="color:var(--mosaic-text-subtle);">Total</p><p id="lb-stat-total" class="text-2xl font-bold" style="font-family:'Space Grotesk',sans-serif;color:var(--mosaic-text);">{stats.total}</p></div>
+    <div class="mosaic-card p-4"><p class="text-[10px] font-medium uppercase tracking-wider mb-1" style="color:var(--mosaic-text-subtle);">Accepted</p><p id="lb-stat-accepted" class="text-2xl font-bold" style="font-family:'Space Grotesk',sans-serif;color:#05B34D;">{stats.accepted}</p></div>
+    <div class="mosaic-card p-4"><p class="text-[10px] font-medium uppercase tracking-wider mb-1" style="color:var(--mosaic-text-subtle);">Pending</p><p id="lb-stat-pending" class="text-2xl font-bold" style="font-family:'Space Grotesk',sans-serif;color:#F2B91C;">{stats.pending}</p></div>
+    <div class="mosaic-card p-4"><p class="text-[10px] font-medium uppercase tracking-wider mb-1" style="color:var(--mosaic-text-subtle);">Rejected</p><p id="lb-stat-rejected" class="text-2xl font-bold" style="font-family:'Space Grotesk',sans-serif;color:#EF4444;">{stats.rejected}</p></div>
   </div>
 
   <ListToolbar searchPlaceholder="Search enrollments..." filterOptions={[{value:'accepted',label:'Accepted'},{value:'submitted',label:'Submitted'},{value:'rejected',label:'Rejected'}]} filterField="status" newItemHref="/dashboard/enrollments/new" newItemLabel="+ New Enrollment" />
@@ -57,4 +80,45 @@ if (schoolId) {
       </div>
     ))}
   </div>
+
+  <div id="lb-public-config" class="hidden" aria-hidden="true" data-lb-config={lbPublicConfig} data-lb-school={JSON.stringify({ schoolId })}></div>
 </DashboardLayout>
+
+<script>
+  // Path A §B3 heaviest-read-path wiring (enrollments): a browser-direct
+  // coalesced + ETag-cached live refresh of the enrollment stats.
+  // Graceful fallback: when no scoped key is injected the client is null and
+  // the server-rendered stats above simply stay — nothing breaks.
+  import { LightbasePublicClient } from '../../lib/lightbase/public-client.js';
+
+  const cfgEl = document.getElementById('lb-public-config');
+  const client = LightbasePublicClient.fromDataAttribute(cfgEl);
+
+  if (client) {
+    const parseRaw = (raw: string | null): { schoolId: unknown } => {
+      try { return JSON.parse(raw || '{}'); } catch { return { schoolId: null }; }
+    };
+    const { schoolId } = parseRaw(cfgEl?.getAttribute('data-lb-school'));
+
+    if (schoolId !== null && schoolId !== undefined) {
+      const apply = (rows: any[]) => {
+        const list = Array.isArray(rows) ? rows : [];
+        const set = (id: string, v: number) => {
+          const el = document.getElementById(id);
+          if (el) el.textContent = String(v);
+        };
+        set('lb-stat-total', list.length);
+        set('lb-stat-accepted', list.filter((r) => r?.status === 'accepted').length);
+        set('lb-stat-pending', list.filter((r) => r?.status === 'submitted' || r?.status === 'pending').length);
+        set('lb-stat-rejected', list.filter((r) => r?.status === 'rejected').length);
+      };
+
+      client
+        .watch(
+          { kind: 'query', collection: 'enrollments', filter: { field: 'school_id', op: 'eq', value: schoolId }, tag: 'enrollments-live' },
+          apply,
+          () => { /* silent — SSR data stands */ },
+        );
+    }
+  }
+</script>
