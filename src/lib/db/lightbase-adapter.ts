@@ -17,7 +17,19 @@
  *   DB_PROVIDER=sqlite (default) → uses better-sqlite3
  */
 
-import { LightbaseClient, type LightbaseFilter, type LightbaseDocument } from '../lightbase.js';
+import { LightbaseClient, LightbaseError, type LightbaseFilter, type LightbaseDocument } from '../lightbase.js';
+
+// ═══════════════════════════════════════════════════════
+// Batch select spec (Path A blueprint §A3 — request coalescing)
+// ═══════════════════════════════════════════════════════
+
+/** One query inside a coalesced batch — Drizzle table + optional clauses. */
+export interface LightbaseBatchSelectSpec {
+  table: any;
+  where?: any;
+  orderBy?: any;
+  limit?: number;
+}
 
 // ═══════════════════════════════════════════════════════
 // Helper: Extract collection name from Drizzle table object or string
@@ -230,6 +242,15 @@ function toLightbaseSort(orderBy: any): string | undefined {
     }
   }
   return undefined;
+}
+
+/** Converts a '-field'/'field' sort string to the engine /batch sort array. */
+function toSortArray(sort: string | undefined): Array<{ field: string; direction: 'asc' | 'desc' }> | undefined {
+  if (!sort) return undefined;
+  const s = sort.trim();
+  if (!s) return undefined;
+  if (s.startsWith('-')) return [{ field: s.slice(1), direction: 'desc' }];
+  return [{ field: s, direction: 'asc' }];
 }
 
 // ═══════════════════════════════════════════════════════
@@ -569,6 +590,48 @@ export class LightbaseDB {
 
   select(collection?: any): LightbaseSelectBuilder {
     return new LightbaseSelectBuilder(this.client, collection);
+  }
+
+  /**
+   * Path A blueprint §A3: execute several independent selects in ONE
+   * `POST /api/v1/projects/:id/batch` call (one Worker invocation, one
+   * auth resolution) instead of N sequential GET /docs requests.
+   * Returns the per-spec document arrays in the same order as `specs`.
+   * Filters that cannot be parsed into Lightbase filters are applied
+   * client-side (same fallback as the select builder).
+   */
+  async batchSelect(specs: LightbaseBatchSelectSpec[]): Promise<any[][]> {
+    const prepared = specs.map((s) => {
+      const filter = s.where ? parseDrizzleFilter(s.where) : undefined;
+      return {
+        collection: toCollectionName(s.table),
+        filter,
+        rawFilter: s.where && !filter ? s.where : undefined,
+        sort: toSortArray(toLightbaseSort(s.orderBy)),
+        limit: s.limit,
+      };
+    });
+
+    const ops = prepared.map((p, i) => {
+      const op: Record<string, any> = { kind: 'query', collection: p.collection, tag: `q${i}` };
+      if (p.filter) op.filter = p.filter;
+      if (p.sort) op.sort = p.sort;
+      if (p.limit) op.limit = p.limit;
+      return op;
+    });
+
+    const res = await this.client.batch(ops);
+
+    return prepared.map((p, i) => {
+      const r = res.results?.[i];
+      if (!r || r.error) {
+        const msg = r?.error ?? 'missing result';
+        throw new LightbaseError(502, 'LB_BATCH_OP_FAILED', `Batch query ${i} (${p.collection}) failed: ${msg}`);
+      }
+      let docs = normalizeDocs(r.data ?? []);
+      if (p.rawFilter) docs = filterClientSide(docs, p.rawFilter);
+      return docs;
+    });
   }
 
   insert(collection: any): LightbaseInsertBuilder {

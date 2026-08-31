@@ -1,5 +1,9 @@
 ---
 import MarketingLayout from '../layouts/MarketingLayout.astro';
+
+// Path A: pure marketing page (no cookies/locals/session/DB reads) —
+// prerendered to static HTML, served from the Pages CDN.
+export const prerender = true;
 ---
 
 <MarketingLayout title="About - iSchool" description="Learn about iSchool and our mission to make school websites simple and beautiful.">

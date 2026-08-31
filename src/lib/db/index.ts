@@ -2311,3 +2311,44 @@ export function isLightbase(): boolean {
   }
   return false;
 }
+
+// ═══════════════════════════════════════════════════════
+// Batch select helper (Path A blueprint §A3 — request coalescing)
+// ═══════════════════════════════════════════════════════
+
+export interface BatchSelectSpec {
+  table: any;
+  where?: any;
+  orderBy?: any;
+  limit?: number;
+}
+
+/**
+ * Executes several independent selects and returns their document arrays
+ * in spec order. In Lightbase mode the queries are coalesced into ONE
+ * `POST /api/v1/projects/:id/batch` call (one Worker invocation, one auth
+ * resolution) instead of N sequential requests. In SQLite mode it falls
+ * back to sequential local selects (no network cost either way).
+ *
+ * Usage (heaviest render paths — courses, lessons, enrollments):
+ *   const [rowsA, rowsB] = await batchSelectAll([
+ *     { table: courses, where: eq(courses.schoolId, schoolId), orderBy: asc(courses.title) },
+ *     { table: courseUnits },
+ *   ]);
+ */
+export async function batchSelectAll(specs: BatchSelectSpec[]): Promise<any[][]> {
+  if (specs.length === 0) return [];
+  if (isLightbase()) {
+    return getLightbaseDb().batchSelect(specs);
+  }
+  const db = getDb();
+  const out: any[][] = [];
+  for (const s of specs) {
+    let q: any = db.select().from(s.table);
+    if (s.where) q = q.where(s.where);
+    if (s.orderBy) q = q.orderBy(s.orderBy);
+    if (s.limit) q = q.limit(s.limit);
+    out.push(await q.all());
+  }
+  return out;
+}

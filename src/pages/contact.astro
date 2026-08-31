@@ -2,6 +2,10 @@
 import MarketingLayout from '../layouts/MarketingLayout.astro';
 import Input from '../components/ui/Input.astro';
 import Button from '../components/ui/Button.astro';
+
+// Path A: pure marketing page (no cookies/locals/session/DB reads) —
+// prerendered to static HTML, served from the Pages CDN.
+export const prerender = true;
 ---
 
 <MarketingLayout title="Contact - iSchool" description="Get in touch with the iSchool team. We're here to help.">

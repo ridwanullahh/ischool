@@ -30,6 +30,16 @@ if (USE_CLOUDFLARE) {
   adapter = cloudflare.default({
     platformProxy: { enabled: true },
     imageService: 'passthrough',
+    // Path A: prerender the pure-marketing routes (index/about/contact/modules)
+    // to static HTML. The adapter's default "workerd" prerender environment
+    // emits a dist/server/.prerender/wrangler.json with the reserved ASSETS
+    // assets binding that wrangler 4.125 rejects for Pages configs
+    // ("The name 'ASSETS' is reserved in Pages projects"), failing the build
+    // whenever any route is prerendered. Prerendering in the node
+    // environment avoids the extra worker config entirely; the SSR worker
+    // bundle below still targets workerd. These pages read no bindings,
+    // cookies or locals, so node prerendering is safe.
+    prerenderEnvironment: 'node',
     // Path A blueprint §2.2: advanced mode emits dist/_worker.js which the
     // Pages build auto-detects. The previous default (directory mode) produced
     // dist/server + a wrangler.json Pages rejected ("does not contain

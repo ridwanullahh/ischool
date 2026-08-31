@@ -1,7 +1,7 @@
 ---
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
 import { getUserSchoolId } from '../../lib/school.js';
-import { getDb } from '../../lib/db/index.js';
+import { getDb, isLightbase, batchSelectAll } from '../../lib/db/index.js';
 import { courses, courseUnits, lessons } from '../../lib/db/schema.js';
 import { eq, asc } from 'drizzle-orm';
 
@@ -9,11 +9,28 @@ const user = Astro.locals.user!;
 if (!user) return Astro.redirect('/auth/login');
 const schoolId = getUserSchoolId(user);
 if (!schoolId) return Astro.redirect('/dashboard');
-const db = getDb();
 
-const allCourses = await db.select().from(courses).where(eq(courses.schoolId, schoolId)).orderBy(asc(courses.title)).all();
-const allUnits = await db.select().from(courseUnits).all();
-const allLessons = await db.select().from(lessons).all();
+// Path A §A3: three independent selects coalesced into ONE /batch call per
+// render (previously 3 sequential GET /docs requests = 3 Worker invocations).
+let allCourses: any[] = [];
+let allUnits: any[] = [];
+let allLessons: any[] = [];
+if (isLightbase()) {
+  try {
+    [allCourses, allUnits, allLessons] = await batchSelectAll([
+      { table: courses, where: eq(courses.schoolId, schoolId), orderBy: asc(courses.title) },
+      { table: courseUnits },
+      { table: lessons },
+    ]);
+  } catch (e: any) {
+    console.error('[lessons] batch query failed:', e?.message || e);
+  }
+} else {
+  const db = getDb();
+  allCourses = await db.select().from(courses).where(eq(courses.schoolId, schoolId)).orderBy(asc(courses.title)).all();
+  allUnits = await db.select().from(courseUnits).all();
+  allLessons = await db.select().from(lessons).all();
+}
 
 // Group units by course
 const unitsByCourse = new Map<number, typeof allUnits>();

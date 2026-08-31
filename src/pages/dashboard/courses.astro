@@ -1,19 +1,33 @@
 ---
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
-import { getDb } from '../../lib/db/index.js';
-import { courses, schoolMembers } from '../../lib/db/schema.js';
+import { getDb, isLightbase, batchSelectAll } from '../../lib/db/index.js';
+import { courses } from '../../lib/db/schema.js';
 import { eq } from 'drizzle-orm';
+import { getUserSchoolId } from '../../lib/school.js';
 
 const user = Astro.locals.user;
 if (!user) return Astro.redirect('/auth/login');
 
-const db = getDb();
-const membership = await db.select().from(schoolMembers).where(eq(schoolMembers.userId, user.id)).get();
-const schoolId = membership?.schoolId;
+// Path A §A3: the middleware pre-populates user.schoolId in both modes, so the
+// whole render resolves with ONE coalesced Lightbase batch call (previously:
+// membership GET + courses GET = 2 Worker invocations per render).
+const schoolId = getUserSchoolId(user);
 
-const allCourses = schoolId
-  ? await db.select().from(courses).where(eq(courses.schoolId, schoolId)).all()
-  : [];
+const db = getDb();
+let allCourses: any[] = [];
+if (schoolId) {
+  if (isLightbase()) {
+    try {
+      [allCourses] = await batchSelectAll([
+        { table: courses, where: eq(courses.schoolId, schoolId) },
+      ]);
+    } catch (e: any) {
+      console.error('[courses] batch query failed:', e?.message || e);
+    }
+  } else {
+    allCourses = await db.select().from(courses).where(eq(courses.schoolId, schoolId)).all();
+  }
+}
 ---
 
 <DashboardLayout title="Courses - iSchool">

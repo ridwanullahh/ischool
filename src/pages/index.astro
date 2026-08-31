@@ -1,6 +1,10 @@
 ---
 import MarketingLayout from '../layouts/MarketingLayout.astro';
 
+// Path A: pure marketing page (no cookies/locals/session/DB reads) —
+// prerendered to static HTML, served from the Pages CDN.
+export const prerender = true;
+
 const modules = [
   { slug: 'sis', name: 'Student Information System', icon: '👨‍🎓', desc: 'Complete student records, enrollment management, attendance tracking, and parent portals. Everything about your students in one place.', color: 'from-blue-500 to-blue-600' },
   { slug: 'lms', name: 'Learning Management System', icon: '📚', desc: 'Create courses, upload lessons, manage assignments, quizzes, and track student progress with a modern LMS built for schools.', color: 'from-purple-500 to-purple-600' },
