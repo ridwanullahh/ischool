@@ -30,6 +30,12 @@ if (USE_CLOUDFLARE) {
   adapter = cloudflare.default({
     platformProxy: { enabled: true },
     imageService: 'passthrough',
+    // Path A blueprint §2.2: advanced mode emits dist/_worker.js which the
+    // Pages build auto-detects. The previous default (directory mode) produced
+    // dist/server + a wrangler.json Pages rejected ("does not contain
+    // pages_build_output_dir"), so NO Worker was deployed and every SSR route
+    // 404'd while static assets served — observed live on ischool-beta.pages.dev.
+    mode: 'advanced',
   });
 } else {
   const node = await import('@astrojs/node');
