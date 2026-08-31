@@ -49,7 +49,10 @@ if (existsSync(wranglerJsonPath)) {
     name: process.env.CF_PAGES_PROJECT_NAME ?? 'ischool-beta',
     compatibility_date: '2024-09-23',
     compatibility_flags: ['nodejs_compat'],
-    pages_build_output_dir: 'dist/client',
+    // NOTE: resolved RELATIVE TO THIS CONFIG FILE (dist/server/) — the
+    // observed CI failure "dist/server/dist/client not found" came from a
+    // repo-root-relative value. ../client = dist/client.
+    pages_build_output_dir: '../client',
   };
   writeFileSync(wranglerJsonPath, JSON.stringify(pagesConfig, null, 2));
 }
