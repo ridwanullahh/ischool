@@ -40,13 +40,18 @@ cpSync(server, workerDir, { recursive: true });
 // Pages expects the module worker entry at _worker.js/index.js.
 renameSync(join(workerDir, 'entry.mjs'), join(workerDir, 'index.js'));
 
-// 2. Make the redirected wrangler.json Pages-valid.
+// 2. Replace the redirected wrangler.json with a minimal Pages-valid config.
+//    The adapter-generated config carries Workers-deploy fields (kv binding
+//    placeholders, ASSETS binding, ai_search/exports/etc.) that Pages rejects.
 const wranglerJsonPath = join(server, 'wrangler.json');
 if (existsSync(wranglerJsonPath)) {
-  const cfg = JSON.parse(readFileSync(wranglerJsonPath, 'utf8'));
-  cfg.pages_build_output_dir = 'dist/client';
-  cfg.compatibility_flags = [...new Set([...(cfg.compatibility_flags ?? []), 'nodejs_compat'])];
-  writeFileSync(wranglerJsonPath, JSON.stringify(cfg, null, 2));
+  const pagesConfig = {
+    name: process.env.CF_PAGES_PROJECT_NAME ?? 'ischool-beta',
+    compatibility_date: '2024-09-23',
+    compatibility_flags: ['nodejs_compat'],
+    pages_build_output_dir: 'dist/client',
+  };
+  writeFileSync(wranglerJsonPath, JSON.stringify(pagesConfig, null, 2));
 }
 
 const count = (dir) => {
