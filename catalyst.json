@@ -1,0 +1,1 @@
+{ "slate": [ { "name": "ischool", "source": "dist", "framework": "astro" } ] }

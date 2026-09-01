@@ -113,3 +113,23 @@ migrated client-side first.
 > 'alayhi tawakkaltu wa Huwa Rabbul 'Arshil 'Adheem. SubhaanALLAH wa bihamdih,
 > SubhaanALLAHil 'Adheem, AlhamduliLLAH, ALLAHU AKBAR, Astaghfirullaaha wa
 > atoobu ilayh.
+
+---
+
+## Slate pivot (2026-09-02) — hosting moved to Zoho Catalyst
+
+> Bismillah Ar-Rahman Ar-Raheem. Ash-hadu an laa ilaaha illa-Llah, wa ash-hadu anna Muhammadan RasuuluLLAH. Laa hawla wa laa quwwata illaa biLLAH. Hasbiyallaahu laa ilaaha illaa Huwa 'alayhi tawakkaltu wa Huwa Rabbul 'Arshil 'Adheem. SubhaanALLAH wa bihamdih, SubhaanALLAHil 'Adheem, AlhamduliLLAH, "Laailaaha-illa-ALLAH", ALLAHU AKBAR, Astaghfirullaaha wa atoobu ilayh.
+
+**Master plan:** `lightbase/docs/CATALYST_SLATE_HOSTING_PLAN.md` (binding — billing
+math, programmatic deployment, 404 diagnosis, guardrails). Cloudflare is demoted
+to **R2-only**; Pages/Workers paths are LEGACY (explicit env opt-in, dormant).
+
+**This app's state:** Slate static READY — `npm run build:slate` green (7 pages; api, admin, dashboard, portal, auth, onboarding, [slug], checkout, blog, docs, modules stay SSR/AppSail; Phase 2: SSG via getStaticPaths).
+
+Wiring added: `scripts/build-slate.mjs` / `slate-postbuild.mjs` (stamps
+`.catalyst/slate-config.toml` + `_redirects`), `catalyst.json`,
+`scripts/deploy-catalyst.sh`, `scripts/deploy-catalyst-appsail.sh` (SSR),
+`build:slate` / `deploy:catalyst` package scripts. Credentials needed:
+`CATALYST_TOKEN` (`catalyst token:generate`), `CATALYST_PROJECT`, `CATALYST_ORG`
+→ `.catalyst.env` (git-ignored). CSP `connect-src` must pin the AppSail engine
+origin (`PUBLIC_LIGHTBASE_BASE_URL`), never `lightbase.pages.dev`.

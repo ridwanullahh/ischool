@@ -19,7 +19,9 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "deploy:cloudflare": "DEPLOY_TARGET=cloudflare astro build && wrangler pages deploy dist --project-name ischool-beta",
-    "deploy:gcp": "bash scripts/deploy-appengine.sh"
+    "deploy:gcp": "bash scripts/deploy-appengine.sh",
+    "build:slate": "node scripts/build-slate.mjs",
+    "deploy:catalyst": "bash scripts/deploy-catalyst.sh"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^14.2.3",

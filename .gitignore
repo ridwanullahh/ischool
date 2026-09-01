@@ -32,3 +32,5 @@ uploads/
 .github/workflows/
 .env.gcp
 .wrangler/
+
+.catalyst.env

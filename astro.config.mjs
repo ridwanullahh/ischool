@@ -52,10 +52,16 @@ if (USE_CLOUDFLARE) {
   adapter = node.default({ mode: 'standalone' });
 }
 
+// Catalyst Slate pivot (docs/CATALYST_SLATE_HOSTING_PLAN.md): DEPLOY_TARGET=slate
+// selects the pure static public-frontend build (no adapter). CF adapter is
+// LEGACY (explicit opt-in). Node standalone remains the local/AppSail default.
+const isSlateStatic =
+  process.env.DEPLOY_TARGET === 'slate' || process.env.BUILD_TARGET === 'slate-static';
+
 export default defineConfig({
-  output: 'server',
-  adapter,
-  site: process.env.PUBLIC_BASE_URL || 'http://localhost:4321',
+  output: isSlateStatic ? 'static' : 'server',
+  adapter: isSlateStatic ? undefined : adapter,
+  site: process.env.PUBLIC_SITE_URL || process.env.PUBLIC_BASE_URL || 'http://localhost:4321',
   security: {
     checkOrigin: false,
   },
