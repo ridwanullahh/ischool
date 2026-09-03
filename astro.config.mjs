@@ -14,6 +14,7 @@ const envVars = {
   'process.env.LIGHTBASE_API_KEY': JSON.stringify(process.env.LIGHTBASE_API_KEY || ''),
   'process.env.LIGHTBASE_PROJECT': JSON.stringify(process.env.LIGHTBASE_PROJECT || 'ischool-beta'),
   'process.env.LIGHTBASE_BASE_URL': JSON.stringify(process.env.LIGHTBASE_BASE_URL || 'https://lightbase.pages.dev'),
+  'process.env.LIGHTBASE_PUBLIC_API_KEY': JSON.stringify(process.env.LIGHTBASE_PUBLIC_API_KEY || ''),
   'process.env.PLATFORM_ADMINS': JSON.stringify(process.env.PLATFORM_ADMINS || 'admin@ischool.com:admin123'),
   'process.env.PUBLIC_BASE_URL': JSON.stringify(process.env.PUBLIC_BASE_URL || 'https://ischool-beta.pages.dev'),
   'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'production'),
@@ -68,5 +69,11 @@ export default defineConfig({
   vite: {
     plugins: [tailwindcss()],
     define: envVars,
+    ssr: {
+      // @oslojs/* are pure ESM deps pulled in by auth chunks; leaving them
+      // external makes the Pages deploy fail with
+      // "No such module \"chunks/@oslojs/encoding\"" — inline them instead.
+      noExternal: ['@oslojs/encoding', '@oslojs/crypto'],
+    },
   },
 });
