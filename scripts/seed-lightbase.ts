@@ -1276,7 +1276,15 @@ async function main() {
     await seedPlatformFaqs();
     await seedPlatformBlogPosts();
     await seedPlatformDocs();
-    await seedSchoolData();
+    // NOTE (host 2026-09, AppSail migration): the host enforces a per-project
+    // quota of 100 collections (ischool schema needs 149) so some collections
+    // (incl. `schools`) could not be created. Sections whose root collection
+    // is missing must not abort the whole seed run — log and continue.
+    try {
+      await seedSchoolData();
+    } catch (e: any) {
+      console.warn('[seed] school data section failed (continuing):', e.message?.substring(0, 160));
+    }
     await seedSystemData();
     console.log();
     logStats();
