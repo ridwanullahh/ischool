@@ -17,6 +17,7 @@ const gallery = db.select().from(galleryItems).where(eq(galleryItems.schoolId, s
 const upcomingEvents = db.select().from(events).where(eq(events.schoolId, school.id)).limit(5).all();
 const posts = db.select().from(blogPosts).where(and(eq(blogPosts.schoolId, school.id), eq(blogPosts.isPublished, true))).orderBy(desc(blogPosts.createdAt)).limit(4).all();
 const navItems = db.select().from(navigationItems).where(eq(navigationItems.schoolId, school.id)).all();
+import PageLoader from '../../components/PageLoader.astro';
 ---
 <!DOCTYPE html>
 <html lang={school.locale || 'en'} dir={['ar','he','fa','ur'].includes(school.locale || 'en') ? 'rtl' : 'ltr'}>
@@ -60,6 +61,7 @@ const navItems = db.select().from(navigationItems).where(eq(navigationItems.scho
   </style>
 </head>
 <body>
+    <PageLoader />
   <div class="mobile-frame">
     <div class="top-bar">
       <div class="logo">{school.name}</div>

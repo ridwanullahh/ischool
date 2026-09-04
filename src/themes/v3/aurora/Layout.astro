@@ -44,6 +44,7 @@ const seoMeta = generateMetaTags({
   ogImage: school.logoUrl || undefined,
   jsonLd: schoolSchema,
 });
+import PageLoader from '../../../components/PageLoader.astro';
 ---
 <!doctype html>
 <html lang={locale} dir={rtl ? 'rtl' : 'ltr'} class="light scroll-smooth">
@@ -71,6 +72,7 @@ const seoMeta = generateMetaTags({
   `} />
 </head>
 <body>
+    <PageLoader />
   <div class="aurora-orb aurora-orb-1" aria-hidden="true"></div>
   <div class="aurora-orb aurora-orb-2" aria-hidden="true"></div>
 

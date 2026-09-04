@@ -30,6 +30,7 @@ const social = (school.socialHandles as Record<string, string>) || {};
 const socialEntries = Object.entries(social).filter(([, v]) => v && v !== '#');
 const locale = school.locale || 'en';
 const rtl = ['ar','he','fa','ur'].includes(locale);
+import PageLoader from '../../../../components/PageLoader.astro';
 ---
 
 <!doctype html>
@@ -96,6 +97,7 @@ const rtl = ['ar','he','fa','ur'].includes(locale);
   `}</style>
 </head>
 <body>
+    <PageLoader />
   <div class="harmony-orb harmony-orb-1" aria-hidden="true"></div>
   <div class="harmony-orb harmony-orb-2" aria-hidden="true"></div>
 

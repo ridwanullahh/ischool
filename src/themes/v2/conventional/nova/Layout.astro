@@ -28,6 +28,7 @@ const social = (school.socialHandles as Record<string, string>) || {};
 const socialEntries = Object.entries(social).filter(([, v]) => v && v !== '#');
 const locale = school.locale || 'en';
 const rtl = ['ar','he','fa','ur'].includes(locale);
+import PageLoader from '../../../../components/PageLoader.astro';
 ---
 
 <!doctype html>
@@ -89,6 +90,7 @@ const rtl = ['ar','he','fa','ur'].includes(locale);
   `}</style>
 </head>
 <body>
+    <PageLoader />
   <div class="nova-grid-top"></div>
   <header class="sticky top-0 z-40 border-b nova-border" style="background:color-mix(in srgb, var(--bg) 85%, transparent);backdrop-filter:blur(12px)">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">

@@ -20,6 +20,7 @@ const socialEntries = Object.entries(social).filter(([, v]) => v && v !== '#');
 const locale = school.locale || 'en';
 const rtl = ['ar','he','fa','ur'].includes(locale);
 const year = new Date().getFullYear();
+import PageLoader from '../../../components/PageLoader.astro';
 ---
 <!doctype html>
 <html lang={locale} dir={rtl ? 'rtl' : 'ltr'} class="light scroll-smooth">
@@ -52,6 +53,7 @@ const year = new Date().getFullYear();
   `} />
 </head>
 <body>
+    <PageLoader />
   <svg class="verdant-leaf-bg" style="top:40px;right:-40px;width:280px" viewBox="0 0 100 100" fill="none" aria-hidden="true"><path d="M50 5 C20 25 15 60 50 95 C85 60 80 25 50 5 Z M50 15 V90" stroke="var(--primary)" stroke-width="2" fill="var(--primary)"/></svg>
   <svg class="verdant-leaf-bg" style="bottom:120px;left:-60px;width:340px;transform:rotate(35deg)" viewBox="0 0 100 100" fill="none" aria-hidden="true"><path d="M50 5 C20 25 15 60 50 95 C85 60 80 25 50 5 Z M50 15 V90" stroke="var(--primary)" stroke-width="2" fill="var(--primary)"/></svg>
 

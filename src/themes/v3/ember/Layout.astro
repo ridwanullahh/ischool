@@ -20,6 +20,7 @@ const socialEntries = Object.entries(social).filter(([, v]) => v && v !== '#');
 const locale = school.locale || 'en';
 const rtl = ['ar','he','fa','ur'].includes(locale);
 const primaryContact = contacts[0];
+import PageLoader from '../../../components/PageLoader.astro';
 ---
 <!doctype html>
 <html lang={locale} dir={rtl ? 'rtl' : 'ltr'} class="light scroll-smooth">
@@ -51,6 +52,7 @@ const primaryContact = contacts[0];
   `} />
 </head>
 <body>
+    <PageLoader />
   <div class="ember-grad text-white">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 h-10 flex items-center justify-between text-xs">
       <div class="flex items-center gap-4">

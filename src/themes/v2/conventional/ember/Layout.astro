@@ -32,6 +32,7 @@ const rtl = ['ar','he','fa','ur'].includes(locale);
 const primaryNav = nav.slice(0, 6);
 const secondaryNav = nav.slice(6);
 const today = new Date().toLocaleDateString(locale === 'en' ? 'en-US' : locale, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+import PageLoader from '../../../../components/PageLoader.astro';
 ---
 
 <!doctype html>
@@ -76,6 +77,7 @@ const today = new Date().toLocaleDateString(locale === 'en' ? 'en-US' : locale, 
   `}</style>
 </head>
 <body>
+    <PageLoader />
   <div class="ember-warm-bg border-b ember-border-warm">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-9 flex items-center justify-between text-xs">
       <span class="ember-serif italic" style="color:var(--muted)">{today}</span>

@@ -16,6 +16,7 @@ const prefix = `/${school.slug}`;
 const { pathname } = Astro.url;
 const social = (school.socialHandles as Record<string, string>) || {};
 const socialEntries = Object.entries(social).filter(([, v]) => v && v !== '#');
+import PageLoader from '../../components/PageLoader.astro';
 ---
 <!doctype html>
 <html lang={school.locale || 'en'} dir={['ar','he','fa','ur'].includes(school.locale || 'en') ? 'rtl' : 'ltr'} class="light scroll-smooth">
@@ -38,6 +39,7 @@ const socialEntries = Object.entries(social).filter(([, v]) => v && v !== '#');
   `}</style>
 </head>
 <body class="min-h-screen zen-sans" style="background:var(--bg);color:var(--text)">
+    <PageLoader />
   <header class="z-50" style="border-bottom:1px solid var(--border)">
     <div class="max-w-5xl mx-auto px-6 sm:px-8">
       <div class="flex items-center justify-center py-6">

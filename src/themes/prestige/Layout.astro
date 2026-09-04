@@ -13,6 +13,7 @@ const palette = getSchoolPalette(school);
 const pageTitle = title ? `${title} | ${school.name}` : school.name;
 const social = (school.socialHandles as Record<string, string>) || {};
 const socialEntries = Object.entries(social).filter(([, v]) => v && v !== '#');
+import PageLoader from '../../components/PageLoader.astro';
 ---
 <!DOCTYPE html>
 <html lang={school.locale || 'en'} dir={['ar','he','fa','ur'].includes(school.locale || 'en') ? 'rtl' : 'ltr'} class="dark theme-defaults-dark">
@@ -33,6 +34,7 @@ const socialEntries = Object.entries(social).filter(([, v]) => v && v !== '#');
   `}</style>
 </head>
 <body class="antialiased" style="background:var(--bg);color:var(--text)">
+    <PageLoader />
   <div class="h-[2px]" style="background:linear-gradient(to right,transparent,var(--primary),transparent)"></div>
   <header class="sticky top-0 z-50 backdrop-blur-md" style="background:color-mix(in srgb, var(--bg) 95%, transparent);border-bottom:1px solid var(--border)">
     <div class="max-w-7xl mx-auto">

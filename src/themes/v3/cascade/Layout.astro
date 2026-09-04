@@ -19,6 +19,7 @@ const social = (school.socialHandles as Record<string, string>) || {};
 const socialEntries = Object.entries(social).filter(([, v]) => v && v !== '#');
 const locale = school.locale || 'en';
 const rtl = ['ar','he','fa','ur'].includes(locale);
+import PageLoader from '../../../components/PageLoader.astro';
 ---
 <!doctype html>
 <html lang={locale} dir={rtl ? 'rtl' : 'ltr'} class="light scroll-smooth">
@@ -49,6 +50,7 @@ const rtl = ['ar','he','fa','ur'].includes(locale);
   `} />
 </head>
 <body>
+    <PageLoader />
   <div class="cascade-wave" aria-hidden="true">
     <svg viewBox="0 0 1440 300" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
       <path d="M0,160 C320,260 480,60 720,140 C960,220 1120,80 1440,180 L1440,0 L0,0 Z" fill="var(--primary)" opacity="0.08" />

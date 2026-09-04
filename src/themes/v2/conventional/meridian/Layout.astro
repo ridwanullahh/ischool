@@ -19,6 +19,7 @@ const prefix = `/${school.slug}`; const { pathname } = Astro.url;
 const social = (school.socialHandles as Record<string, string>) || {};
 const socialEntries = Object.entries(social).filter(([, v]) => v && v !== '#');
 const locale = school.locale || 'en'; const rtl = ['ar','he','fa','ur'].includes(locale);
+import PageLoader from '../../../../components/PageLoader.astro';
 ---
 <!doctype html>
 <html lang={locale} dir={rtl ? 'rtl' : 'ltr'} class="light scroll-smooth">
@@ -42,6 +43,7 @@ const locale = school.locale || 'en'; const rtl = ['ar','he','fa','ur'].includes
   `}</style>
 </head>
 <body>
+    <PageLoader />
   <header class="sticky top-0 z-40 border-b" style="background:var(--surface);border-color:var(--border)">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
       <a href={`${prefix}/`} class="flex items-center gap-3 meridian-accent pl-3" aria-label={`${school.name} home`}>{school.logoUrl ? <img src={school.logoUrl} alt={school.name} class="h-8 w-auto" /> : <span class="meridian-serif text-2xl" style="color:var(--primary)">{school.name.charAt(0)}</span>}<span class="meridian-serif text-lg font-medium" style="color:var(--text)">{school.name}</span></a>

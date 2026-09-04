@@ -29,6 +29,7 @@ const social = (school.socialHandles as Record<string, string>) || {};
 const socialEntries = Object.entries(social).filter(([, v]) => v && v !== '#');
 const locale = school.locale || 'en';
 const rtl = ['ar','he','fa','ur'].includes(locale);
+import PageLoader from '../../../../components/PageLoader.astro';
 ---
 
 <!doctype html>
@@ -57,6 +58,7 @@ const rtl = ['ar','he','fa','ur'].includes(locale);
   `}</style>
 </head>
 <body>
+    <PageLoader />
   <header class="lg:hidden sticky top-0 z-40 border-b px-4 h-14 flex items-center justify-between" style="background:var(--surface);border-color:var(--border)">
     <a href={`${prefix}/`} class="flex items-center gap-2" aria-label={`${school.name} home`}>
       {school.logoUrl ? <img src={school.logoUrl} alt={school.name} class="h-7 w-auto" /> : <span class="campus-mono text-xl font-bold" style="color:var(--primary)">{school.name.charAt(0)}</span>}

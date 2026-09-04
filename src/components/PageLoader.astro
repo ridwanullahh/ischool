@@ -1,0 +1,112 @@
+---
+// Bismillah — iSchool custom page loader (replaces the browser's native
+// loading feel): pre-paint progress bar + branded splash, link-click and
+// form-submit interception, bfcache handling, failsafe timeouts.
+// Mirrors the BirrPay preloader engine. Brand: #05B34D / #F2B91C.
+---
+
+<div id="is-bar" aria-hidden="true"><i></i></div>
+<div id="is-splash" aria-hidden="true">
+  <svg class="is-mark" width="52" height="52" viewBox="0 0 32 32" fill="none">
+    <defs><linearGradient id="is-splash-g" x1="4" y1="2" x2="28" y2="30" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#05B34D"></stop><stop offset="1" stop-color="#F2B91C"></stop>
+    </linearGradient></defs>
+    <rect x="1.5" y="1.5" width="29" height="29" rx="9" stroke="url(#is-splash-g)" stroke-width="2.5"></rect>
+    <path d="M16 7l9 5-9 5-9-5 9-5z" fill="url(#is-splash-g)"></path>
+    <path d="M10 15.5v4.2c0 1.9 2.7 3.3 6 3.3s6-1.4 6-3.3v-4.2" stroke="url(#is-splash-g)" stroke-width="2.2" stroke-linecap="round" fill="none"></path>
+  </svg>
+</div>
+<style>
+  /* Paints before the bundled CSS (scoped but zero-dependency). */
+  #is-bar { position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 2147483646; pointer-events: none; opacity: 1; transition: opacity 0.35s ease 0.15s; }
+  #is-bar i { display: block; height: 100%; width: 0%; border-radius: 0 999px 999px 0;
+    background: linear-gradient(90deg, #05B34D, #F2B91C);
+    box-shadow: 0 0 10px rgba(5, 179, 77, 0.55); transition: width 0.2s ease-out; }
+  #is-bar.is-done i { width: 100% !important; }
+  #is-bar.is-off { opacity: 0; }
+  #is-splash { position: fixed; inset: 0; z-index: 2147483647; display: grid; place-items: center;
+    background: #E9FBF1; transition: opacity 0.3s ease; }
+  :global(html.dark) #is-splash { background: #181F25; }
+  #is-splash.is-hide { opacity: 0; pointer-events: none; }
+  #is-splash .is-mark { animation: is-pulse 1.15s ease-in-out infinite; }
+  @keyframes is-pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(0.88); opacity: 0.65; } }
+  @media (prefers-reduced-motion: reduce) { #is-splash .is-mark { animation: none; } }
+</style>
+<script is:inline>
+  // Bismillah — iSchool preloader engine:
+  // 1) Progress bar eases toward 72% while loading, completes on window load.
+  // 2) Splash fades on load (failsafe 2.5s).
+  // 3) Internal link clicks + form submits start the bar instantly.
+  (function () {
+    var bar = document.getElementById('is-bar');
+    var fill = bar ? bar.firstElementChild : null;
+    var splash = document.getElementById('is-splash');
+    var p = 0, target = 0.72, done = false, rafId = 0, submitAt = 0;
+
+    function paint() { if (fill) fill.style.width = (p * 100).toFixed(2) + '%'; }
+    function tick() { p += (target - p) * 0.11; paint(); rafId = requestAnimationFrame(tick); }
+    function completeBar() {
+      if (done) return;
+      done = true;
+      cancelAnimationFrame(rafId);
+      p = 1; target = 1; paint();
+      if (bar) {
+        bar.classList.add('is-done');
+        setTimeout(function () { bar.classList.add('is-off'); }, 550);
+      }
+    }
+    function hideSplash() {
+      if (!splash) return;
+      splash.classList.add('is-hide');
+      setTimeout(function () { if (splash && splash.parentNode) splash.parentNode.removeChild(splash); }, 400);
+    }
+
+    if (fill) { paint(); rafId = requestAnimationFrame(tick); }
+    if (document.readyState === 'complete') {
+      setTimeout(function () { completeBar(); hideSplash(); }, 120);
+    } else {
+      window.addEventListener('load', function () { completeBar(); hideSplash(); });
+      setTimeout(hideSplash, 2500);
+      setTimeout(completeBar, 8000);
+    }
+    window.addEventListener('pageshow', function (e) {
+      if (e.persisted) { completeBar(); hideSplash(); }
+    });
+
+    document.addEventListener('click', function (e) {
+      if (e.defaultPrevented || e.button !== 0) return;
+      var a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
+      if (!a) return;
+      var href = a.getAttribute('href') || '';
+      if (!href || href.charAt(0) === '#' || a.target === '_blank' || a.hasAttribute('download')) return;
+      if (/^(mailto:|tel:|javascript:|data:)/i.test(href)) return;
+      if (a.origin !== window.location.origin) return;
+      if (a.pathname === window.location.pathname && window.location.search === a.search) return;
+      done = false;
+      if (fill) fill.style.width = '0%';
+      if (bar) bar.classList.remove('is-done', 'is-off');
+      p = 0; target = 0.72;
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(tick);
+      setTimeout(function () {
+        if (done || document.readyState !== 'loading') return;
+      }, 0);
+    }, true);
+
+    document.addEventListener('submit', function (e) {
+      var form = e.target;
+      if (!form || form.method === 'dialog') return;
+      if (submitAt && Date.now() - submitAt < 800) return;
+      submitAt = Date.now();
+      done = false;
+      if (fill) fill.style.width = '0%';
+      if (bar) bar.classList.remove('is-done', 'is-off');
+      p = 0; target = 0.9;
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(tick);
+      setTimeout(function () {
+        if (!done && Date.now() - submitAt >= 6000) completeBar();
+      }, 6100);
+    }, true);
+  })();
+</script>

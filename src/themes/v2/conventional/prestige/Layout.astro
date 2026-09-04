@@ -28,6 +28,7 @@ const social = (school.socialHandles as Record<string, string>) || {};
 const socialEntries = Object.entries(social).filter(([, v]) => v && v !== '#');
 const locale = school.locale || 'en';
 const rtl = ['ar','he','fa','ur'].includes(locale);
+import PageLoader from '../../../../components/PageLoader.astro';
 ---
 
 <!doctype html>
@@ -82,6 +83,7 @@ const rtl = ['ar','he','fa','ur'].includes(locale);
   `}</style>
 </head>
 <body>
+    <PageLoader />
   <header class="px-4 pt-10 pb-6">
     <div class="max-w-5xl mx-auto">
       <div class="flex items-center justify-center gap-4">

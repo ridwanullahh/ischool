@@ -30,6 +30,7 @@ const socialEntries = Object.entries(social).filter(([, v]) => v && v !== '#');
 const locale = school.locale || 'en';
 const rtl = ['ar','he','fa','ur'].includes(locale);
 const primaryContact = contacts[0];
+import PageLoader from '../../../../components/PageLoader.astro';
 ---
 
 <!doctype html>
@@ -74,6 +75,7 @@ const primaryContact = contacts[0];
   `}</style>
 </head>
 <body>
+    <PageLoader />
   <div class="border-b" style="background:var(--surface);border-color:var(--border)">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-10 flex items-center justify-between text-xs">
       <div class="flex items-center gap-4" style="color:var(--muted)">

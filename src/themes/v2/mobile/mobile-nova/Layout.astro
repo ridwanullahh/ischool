@@ -22,6 +22,7 @@ const locale = school.locale || 'en'; const rtl = ['ar','he','fa','ur'].includes
 // Mobile uses first 5 nav items as bottom tabs
 const tabs = nav.slice(0, 5);
 const moreNav = nav.slice(5);
+import PageLoader from '../../../../components/PageLoader.astro';
 ---
 <!doctype html>
 <html lang={locale} dir={rtl ? 'rtl' : 'ltr'} class="dark scroll-smooth">
@@ -73,6 +74,7 @@ const moreNav = nav.slice(5);
   `}</style>
 </head>
 <body>
+    <PageLoader />
   <header class="mobile-nova-header" style="background:var(--surface);border-bottom:1px solid var(--border)">
     <button id="mobile-nova-menu-toggle" type="button" style="color:var(--text)" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-nova-drawer">
       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>

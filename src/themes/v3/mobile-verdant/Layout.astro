@@ -19,6 +19,7 @@ const social = (school.socialHandles as Record<string, string>) || {};
 const socialEntries = Object.entries(social).filter(([, v]) => v && v !== '#');
 const locale = school.locale || 'en';
 const rtl = ['ar','he','fa','ur'].includes(locale);
+import PageLoader from '../../../components/PageLoader.astro';
 ---
 <!doctype html>
 <html lang={locale} dir={rtl ? 'rtl' : 'ltr'} class="light scroll-smooth">
@@ -60,6 +61,7 @@ const rtl = ['ar','he','fa','ur'].includes(locale);
   `} />
 </head>
 <body>
+    <PageLoader />
   <div class="app-container">
     <SchoolBannerPopup school={school} currentPage={Astro.url.pathname} />
 

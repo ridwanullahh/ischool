@@ -263,6 +263,7 @@ const menuSections = [
 
 const isActive = (href: string) => pathname === href || (href !== '/dashboard' && pathname.startsWith(href));
 const isSectionActive = (items: Array<{href: string}>) => items.some(item => isActive(item.href));
+import PageLoader from '../components/PageLoader.astro';
 ---
 
 <!doctype html>
@@ -387,6 +388,7 @@ const isSectionActive = (items: Array<{href: string}>) => items.some(item => isA
     </style>
   </head>
   <body class="mosaic-body min-h-screen">
+    <PageLoader />
     <div class="flex min-h-screen">
       
       <aside class="hidden lg:flex lg:flex-col lg:w-[260px] fixed inset-y-0 left-0 z-30" style="background: var(--mosaic-surface); border-right: 1px solid var(--mosaic-border);">

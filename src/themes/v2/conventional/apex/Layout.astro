@@ -31,6 +31,7 @@ const social = (school.socialHandles as Record<string, string>) || {};
 const socialEntries = Object.entries(social).filter(([, v]) => v && v !== '#');
 const locale = school.locale || 'en';
 const rtl = ['ar','he','fa','ur'].includes(locale);
+import PageLoader from '../../../../components/PageLoader.astro';
 ---
 
 <!doctype html>
@@ -93,6 +94,7 @@ const rtl = ['ar','he','fa','ur'].includes(locale);
   `}</style>
 </head>
 <body>
+    <PageLoader />
   <aside class="apex-rail" aria-label="Social links">
     {socialEntries.slice(0, 4).map(([platform, handle]) => (
       <a href={normalizeSocialUrl(handle, platform)} target="_blank" rel="noopener noreferrer" class="apex-mono" style="color:var(--muted)" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--muted)'">

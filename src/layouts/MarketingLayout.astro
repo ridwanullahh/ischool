@@ -28,6 +28,7 @@ const modules = [
   { slug: 'it-admin', name: 'IT & System Admin', icon: 'shield', desc: 'Audit logs & module control' },
   { slug: 'cbt', name: 'e-Exam & CBT', icon: 'monitor', desc: 'Computer-based testing' },
 ];
+import PageLoader from '../components/PageLoader.astro';
 ---
 
 <!doctype html>
@@ -43,6 +44,7 @@ const modules = [
     <title>{title}</title>
   </head>
   <body class="min-h-screen bg-white antialiased">
+    <PageLoader />
     <div class="bg-gradient-to-r from-primary-600 to-primary-800 text-white text-center py-2 px-4 text-sm font-medium">
       Launching soon: AI-powered analytics and automated report generation. <a href="/auth/register" class="underline font-semibold hover:text-primary-100">Start your free trial today</a>
     </div>

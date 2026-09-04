@@ -13,6 +13,7 @@ const palette = getSchoolPalette(school);
 const pageTitle = title ? `${title} | ${school.name}` : school.name;
 const social = (school.socialHandles as Record<string, string>) || {};
 const socialEntries = Object.entries(social).filter(([, v]) => v && v !== '#');
+import PageLoader from '../../components/PageLoader.astro';
 ---
 <!DOCTYPE html>
 <html lang={school.locale || 'en'} dir={['ar','he','fa','ur'].includes(school.locale || 'en') ? 'rtl' : 'ltr'} class="light">
@@ -33,6 +34,7 @@ const socialEntries = Object.entries(social).filter(([, v]) => v && v !== '#');
   `}</style>
 </head>
 <body class="antialiased" style="background:var(--bg);color:var(--text)">
+    <PageLoader />
   <header class="sticky top-0 z-50" style="background:var(--surface);border-bottom:4px solid var(--primary)">
     <div class="max-w-7xl mx-auto flex items-center justify-between px-5 md:px-8 py-4">
       <a href={`/${school.slug}`} class="flex items-center gap-3">

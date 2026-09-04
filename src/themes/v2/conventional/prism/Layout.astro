@@ -17,6 +17,7 @@ const prefix = `/${school.slug}`; const { pathname } = Astro.url;
 const social = (school.socialHandles as Record<string, string>) || {};
 const socialEntries = Object.entries(social).filter(([, v]) => v && v !== '#');
 const locale = school.locale || 'en'; const rtl = ['ar','he','fa','ur'].includes(locale);
+import PageLoader from '../../../../components/PageLoader.astro';
 ---
 <!doctype html>
 <html lang={locale} dir={rtl ? 'rtl' : 'ltr'} class="light scroll-smooth">
@@ -41,6 +42,7 @@ const locale = school.locale || 'en'; const rtl = ['ar','he','fa','ur'].includes
   `}</style>
 </head>
 <body>
+    <PageLoader />
   <header class="sticky top-0 z-40 prism-angular" style="background:var(--surface);border-bottom:2px solid var(--primary)">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-2 pb-3 flex items-center justify-between h-16">
       <a href={`${prefix}/`} class="flex items-center gap-3" aria-label={`${school.name} home`}>

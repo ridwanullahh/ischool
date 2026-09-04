@@ -23,6 +23,7 @@ const socialEntries = Object.entries(social).filter(([, v]) => v && v !== '#');
 const locale = school.locale || 'en';
 const rtl = ['ar','he','fa','ur'].includes(locale);
 const today = new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+import PageLoader from '../../../../components/PageLoader.astro';
 ---
 <!doctype html>
 <html lang={locale} dir={rtl ? 'rtl' : 'ltr'} class="light scroll-smooth">
@@ -45,6 +46,7 @@ const today = new Date().toLocaleDateString('en-US', { year:'numeric', month:'lo
   `}</style>
 </head>
 <body>
+    <PageLoader />
   <header class="border-b-2 heritage-rule" style="background:var(--surface)">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center">
       <div class="flex items-center justify-between text-[10px] uppercase tracking-widest mb-3" style="color:var(--muted)">

@@ -22,6 +22,7 @@ const social = (school.socialHandles as Record<string, string>) || {};
 const socialEntries = Object.entries(social).filter(([, v]) => v && v !== '#');
 const locale = school.locale || 'en';
 const rtl = ['ar','he','fa','ur'].includes(locale);
+import PageLoader from '../../../../components/PageLoader.astro';
 ---
 <!doctype html>
 <html lang={locale} dir={rtl ? 'rtl' : 'ltr'} class="light scroll-smooth">
@@ -50,6 +51,7 @@ const rtl = ['ar','he','fa','ur'].includes(locale);
   `}</style>
 </head>
 <body>
+    <PageLoader />
   <div class="aurora-mesh" aria-hidden="true"><div class="aurora-blob aurora-b1"></div><div class="aurora-blob aurora-b2"></div><div class="aurora-blob aurora-b3"></div></div>
   <header class="relative z-40 sticky top-4 px-4">
     <nav class="aurora-glass max-w-6xl mx-auto rounded-2xl shadow-xl">

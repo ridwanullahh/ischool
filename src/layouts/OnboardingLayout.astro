@@ -8,6 +8,7 @@ interface Props {
 
 const { title = 'Onboarding - iSchool', step = 1 } = Astro.props;
 const steps = ['School Info', 'About Page', 'Contacts', 'Complete'];
+import PageLoader from '../components/PageLoader.astro';
 ---
 <!doctype html>
 <html lang="en">
@@ -19,6 +20,7 @@ const steps = ['School Info', 'About Page', 'Contacts', 'Complete'];
   <title>{title}</title>
 </head>
 <body class="min-h-screen bg-gray-50">
+    <PageLoader />
   <div class="min-h-screen flex flex-col">
     <header class="bg-white border-b border-gray-200">
       <div class="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
