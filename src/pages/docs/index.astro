@@ -1,16 +1,11 @@
 ---
 import MarketingLayout from '../../layouts/MarketingLayout.astro';
-import { getDb } from '../../lib/db/index.js';
-import { platformDocs } from '../../lib/db/schema.js';
-import { eq, asc, and } from 'drizzle-orm';
+import { platformList } from '../../lib/prerender-data.ts';
 
-const db = getDb();
 let docs: any[] = [];
 try {
-  const result = await db.select().from(platformDocs)
-    .where(eq(platformDocs.isPublished, true))
-    .orderBy(asc(platformDocs.sortOrder)).all();
-  docs = Array.isArray(result) ? result : [];
+  docs = await platformList('platform_docs', { field: 'is_published', op: 'eq', value: true });
+  docs.sort((a: any, b: any) => (a.sort_order ?? a.sortOrder ?? 0) - (b.sort_order ?? b.sortOrder ?? 0));
 } catch (e: any) {
   console.error('[docs/index] Error loading docs:', e?.message || e);
 }

@@ -1,0 +1,13 @@
+---
+import DashboardLayout from '../../../layouts/DashboardLayout.astro';
+// Static shell (zero-workers deployment): rendered at build time; the
+// workspace below loads live data client-side from lightbase via
+// /js/lb-runtime.js. Former SSR page removed — see DEPLOYMENT.md.
+---
+<DashboardLayout title="Gmb - Posts - iSchool">
+  <div id="lb-shell-banner" class="hidden"></div>
+  <div id="lb-workspace"></div>
+</DashboardLayout>
+<script is:inline define:vars={{ shellMode: "list", shellCollection: "gmb", shellTitle: "Gmb - Posts", shellRoles: ["school_admin","super_admin"] }}>
+  window.LB_SHELL = { mode: shellMode, collection: shellCollection, title: shellTitle, roles: shellRoles };
+</script>

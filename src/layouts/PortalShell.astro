@@ -1,0 +1,53 @@
+---
+import '../styles/global.css';
+import Toast from '../components/Toast.astro';
+
+interface Props {
+  title?: string;
+}
+
+const { title = 'Portal - iSchool' } = Astro.props;
+// Build-time lightbase config for the client runtime.
+const lbBase = import.meta.env.PUBLIC_LIGHTBASE_BASE_URL || '';
+const lbProject = import.meta.env.PUBLIC_LIGHTBASE_PROJECT || 'ischool';
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <title>{title}</title>
+  </head>
+  <body class="min-h-screen bg-gray-50">
+    <Toast />
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-20">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <a href="/portal" class="w-9 h-9 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, #05B34D 0%, #049940 100%);">
+            <svg class="w-4.5 h-4.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5z M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/></svg>
+          </a>
+          <div>
+            <p class="text-sm font-bold text-gray-900 leading-tight">iSchool Portal</p>
+            <p class="text-[11px] text-gray-500 leading-tight" id="lb-user-email"></p>
+          </div>
+        </div>
+        <nav class="flex items-center gap-4 text-sm">
+          <a href="/portal" class="text-gray-600 hover:text-gray-900 font-medium">Home</a>
+          <button type="button" onclick="window.LbRuntime && window.LbRuntime.logout()" class="text-gray-500 hover:text-gray-800 font-medium">Sign out</button>
+        </nav>
+      </div>
+    </header>
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div id="lb-shell-banner" class="hidden"></div>
+      <div id="lb-workspace"></div>
+      <slot />
+    </main>
+    <script is:inline define:vars={{ lbBase, lbProject }}>
+      window.LB_CONFIG = { baseUrl: lbBase, project: lbProject };
+    </script>
+    <script src="/js/lb-runtime.js" defer></script>
+  </body>
+</html>

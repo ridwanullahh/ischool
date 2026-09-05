@@ -1,24 +1,27 @@
 ---
 import { getV3Theme, getThemeLayout, themeList } from '../../themes/index.js';
 import { getSchoolBySlug, getSchoolClasses } from '../../lib/school-safe.ts';
+import { schoolStaticPaths } from '../../lib/prerender-data.ts';
+
+export async function getStaticPaths() {
+  return await schoolStaticPaths('school');
+}
 
 const slug = Astro.params.slug!;
 
 const school = getSchoolBySlug(slug);
-if (!school) return Astro.redirect('/404');
 
-const previewTheme = Astro.url.searchParams.get('preview_theme');
-const user = Astro.locals.user;
-const isPreviewing = previewTheme && themeList.includes(previewTheme) && user;
-const activeTheme = isPreviewing ? previewTheme : (school.theme || 'aurora');
+const previewTheme = null; // theme preview was an authenticated SSR feature; static pages use the saved theme
+const isPreviewing = false;
+const activeTheme = school.theme || 'aurora';
 
 const v3Theme = getV3Theme(activeTheme);
 const Layout = v3Theme?.Layout || getThemeLayout(activeTheme);
 const PageComponent = v3Theme?.ClassesPage;
 
 // Search/filter/sort params
-const search = (Astro.url.searchParams.get('q') || '').trim().toLowerCase();
-const sort = Astro.url.searchParams.get('sort') || 'newest';
+const search = ''; // client-side search params are not part of a prerendered page
+const sort = 'newest';
 
 let schoolClasses = getSchoolClasses(school.id);
 

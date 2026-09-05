@@ -1,24 +1,13 @@
 ---
 import DashboardLayout from '../../../layouts/DashboardLayout.astro';
+// Static shell (zero-workers deployment): rendered at build time; the
+// workspace below loads live data client-side from lightbase via
+// /js/lb-runtime.js. Former SSR page removed — see DEPLOYMENT.md.
 ---
-<DashboardLayout title="New Popup - iSchool">
-  <div class="max-w-3xl mx-auto">
-    <div class="flex items-center gap-3 mb-6">
-      <a href="/dashboard/popups" class="p-2 rounded-xl transition-colors hover:bg-gray-100 dark:hover:bg-slate-800" style="color:var(--mosaic-text-muted);">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-      </a>
-      <div><h1 class="text-2xl font-bold" style="font-family:'Space Grotesk',sans-serif;color:var(--mosaic-text);">New Popup</h1></div>
-    </div>
-    <form method="POST" action="/api/dashboard/popups" class="mosaic-card p-6 lg:p-8 space-y-6">
-      <div><label class="block text-sm font-semibold mb-2" style="color:var(--mosaic-text);">Title</label><input type="text" name="title" placeholder="Popup title" class="w-full px-4 py-3 rounded-xl text-sm focus:outline-none transition-all" style="background:var(--mosaic-surface-2);border:1px solid var(--mosaic-border);color:var(--mosaic-text);" /></div>
-      <div><label class="block text-sm font-semibold mb-2" style="color:var(--mosaic-text);">Content</label><textarea name="content" rows="5" placeholder="Popup content..." class="w-full px-4 py-3 rounded-xl text-sm focus:outline-none transition-all" style="background:var(--mosaic-surface-2);border:1px solid var(--mosaic-border);color:var(--mosaic-text);"></textarea></div>
-      <div><label class="block text-sm font-semibold mb-2" style="color:var(--mosaic-text);">Image URL</label><input type="text" name="imageUrl" placeholder="https://..." class="w-full px-4 py-3 rounded-xl text-sm focus:outline-none transition-all" style="background:var(--mosaic-surface-2);border:1px solid var(--mosaic-border);color:var(--mosaic-text);" /></div>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div><label class="block text-sm font-semibold mb-2" style="color:var(--mosaic-text);">Button Text</label><input type="text" name="buttonText" placeholder="Learn More" class="w-full px-4 py-3 rounded-xl text-sm focus:outline-none transition-all" style="background:var(--mosaic-surface-2);border:1px solid var(--mosaic-border);color:var(--mosaic-text);" /></div>
-        <div><label class="block text-sm font-semibold mb-2" style="color:var(--mosaic-text);">Button URL</label><input type="text" name="buttonUrl" placeholder="/link" class="w-full px-4 py-3 rounded-xl text-sm focus:outline-none transition-all" style="background:var(--mosaic-surface-2);border:1px solid var(--mosaic-border);color:var(--mosaic-text);" /></div>
-      </div>
-      <div><label class="block text-sm font-semibold mb-2" style="color:var(--mosaic-text);">Display Rule</label><select name="displayRule" class="w-full px-4 py-3 rounded-xl text-sm focus:outline-none transition-all" style="background:var(--mosaic-surface-2);border:1px solid var(--mosaic-border);color:var(--mosaic-text);"><option value="immediate">Show immediately</option><option value="delayed">Show after delay</option><option value="exit">Show on exit intent</option><option value="scroll">Show on scroll</option></select></div>
-      <div class="flex items-center gap-3 pt-4" style="border-top:1px solid var(--mosaic-border);"><button type="submit" class="mosaic-btn-primary px-6 py-2.5 text-sm">Create Popup</button><a href="/dashboard/popups" class="px-4 py-2.5 rounded-xl text-sm font-medium transition-colors hover:bg-gray-100 dark:hover:bg-slate-800" style="color:var(--mosaic-text-muted);">Cancel</a></div>
-    </form>
-  </div>
+<DashboardLayout title="Popups - New - iSchool">
+  <div id="lb-shell-banner" class="hidden"></div>
+  <div id="lb-workspace"></div>
 </DashboardLayout>
+<script is:inline define:vars={{ shellMode: "create", shellCollection: "popups", shellTitle: "Popups - New", shellRoles: ["school_admin","super_admin"] }}>
+  window.LB_SHELL = { mode: shellMode, collection: shellCollection, title: shellTitle, roles: shellRoles };
+</script>

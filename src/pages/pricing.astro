@@ -1,14 +1,11 @@
 ---
 import MarketingLayout from '../layouts/MarketingLayout.astro';
-import { getDb } from '../lib/db/index.js';
-import { subscriptionPlans } from '../lib/db/schema.js';
-import { eq, asc } from 'drizzle-orm';
+import { platformList } from '../lib/prerender-data.ts';
 
-const db = getDb();
 let plans: any[] = [];
 try {
-  const result = await db.select().from(subscriptionPlans).where(eq(subscriptionPlans.isActive, true)).orderBy(asc(subscriptionPlans.sortOrder)).all();
-  plans = Array.isArray(result) ? result : [];
+  plans = await platformList('subscription_plans', { field: 'is_active', op: 'eq', value: true });
+  plans.sort((a: any, b: any) => (a.sort_order ?? a.sortOrder ?? 0) - (b.sort_order ?? b.sortOrder ?? 0));
 } catch (e: any) {
   console.error('[pricing] Error loading plans:', e?.message || e);
 }

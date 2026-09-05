@@ -1,52 +1,13 @@
 ---
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
-import ListToolbar from '../../components/ListToolbar.astro';
-import { getUserSchoolId } from '../../lib/school.js';
-import { getDb } from '../../lib/db/index.js';
-import { studentMedicalRecords, students } from '../../lib/db/schema.js';
-import { eq, desc } from 'drizzle-orm';
-
-const user = Astro.locals.user!;
-const schoolId = getUserSchoolId(user);
-const db = getDb();
-let records: any[] = [];
-let allStudents: any[] = [];
-if (schoolId) {
-  try {
-    allStudents = await db.select().from(students).where(eq(students.schoolId, schoolId)).all() || [];
-    const studentMap = new Map((allStudents||[]).map((s:any) => [s.id, s]));
-    const raw = await db.select().from(studentMedicalRecords).where(eq(studentMedicalRecords.schoolId, schoolId)).orderBy(desc(studentMedicalRecords.createdAt)).all() || [];
-    records = raw.map((r:any) => { const s = studentMap.get(r.studentId ?? r.student_id); return { ...r, studentName: s ? `${s.firstName||s.first_name||''} ${s.lastName||s.last_name||''}`.trim() : 'Unknown', studentIdCode: s?.studentId || s?.student_id || '' }; });
-  } catch {}
-}
-const typeLabels: Record<string,string> = { condition:'Condition', allergy:'Allergy', medication:'Medication', immunization:'Immunization', nurse_visit:'Nurse Visit', incident:'Incident', action_plan:'Action Plan' };
-const typeColors: Record<string,string> = { condition:'rgba(59,130,246,0.1)', allergy:'rgba(239,68,68,0.1)', medication:'rgba(168,85,247,0.1)', immunization:'rgba(5,179,77,0.1)', nurse_visit:'rgba(242,185,28,0.1)', incident:'rgba(249,115,22,0.1)', action_plan:'rgba(20,184,166,0.1)' };
-const typeTextColors: Record<string,string> = { condition:'#3B82F6', allergy:'#EF4444', medication:'#A855F7', immunization:'#05B34D', nurse_visit:'#F2B91C', incident:'#F97316', action_plan:'#14B8A6' };
-const severityColors: Record<string,string> = { low:'bg-gray-100 text-gray-700', medium:'bg-amber-100 text-amber-700', high:'bg-orange-100 text-orange-700', critical:'bg-red-100 text-red-700' };
+// Static shell (zero-workers deployment): rendered at build time; the
+// workspace below loads live data client-side from lightbase via
+// /js/lb-runtime.js. Former SSR page removed — see DEPLOYMENT.md.
 ---
-
-<DashboardLayout title="Medical Records - iSchool">
-  <div class="mb-6"><h1 class="text-2xl font-bold mb-1" style="font-family:'Space Grotesk',sans-serif;color:var(--mosaic-text);">Medical Records</h1><p class="text-sm" style="color:var(--mosaic-text-muted);">Track student medical conditions, allergies, and incidents.</p></div>
-
-  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-    <div class="mosaic-card p-4"><p class="text-[10px] font-medium uppercase tracking-wider mb-1" style="color:var(--mosaic-text-subtle);">Total Records</p><p class="text-2xl font-bold" style="font-family:'Space Grotesk',sans-serif;color:var(--mosaic-text);">{records.length}</p></div>
-    <div class="mosaic-card p-4"><p class="text-[10px] font-medium uppercase tracking-wider mb-1" style="color:var(--mosaic-text-subtle);">Conditions</p><p class="text-2xl font-bold" style="font-family:'Space Grotesk',sans-serif;color:#3B82F6;">{records.filter(r => r.type==='condition').length}</p></div>
-    <div class="mosaic-card p-4"><p class="text-[10px] font-medium uppercase tracking-wider mb-1" style="color:var(--mosaic-text-subtle);">Allergies</p><p class="text-2xl font-bold" style="font-family:'Space Grotesk',sans-serif;color:#EF4444;">{records.filter(r => r.type==='allergy').length}</p></div>
-    <div class="mosaic-card p-4"><p class="text-[10px] font-medium uppercase tracking-wider mb-1" style="color:var(--mosaic-text-subtle);">Critical</p><p class="text-2xl font-bold" style="font-family:'Space Grotesk',sans-serif;color:#EF4444;">{records.filter(r => r.severity==='critical').length}</p></div>
-  </div>
-
-  <ListToolbar searchPlaceholder="Search medical records..." filterOptions={Object.entries(typeLabels).map(([v,l]) => ({value:v,label:l}))} filterField="type" newItemHref="/dashboard/medical/new" newItemLabel="+ New Record" />
-
-  <div id="list-container" class="space-y-3">
-    {records.length === 0 ? (
-      <div class="mosaic-card p-12 text-center"><h3 class="text-base font-semibold mb-1" style="color:var(--mosaic-text);">No medical records yet</h3><a href="/dashboard/medical/new" class="mosaic-btn-primary inline-block px-6 py-2.5 text-sm mt-2">+ New Record</a></div>
-    ) : records.map(r => (
-      <div data-list-item data-title={r.studentName||''} data-status={r.type||''} data-date={r.date||r.createdAt||r.created_at||''} class="mosaic-card p-4 group flex items-center gap-4">
-        <div class="w-10 h-10 rounded-xl flex items-center justify-center" style={`background:${typeColors[r.type]||'rgba(5,179,77,0.1)'};`}><span class="text-xs font-bold" style={`color:${typeTextColors[r.type]||'#05B34D'};`}>{(typeLabels[r.type]||'M').charAt(0)}</span></div>
-        <div class="flex-1 min-w-0"><p class="text-sm font-semibold" style="color:var(--mosaic-text);">{r.studentName}</p><p class="text-xs" style="color:var(--mosaic-text-muted);">{r.title || r.description || ''}</p></div>
-        <span class="text-[10px] font-bold uppercase px-2 py-1 rounded-full" style={`background:${typeColors[r.type]||'rgba(5,179,77,0.1)'};color:${typeTextColors[r.type]||'#05B34D'};`}>{typeLabels[r.type]||r.type}</span>
-        {r.severity && <span class:list={["text-[10px] font-bold uppercase px-2 py-1 rounded-full",severityColors[r.severity]||"bg-gray-100 text-gray-700"]}>{r.severity}</span>}
-      </div>
-    ))}
-  </div>
+<DashboardLayout title="Medical - iSchool">
+  <div id="lb-shell-banner" class="hidden"></div>
+  <div id="lb-workspace"></div>
 </DashboardLayout>
+<script is:inline define:vars={{ shellMode: "list", shellCollection: "medical", shellTitle: "Medical", shellRoles: ["school_admin","super_admin"] }}>
+  window.LB_SHELL = { mode: shellMode, collection: shellCollection, title: shellTitle, roles: shellRoles };
+</script>

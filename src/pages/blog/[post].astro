@@ -1,22 +1,14 @@
 ---
 import MarketingLayout from '../../layouts/MarketingLayout.astro';
-import { getDb } from '../../lib/db/index.js';
-import { platformBlogPosts } from '../../lib/db/schema.js';
-import { eq, and } from 'drizzle-orm';
+import { platformList } from '../../lib/prerender-data.ts';
 import { formatDate } from '../../lib/utils.js';
 
-const postSlug = Astro.params.post;
-if (!postSlug) return Astro.redirect('/blog');
-const db = getDb();
-let post: any = null;
-try {
-  post = await db.select().from(platformBlogPosts)
-    .where(and(eq(platformBlogPosts.slug, postSlug), eq(platformBlogPosts.isPublished, true)))
-    .get();
-} catch (e: any) {
-  console.error('[blog/post] Error loading post:', e?.message || e);
+export async function getStaticPaths() {
+  const posts = await platformList('platform_blog_posts', { field: 'is_published', op: 'eq', value: true });
+  return posts.filter((p) => p.slug).map((p) => ({ params: { post: p.slug }, props: { post: p } }));
 }
-if (!post) return Astro.redirect('/blog');
+
+const { post } = Astro.props;
 
 // Defensive: ensure content is a string before .split()
 const postContent: string = typeof post.content === 'string' ? post.content : String(post.content || '');

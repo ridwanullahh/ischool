@@ -1,37 +1,13 @@
 ---
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
-import ListToolbar from '../../components/ListToolbar.astro';
-import { getUserSchoolId } from '../../lib/school.js';
-import { getDb } from '../../lib/db/index.js';
-import { banners } from '../../lib/db/schema.js';
-import { eq, desc } from 'drizzle-orm';
-const user = Astro.locals.user!;
-const schoolId = getUserSchoolId(user);
-const db = getDb();
-let items: any[] = [];
-if (schoolId) { try { items = await db.select().from(banners).where(eq(banners.schoolId, schoolId)).orderBy(desc(banners.createdAt)).all() || []; } catch {} }
-const success = Astro.url.searchParams.get('success');
+// Static shell (zero-workers deployment): rendered at build time; the
+// workspace below loads live data client-side from lightbase via
+// /js/lb-runtime.js. Former SSR page removed — see DEPLOYMENT.md.
 ---
 <DashboardLayout title="Banners - iSchool">
-  {success && <div class="mosaic-card p-4 mb-4" style="border-color:#05B34D;background:rgba(5,179,77,0.05);"><p class="text-sm font-medium" style="color:#05B34D;">Banner saved successfully.</p></div>}
-  <div class="mb-6"><h1 class="text-2xl font-bold mb-1" style="font-family:'Space Grotesk',sans-serif;color:var(--mosaic-text);">Banners</h1><p class="text-sm" style="color:var(--mosaic-text-muted);">Manage website banners.</p></div>
-  <ListToolbar searchPlaceholder="Search banners..." newItemHref="/dashboard/banners/new" newItemLabel="+ New Banner" />
-  <div id="list-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-    {items.length === 0 ? (
-      <div class="col-span-full mosaic-card p-12 text-center"><h3 class="text-base font-semibold mb-1" style="color:var(--mosaic-text);">No banners yet</h3><a href="/dashboard/banners/new" class="mosaic-btn-primary inline-block px-6 py-2.5 text-sm mt-2">+ New Banner</a></div>
-    ) : items.map(item => (
-      <div data-list-item data-title={item.title||''} data-status={String(item.isActive ?? item.is_active ?? true)} data-date={item.createdAt||item.created_at||''} class="mosaic-card overflow-hidden group">
-        {item.imageUrl||item.image_url ? <div class="h-32 overflow-hidden"><img src={item.imageUrl||item.image_url} alt={item.title} class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" /></div> : <div class="h-32 flex items-center justify-center" style="background:linear-gradient(135deg,rgba(5,179,77,0.08) 0%,rgba(5,179,77,0.02) 100%);"><svg class="w-10 h-10" style="color:rgba(5,179,77,0.3);" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"/></svg></div>}
-        <div class="p-4">
-          <div class="flex items-center gap-2 mb-2">
-            {item.position && <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full" style="background:rgba(99,102,241,0.1);color:#6366F1;">{item.position}</span>}
-            <span class:list={["text-[10px] font-medium px-2 py-0.5 rounded-full",(item.isActive ?? item.is_active ?? true)?"bg-green-100 text-green-700":"bg-gray-100 text-gray-600"]}>{(item.isActive ?? item.is_active ?? true) ? 'Active' : 'Inactive'}</span>
-          </div>
-          <h3 class="text-sm font-bold mb-1" style="color:var(--mosaic-text);">{item.title||'Untitled'}</h3>
-          {item.linkUrl||item.link_url ? <p class="text-xs truncate" style="color:var(--mosaic-text-muted);">{item.linkUrl||item.link_url}</p> : ''}
-          <div class="flex items-center justify-between mt-2"><span class="text-[11px]" style="color:var(--mosaic-text-subtle);">{item.startDate||item.start_date||''}</span><a href={`/dashboard/banners/${item.id}/edit`} class="p-1.5 rounded-lg transition-colors hover:bg-gray-100 dark:hover:bg-slate-700" title="Edit"><svg class="w-4 h-4" style="color:var(--mosaic-text-muted);" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></a></div>
-        </div>
-      </div>
-    ))}
-  </div>
+  <div id="lb-shell-banner" class="hidden"></div>
+  <div id="lb-workspace"></div>
 </DashboardLayout>
+<script is:inline define:vars={{ shellMode: "list", shellCollection: "banners", shellTitle: "Banners", shellRoles: ["school_admin","super_admin"] }}>
+  window.LB_SHELL = { mode: shellMode, collection: shellCollection, title: shellTitle, roles: shellRoles };
+</script>

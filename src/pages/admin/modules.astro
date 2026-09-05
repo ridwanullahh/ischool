@@ -1,82 +1,12 @@
 ---
 import AdminLayout from '../../layouts/AdminLayout.astro';
-import { PLATFORM_MODULES } from '../api/admin/modules';
-
-const modules = PLATFORM_MODULES;
-const statusColors: Record<string, string> = {
-  active: 'bg-green-100 text-green-700',
-  disabled: 'bg-red-100 text-red-700',
-  maintenance: 'bg-amber-100 text-amber-700',
-  coming_soon: 'bg-blue-100 text-blue-700',
-};
+// Static shell (zero-workers deployment) — data via the platform-admin
+// lightbase Edge Function through /js/lb-runtime.js.
 ---
-
-<AdminLayout title="Module Control - iSchool Admin">
-  <div class="space-y-6">
-    <div>
-      <h1 class="text-2xl font-bold text-gray-900">Module Control</h1>
-      <p class="text-sm text-gray-500 mt-1">Enable, disable, or put modules under maintenance across all schools. Changes affect every school on the platform.</p>
-    </div>
-
-    <div id="modules-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {modules.map(m => (
-        <div class="bg-white rounded-xl border border-gray-200 p-5" data-module={m.key}>
-          <div class="flex items-center justify-between mb-3">
-            <h3 class="text-sm font-semibold text-gray-900">{m.label}</h3>
-            <span class={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded status-badge ${statusColors[m.status]}`}>{m.status.replace(/_/g, ' ')}</span>
-          </div>
-          <div class="flex gap-2">
-            <button data-module={m.key} data-status="active" class="flex-1 px-3 py-1.5 text-xs font-medium rounded-lg border border-green-300 text-green-700 hover:bg-green-50 status-btn">Active</button>
-            <button data-module={m.key} data-status="maintenance" class="flex-1 px-3 py-1.5 text-xs font-medium rounded-lg border border-amber-300 text-amber-700 hover:bg-amber-50 status-btn">Maintenance</button>
-            <button data-module={m.key} data-status="coming_soon" class="flex-1 px-3 py-1.5 text-xs font-medium rounded-lg border border-blue-300 text-blue-700 hover:bg-blue-50 status-btn">Coming Soon</button>
-            <button data-module={m.key} data-status="disabled" class="flex-1 px-3 py-1.5 text-xs font-medium rounded-lg border border-red-300 text-red-700 hover:bg-red-50 status-btn">Disable</button>
-          </div>
-        </div>
-      ))}
-    </div>
-  </div>
-
-  <script is:inline set:html={`(function(){
-    async function loadStatuses() {
-      try {
-        var res = await fetch('/api/admin/modules');
-        var data = await res.json();
-        if (data.modules) {
-          data.modules.forEach(function(m) {
-            var card = document.querySelector('[data-module="' + m.key + '"]');
-            if (card) {
-              var badge = card.querySelector('.status-badge');
-              if (badge) {
-                badge.textContent = m.status.replace(/_/g, ' ');
-                badge.className = 'text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded status-badge ' +
-                  (m.status === 'active' ? 'bg-green-100 text-green-700' :
-                   m.status === 'disabled' ? 'bg-red-100 text-red-700' :
-                   m.status === 'maintenance' ? 'bg-amber-100 text-amber-700' :
-                   'bg-blue-100 text-blue-700');
-              }
-            }
-          });
-        }
-      } catch (e) {}
-    }
-
-    document.querySelectorAll('.status-btn').forEach(function(btn) {
-      btn.addEventListener('click', async function() {
-        var module = btn.getAttribute('data-module');
-        var status = btn.getAttribute('data-status');
-        try {
-          var res = await fetch('/api/admin/modules', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ module: module, status: status })
-          });
-          if (res.ok) {
-            loadStatuses();
-          }
-        } catch (e) {}
-      });
-    });
-
-    loadStatuses();
-  })();`} />
+<AdminLayout title="Platform Admin - Modules">
+  <div id="lb-shell-banner" class="hidden"></div>
+  <div id="lb-workspace"></div>
 </AdminLayout>
+<script is:inline define:vars={{ shellMode: "admin-list", shellCollection: "modules", shellTitle: "Platform Admin - Modules", shellRoles: ["super_admin"] }}>
+  window.LB_SHELL = { mode: shellMode, collection: shellCollection, title: shellTitle, roles: shellRoles };
+</script>

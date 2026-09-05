@@ -78,12 +78,7 @@ const { schoolSlug } = Astro.props;
       const fd = new FormData();
       fd.append('file', file);
       try {
-        const res = await fetch('/api/dashboard/upload', { method: 'POST', body: fd });
-        if (res.ok) {
-          const data = await res.json();
-          pendingAttachments.push({ url: data.url, fileName: data.fileName, type: data.type });
-          renderAttachments();
-        }
+        (window as any).toast?.error('Uploads move to lightbase storage in the static deployment — file attach is deferred.');
       } catch { /* skip */ }
     }
     fileInput.value = '';
@@ -156,15 +151,13 @@ const { schoolSlug } = Astro.props;
     addTypingIndicator();
 
     try {
-      const res = await fetch('/api/dashboard/ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: msg || 'I have attached some files for you to review.',
-          conversationId,
-          stream: true,
-          attachments: attachments.length > 0 ? attachments : undefined,
-        }),
+      const res = await window.LbRuntime.invoke('ai-chat', {
+        message: msg || 'I have attached some files for you to review.',
+        conversationId,
+        stream: false,
+        attachments: attachments.length > 0 ? attachments : undefined,
+      }).then(function (r) {
+        return new Response(JSON.stringify(r), { headers: { 'Content-Type': 'application/json' } });
       });
       removeTypingIndicator();
 

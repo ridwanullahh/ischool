@@ -1,43 +1,13 @@
 ---
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
-import ListToolbar from '../../components/ListToolbar.astro';
-import { getUserSchoolId } from '../../lib/school.js';
-import { getDb } from '../../lib/db/index.js';
-import { faqs } from '../../lib/db/schema.js';
-import { eq, asc } from 'drizzle-orm';
-const user = Astro.locals.user!;
-const schoolId = getUserSchoolId(user);
-const db = getDb();
-let items: any[] = [];
-if (schoolId) { try { items = await db.select().from(faqs).where(eq(faqs.schoolId, schoolId)).orderBy(asc(faqs.sortOrder)).all() || []; } catch {} }
-const success = Astro.url.searchParams.get('success');
+// Static shell (zero-workers deployment): rendered at build time; the
+// workspace below loads live data client-side from lightbase via
+// /js/lb-runtime.js. Former SSR page removed — see DEPLOYMENT.md.
 ---
-<DashboardLayout title="FAQs - iSchool">
-  {success && <div class="mosaic-card p-4 mb-4" style="border-color:#05B34D;background:rgba(5,179,77,0.05);"><p class="text-sm font-medium" style="color:#05B34D;">FAQ saved successfully.</p></div>}
-  <div class="mb-6"><h1 class="text-2xl font-bold mb-1" style="font-family:'Space Grotesk',sans-serif;color:var(--mosaic-text);">FAQs</h1><p class="text-sm" style="color:var(--mosaic-text-muted);">Manage frequently asked questions.</p></div>
-  <ListToolbar searchPlaceholder="Search FAQs..." newItemHref="/dashboard/faqs/new" newItemLabel="+ New FAQ" />
-  <div id="list-container" class="space-y-3">
-    {items.length === 0 ? (
-      <div class="mosaic-card p-12 text-center"><h3 class="text-base font-semibold mb-1" style="color:var(--mosaic-text);">No FAQs yet</h3><a href="/dashboard/faqs/new" class="mosaic-btn-primary inline-block px-6 py-2.5 text-sm mt-2">+ New FAQ</a></div>
-    ) : items.map(item => (
-      <div data-list-item data-title={item.question||''} data-status={String(item.isPublished ?? item.is_published ?? true)} data-date={item.createdAt||item.created_at||''} class="mosaic-card p-5 group">
-        <div class="flex items-start gap-4">
-          <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style="background:rgba(5,179,77,0.1);">
-            <svg class="w-5 h-5" style="color:#05B34D;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          </div>
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2 mb-1">
-              {item.category && <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full" style="background:rgba(99,102,241,0.1);color:#6366F1;">{item.category}</span>}
-              <span class="text-[11px]" style="color:var(--mosaic-text-subtle);">Order: {item.sortOrder ?? item.sort_order ?? 0}</span>
-            </div>
-            <h3 class="text-sm font-bold mb-1" style="color:var(--mosaic-text);">{item.question||'Untitled'}</h3>
-            <p class="text-xs line-clamp-2" style="color:var(--mosaic-text-muted);">{item.answer||'No answer.'}</p>
-          </div>
-          <a href={`/dashboard/faqs/${item.id}/edit`} class="p-2 rounded-lg transition-colors hover:bg-gray-100 dark:hover:bg-slate-700 flex-shrink-0" title="Edit">
-            <svg class="w-4 h-4" style="color:var(--mosaic-text-muted);" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-          </a>
-        </div>
-      </div>
-    ))}
-  </div>
+<DashboardLayout title="Faqs - iSchool">
+  <div id="lb-shell-banner" class="hidden"></div>
+  <div id="lb-workspace"></div>
 </DashboardLayout>
+<script is:inline define:vars={{ shellMode: "list", shellCollection: "faqs", shellTitle: "Faqs", shellRoles: ["school_admin","super_admin"] }}>
+  window.LB_SHELL = { mode: shellMode, collection: shellCollection, title: shellTitle, roles: shellRoles };
+</script>

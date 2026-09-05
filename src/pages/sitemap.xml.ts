@@ -1,12 +1,15 @@
 import type { APIRoute } from 'astro';
-import { getDb } from '../lib/db/index.js';
-import { schools, blogPosts, announcements, programs, classes } from '../lib/db/schema.js';
-import { eq } from 'drizzle-orm';
+import { allSchools, preloadAllSchools, cachedSchoolData } from '../lib/prerender-data.ts';
 
-export const GET: APIRoute = async ({ url }) => {
-  const db = getDb();
-  const baseUrl = url.origin;
+// Prerendered endpoint (static output): the sitemap is generated at BUILD
+// time from lightbase data. Refresh = rebuild, matching the snapshot-page
+// philosophy of the zero-workers deployment.
+export const GET: APIRoute = async () => {
+  const baseUrl = (process.env.PUBLIC_SITE_URL || process.env.PUBLIC_BASE_URL || 'http://localhost:4321').replace(/\/$/, '');
   const now = new Date().toISOString();
+
+  await preloadAllSchools();
+  const schools = await allSchools();
 
   let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
   xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
@@ -20,17 +23,8 @@ export const GET: APIRoute = async ({ url }) => {
   xml += `  <url><loc>${baseUrl}/blog</loc><lastmod>${now}</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>\n`;
   xml += `  <url><loc>${baseUrl}/docs</loc><lastmod>${now}</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>\n`;
 
-  // All schools — await the async Lightbase call, default to [] on error
-  let allSchools: any[] = [];
-  try {
-    const result = await db.select().from(schools).all();
-    allSchools = Array.isArray(result) ? result : [];
-  } catch (e: any) {
-    console.error('[sitemap] Failed to load schools:', e?.message || e);
-  }
-
-  for (const school of allSchools) {
-    const slug = school.slug || school.slug_slug;
+  for (const school of schools) {
+    const slug = school.slug;
     if (!slug) continue;
     xml += `  <url><loc>${baseUrl}/${slug}</loc><lastmod>${now}</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>\n`;
     xml += `  <url><loc>${baseUrl}/${slug}/about</loc><lastmod>${now}</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>\n`;
@@ -42,51 +36,25 @@ export const GET: APIRoute = async ({ url }) => {
     xml += `  <url><loc>${baseUrl}/${slug}/faqs</loc><lastmod>${now}</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>\n`;
     xml += `  <url><loc>${baseUrl}/${slug}/contact</loc><lastmod>${now}</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>\n`;
 
-    // Blog posts
-    try {
-      const posts = await db.select().from(blogPosts).where(eq(blogPosts.schoolId, school.id)).all();
-      for (const post of (posts || [])) {
-        const isPub = post.isPublished === true || post.is_published === 1 || post.is_published === true || post.status === 'published';
-        if (isPub && post.slug) {
-          const updated = post.updatedAt || post.updated_at || post.createdAt || post.created_at || now;
-          xml += `  <url><loc>${baseUrl}/${slug}/blog/${post.slug}</loc><lastmod>${new Date(updated).toISOString()}</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>\n`;
-        }
+    for (const post of cachedSchoolData(slug, 'posts')) {
+      const isPub = post.status === 'published' || post.is_published === true || post.published === true || post.published === 1;
+      if (isPub && post.slug) {
+        xml += `  <url><loc>${baseUrl}/${slug}/blog/${post.slug}</loc><lastmod>${now}</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>\n`;
       }
-    } catch { /* ignore per-school errors */ }
-
-    // Announcements
-    try {
-      const anns = await db.select().from(announcements).where(eq(announcements.schoolId, school.id)).all();
-      for (const ann of (anns || [])) {
-        const isPub = ann.published === true || ann.published === 1;
-        if (isPub && ann.slug) {
-          const updated = ann.updatedAt || ann.updated_at || ann.createdAt || ann.created_at || now;
-          xml += `  <url><loc>${baseUrl}/${slug}/announcements/${ann.slug}</loc><lastmod>${new Date(updated).toISOString()}</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>\n`;
-        }
+    }
+    for (const ann of cachedSchoolData(slug, 'announcements')) {
+      if ((ann.published === true || ann.published === 1) && ann.slug) {
+        xml += `  <url><loc>${baseUrl}/${slug}/announcements/${ann.slug}</loc><lastmod>${now}</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>\n`;
       }
-    } catch { /* ignore */ }
-
-    // Programs
-    try {
-      const progs = await db.select().from(programs).where(eq(programs.schoolId, school.id)).all();
-      for (const prog of (progs || [])) {
-        const ident = prog.slug || prog.id;
-        if (ident) {
-          xml += `  <url><loc>${baseUrl}/${slug}/programs/${ident}</loc><lastmod>${now}</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>\n`;
-        }
-      }
-    } catch { /* ignore */ }
-
-    // Classes
-    try {
-      const cls = await db.select().from(classes).where(eq(classes.schoolId, school.id)).all();
-      for (const c of (cls || [])) {
-        const ident = c.slug || c.id;
-        if (ident) {
-          xml += `  <url><loc>${baseUrl}/${slug}/classes/${ident}</loc><lastmod>${now}</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>\n`;
-        }
-      }
-    } catch { /* ignore */ }
+    }
+    for (const prog of cachedSchoolData(slug, 'programs')) {
+      const ident = prog.slug || prog.id;
+      if (ident) xml += `  <url><loc>${baseUrl}/${slug}/programs/${ident}</loc><lastmod>${now}</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>\n`;
+    }
+    for (const cls of cachedSchoolData(slug, 'classes')) {
+      const ident = cls.slug || cls.id;
+      if (ident) xml += `  <url><loc>${baseUrl}/${slug}/classes/${ident}</loc><lastmod>${now}</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>\n`;
+    }
   }
 
   xml += '</urlset>';

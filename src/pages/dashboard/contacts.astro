@@ -1,82 +1,13 @@
 ---
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
-import ListToolbar from '../../components/ListToolbar.astro';
-import { getUserSchoolId } from '../../lib/school.js';
-import { getDb } from '../../lib/db/index.js';
-import { contactInfo, contactSubmissions } from '../../lib/db/schema.js';
-import { eq, asc, desc } from 'drizzle-orm';
-
-const user = Astro.locals.user!;
-const schoolId = getUserSchoolId(user);
-const db = getDb();
-let contacts: any[] = [];
-let submissions: any[] = [];
-if (schoolId) {
-  try {
-    contacts = await db.select().from(contactInfo).where(eq(contactInfo.schoolId, schoolId)).orderBy(asc(contactInfo.sortOrder)).all() || [];
-    const subs = await db.select().from(contactSubmissions).where(eq(contactSubmissions.schoolId, schoolId)).orderBy(desc(contactSubmissions.createdAt)).limit(10).all();
-    submissions = (subs || []).map((s: any) => ({ ...s, parsedData: typeof s.data === 'string' ? (() => { try { return JSON.parse(s.data); } catch { return {}; } })() : s.data }));
-  } catch {}
-}
-const success = Astro.url.searchParams.get('success');
+// Static shell (zero-workers deployment): rendered at build time; the
+// workspace below loads live data client-side from lightbase via
+// /js/lb-runtime.js. Former SSR page removed — see DEPLOYMENT.md.
 ---
-
 <DashboardLayout title="Contacts - iSchool">
-  {success && <div class="mosaic-card p-4 mb-4" style="border-color:#05B34D;background:rgba(5,179,77,0.05);"><p class="text-sm font-medium" style="color:#05B34D;">Contact info saved successfully.</p></div>}
-
-  <div class="mb-6"><h1 class="text-2xl font-bold mb-1" style="font-family:'Space Grotesk',sans-serif;color:var(--mosaic-text);">Contacts</h1><p class="text-sm" style="color:var(--mosaic-text-muted);">Manage contact information and view submissions.</p></div>
-
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-    <div class="mosaic-card p-6">
-      <h2 class="text-sm font-bold uppercase tracking-wider mb-4" style="color:var(--mosaic-text-subtle);">Contact Information</h2>
-      <form method="POST" action="/api/dashboard/contacts" class="space-y-4">
-        <input type="hidden" name="action" value="bulkUpdate" />
-        <div id="contacts-container" class="space-y-3">
-          {contacts.length > 0 ? contacts.map((c, i) => (
-            <div class="contact-row grid grid-cols-12 gap-2 items-end p-3 rounded-xl relative" style="background:var(--mosaic-surface-2);">
-              <div class="col-span-3"><label class="block text-[10px] font-medium mb-1" style="color:var(--mosaic-text-subtle);">Type</label><select name={`contact_type_${i}`} class="w-full px-2 py-2 rounded-lg text-xs" style="background:var(--mosaic-surface);border:1px solid var(--mosaic-border);color:var(--mosaic-text);"><option value="general" selected={c.type==='general'}>General</option><option value="admissions" selected={c.type==='admissions'}>Admissions</option><option value="head_office" selected={c.type==='head_office'}>Head Office</option></select></div>
-              <div class="col-span-4"><label class="block text-[10px] font-medium mb-1" style="color:var(--mosaic-text-subtle);">Label</label><input type="text" name={`contact_label_${i}`} value={c.label||''} placeholder="Label" class="w-full px-2 py-2 rounded-lg text-xs" style="background:var(--mosaic-surface);border:1px solid var(--mosaic-border);color:var(--mosaic-text);" /></div>
-              <div class="col-span-4"><label class="block text-[10px] font-medium mb-1" style="color:var(--mosaic-text-subtle);">Value</label><input type="text" name={`contact_value_${i}`} value={c.value||''} placeholder="Value" class="w-full px-2 py-2 rounded-lg text-xs" style="background:var(--mosaic-surface);border:1px solid var(--mosaic-border);color:var(--mosaic-text);" /></div>
-              <button type="button" onclick="this.closest('.contact-row').remove()" class="col-span-1 p-2 rounded-lg" style="color:var(--mosaic-text-subtle);"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
-            </div>
-          )) : (
-            <div class="contact-row grid grid-cols-12 gap-2 items-end p-3 rounded-xl relative" style="background:var(--mosaic-surface-2);">
-              <div class="col-span-3"><select name="contact_type_0" class="w-full px-2 py-2 rounded-lg text-xs" style="background:var(--mosaic-surface);border:1px solid var(--mosaic-border);color:var(--mosaic-text);"><option value="general">General</option><option value="admissions">Admissions</option></select></div>
-              <div class="col-span-4"><input type="text" name="contact_label_0" placeholder="Label" class="w-full px-2 py-2 rounded-lg text-xs" style="background:var(--mosaic-surface);border:1px solid var(--mosaic-border);color:var(--mosaic-text);" /></div>
-              <div class="col-span-4"><input type="text" name="contact_value_0" placeholder="Value" class="w-full px-2 py-2 rounded-lg text-xs" style="background:var(--mosaic-surface);border:1px solid var(--mosaic-border);color:var(--mosaic-text);" /></div>
-              <button type="button" onclick="this.closest('.contact-row').remove()" class="col-span-1 p-2" style="color:var(--mosaic-text-subtle);"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
-            </div>
-          )}
-        </div>
-        <button type="button" onclick="addContactRow()" class="text-sm font-medium" style="color:#05B34D;">+ Add Contact</button>
-        <div class="pt-4" style="border-top:1px solid var(--mosaic-border);"><button type="submit" class="mosaic-btn-primary px-6 py-2.5 text-sm">Save Contacts</button></div>
-      </form>
-    </div>
-
-    <div class="mosaic-card p-6">
-      <h2 class="text-sm font-bold uppercase tracking-wider mb-4" style="color:var(--mosaic-text-subtle);">Recent Submissions</h2>
-      {submissions.length === 0 ? <p class="text-sm text-center py-8" style="color:var(--mosaic-text-muted);">No submissions yet.</p> : (
-        <div class="space-y-2">
-          {submissions.map(s => (
-            <div class="p-3 rounded-xl" style="background:var(--mosaic-surface-2);">
-              <div class="flex items-center justify-between mb-1"><span class="text-xs font-semibold" style="color:var(--mosaic-text);">{s.form_type || s.formType || 'General'}</span><span class="text-[10px]" style="color:var(--mosaic-text-subtle);">{s.createdAt||s.created_at?new Date(s.createdAt||s.created_at).toLocaleDateString():''}</span></div>
-              <p class="text-xs" style="color:var(--mosaic-text-muted);">{JSON.stringify(s.parsedData || {}).substring(0, 100)}</p>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  </div>
-
-  <script is:inline>
-    function addContactRow() {
-      var c = document.getElementById('contacts-container');
-      var i = c.children.length;
-      var row = document.createElement('div');
-      row.className = 'contact-row grid grid-cols-12 gap-2 items-end p-3 rounded-xl relative';
-      row.style.background = 'var(--mosaic-surface-2)';
-      row.innerHTML = '<div class="col-span-3"><select name="contact_type_'+i+'" class="w-full px-2 py-2 rounded-lg text-xs" style="background:var(--mosaic-surface);border:1px solid var(--mosaic-border);color:var(--mosaic-text);"><option value="general">General</option><option value="admissions">Admissions</option></select></div><div class="col-span-4"><input type="text" name="contact_label_'+i+'" placeholder="Label" class="w-full px-2 py-2 rounded-lg text-xs" style="background:var(--mosaic-surface);border:1px solid var(--mosaic-border);color:var(--mosaic-text);" /></div><div class="col-span-4"><input type="text" name="contact_value_'+i+'" placeholder="Value" class="w-full px-2 py-2 rounded-lg text-xs" style="background:var(--mosaic-surface);border:1px solid var(--mosaic-border);color:var(--mosaic-text);" /></div><button type="button" onclick="this.closest(\'.contact-row\').remove()" class="col-span-1 p-2" style="color:var(--mosaic-text-subtle);"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>';
-      c.appendChild(row);
-    }
-  </script>
+  <div id="lb-shell-banner" class="hidden"></div>
+  <div id="lb-workspace"></div>
 </DashboardLayout>
+<script is:inline define:vars={{ shellMode: "list", shellCollection: "contact_info", shellTitle: "Contacts", shellRoles: ["school_admin","super_admin"] }}>
+  window.LB_SHELL = { mode: shellMode, collection: shellCollection, title: shellTitle, roles: shellRoles };
+</script>

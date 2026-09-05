@@ -1,39 +1,22 @@
 ---
 import MarketingLayout from '../../layouts/MarketingLayout.astro';
-import { getDb } from '../../lib/db/index.js';
-import { platformDocs } from '../../lib/db/schema.js';
-import { eq, and, asc } from 'drizzle-orm';
+import { platformList } from '../../lib/prerender-data.ts';
 
-const docSlug = Astro.params.slug;
-if (!docSlug) return Astro.redirect('/docs');
-const db = getDb();
-let doc: any = null;
-try {
-  doc = await db.select().from(platformDocs)
-    .where(and(eq(platformDocs.slug, docSlug), eq(platformDocs.isPublished, true)))
-    .get();
-} catch (e: any) {
-  console.error('[docs/slug] Error loading doc:', e?.message || e);
-}
-if (!doc) return Astro.redirect('/docs');
-
-let allDocs: any[] = [];
-try {
-  const result = await db.select().from(platformDocs)
-    .where(eq(platformDocs.isPublished, true))
-    .orderBy(asc(platformDocs.sortOrder)).all();
-  allDocs = Array.isArray(result) ? result : [];
-} catch (e: any) {
-  console.error('[docs/slug] Error loading all docs:', e?.message || e);
+export async function getStaticPaths() {
+  const docs = await platformList('platform_docs', { field: 'is_published', op: 'eq', value: true });
+  return docs.filter((d) => d.slug).map((d) => ({ params: { slug: d.slug }, props: { doc: d, allDocs: docs } }));
 }
 
-const categories = [...new Set(allDocs.map(d => d.category || 'Getting Started'))];
+const { doc, allDocs } = Astro.props;
+
+const categories = [...new Set((allDocs || []).map((d: any) => d.category || 'Getting Started'))];
 
 // Defensive field access
 const docTitle: string = doc.title || 'Untitled Document';
 const docExcerpt: string = doc.excerpt || '';
 const docCategory: string = doc.category || 'Documentation';
 const docContent: string = typeof doc.content === 'string' ? doc.content : String(doc.content || '');
+const docSlug: string = doc.slug || '';
 ---
 
 <MarketingLayout title={`${docTitle} - iSchool Docs`}>

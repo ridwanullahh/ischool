@@ -6,19 +6,21 @@
  */
 import { getV3Theme, getThemeLayout, themeList } from '../../../themes/index.js';
 import { getSchoolBySlug, getSchoolFormBySlug } from '../../../lib/school-safe.ts';
+import { schoolStaticPaths } from '../../../lib/prerender-data.ts';
+
+export async function getStaticPaths() {
+  return await schoolStaticPaths('forms');
+}
 
 const slug = Astro.params.slug!;
 const formSlug = Astro.params.formSlug!;
 const school = getSchoolBySlug(slug);
-if (!school) return Astro.redirect('/404');
 
 const form = getSchoolFormBySlug(school.id, formSlug);
-if (!form) return Astro.redirect('/404');
 
-const previewTheme = Astro.url.searchParams.get('preview_theme');
-const user = Astro.locals.user;
-const isPreviewing = previewTheme && themeList.includes(previewTheme) && user;
-const activeTheme = isPreviewing ? previewTheme : (school.theme || 'aurora');
+const previewTheme = null; // theme preview was an authenticated SSR feature; static pages use the saved theme
+const isPreviewing = false;
+const activeTheme = school.theme || 'aurora';
 const v3Theme = getV3Theme(activeTheme);
 const Layout = v3Theme?.Layout || getThemeLayout(activeTheme);
 const pageTitle = form.title;
@@ -66,7 +68,7 @@ const fields = (form.fields as any[]) || [];
               </div>
             ))}
 
-            {form.requiresAuth && !Astro.locals.user && (
+            {false && (
               <div class="p-3 rounded-lg bg-amber-50 border border-amber-200">
                 <p class="text-sm text-amber-700">Please <a href={`/auth/login?redirect=/${slug}/forms/${formSlug}`} class="underline font-medium">log in</a> to submit this form.</p>
               </div>

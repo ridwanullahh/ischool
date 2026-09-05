@@ -1,69 +1,13 @@
 ---
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
-import ListToolbar from '../../components/ListToolbar.astro';
-import { getUserSchoolId } from '../../lib/school.js';
-import { getDb } from '../../lib/db/index.js';
-import { admissionPeriods, admissionApplications } from '../../lib/db/schema.js';
-import { eq, desc } from 'drizzle-orm';
-
-const user = Astro.locals.user!;
-const schoolId = getUserSchoolId(user);
-const db = getDb();
-let periods: any[] = [];
-let applications: any[] = [];
-if (schoolId) {
-  try {
-    periods = await db.select().from(admissionPeriods).where(eq(admissionPeriods.schoolId, schoolId)).orderBy(desc(admissionPeriods.createdAt)).all() || [];
-    applications = await db.select().from(admissionApplications).where(eq(admissionApplications.schoolId, schoolId)).orderBy(desc(admissionApplications.createdAt)).limit(20).all() || [];
-  } catch {}
-}
-const success = Astro.url.searchParams.get('success');
+// Static shell (zero-workers deployment): rendered at build time; the
+// workspace below loads live data client-side from lightbase via
+// /js/lb-runtime.js. Former SSR page removed — see DEPLOYMENT.md.
 ---
-
 <DashboardLayout title="Admissions - iSchool">
-  {success && <div class="mosaic-card p-4 mb-4" style="border-color:#05B34D;background:rgba(5,179,77,0.05);"><p class="text-sm font-medium" style="color:#05B34D;">Admission saved successfully.</p></div>}
-
-  <div class="mb-6"><h1 class="text-2xl font-bold mb-1" style="font-family:'Space Grotesk',sans-serif;color:var(--mosaic-text);">Admissions</h1><p class="text-sm" style="color:var(--mosaic-text-muted);">Manage admission periods and applications.</p></div>
-
-  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-    <div class="mosaic-card p-4"><p class="text-[10px] font-medium uppercase tracking-wider mb-1" style="color:var(--mosaic-text-subtle);">Periods</p><p class="text-2xl font-bold" style="font-family:'Space Grotesk',sans-serif;color:var(--mosaic-text);">{periods.length}</p></div>
-    <div class="mosaic-card p-4"><p class="text-[10px] font-medium uppercase tracking-wider mb-1" style="color:var(--mosaic-text-subtle);">Applications</p><p class="text-2xl font-bold" style="font-family:'Space Grotesk',sans-serif;color:#3B82F6;">{applications.length}</p></div>
-    <div class="mosaic-card p-4"><p class="text-[10px] font-medium uppercase tracking-wider mb-1" style="color:var(--mosaic-text-subtle);">Active Periods</p><p class="text-2xl font-bold" style="font-family:'Space Grotesk',sans-serif;color:#05B34D;">{periods.filter(p => p.isActive ?? p.is_active).length}</p></div>
-    <div class="mosaic-card p-4"><p class="text-[10px] font-medium uppercase tracking-wider mb-1" style="color:var(--mosaic-text-subtle);">Pending</p><p class="text-2xl font-bold" style="font-family:'Space Grotesk',sans-serif;color:#F2B91C;">{applications.filter(a => (a.status||'')==='pending').length}</p></div>
-  </div>
-
-  <div class="mb-6">
-    <h2 class="text-sm font-bold mb-3" style="font-family:'Space Grotesk',sans-serif;color:var(--mosaic-text);">Admission Periods</h2>
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      {periods.length === 0 ? (
-        <div class="col-span-full mosaic-card p-8 text-center"><p class="text-sm" style="color:var(--mosaic-text-muted);">No admission periods yet.</p></div>
-      ) : periods.map(p => (
-        <div class="mosaic-card p-5 group">
-          <div class="flex items-center justify-between mb-3">
-            <span class:list={["text-[10px] font-bold px-2 py-0.5 rounded-full",(p.isActive ?? p.is_active)?"bg-green-100 text-green-700":"bg-gray-100 text-gray-600"]}>{(p.isActive ?? p.is_active) ? 'Active' : 'Closed'}</span>
-            <span class="text-[11px]" style="color:var(--mosaic-text-subtle);">{p.openDate || p.open_date} → {p.closeDate || p.close_date}</span>
-          </div>
-          <h3 class="text-sm font-bold mb-1" style="color:var(--mosaic-text);">{p.name}</h3>
-          <p class="text-xs line-clamp-2" style="color:var(--mosaic-text-muted);">{p.description || ''}</p>
-          <div class="mt-3"><a href={`/dashboard/admissions/${p.id}/edit`} class="text-xs font-medium" style="color:#05B34D;">Manage →</a></div>
-        </div>
-      ))}
-    </div>
-  </div>
-
-  <div>
-    <h2 class="text-sm font-bold mb-3" style="font-family:'Space Grotesk',sans-serif;color:var(--mosaic-text);">Recent Applications</h2>
-    <ListToolbar searchPlaceholder="Search applications..." filterOptions={[{value:'pending',label:'Pending'},{value:'accepted',label:'Accepted'},{value:'rejected',label:'Rejected'}]} filterField="status" />
-    <div id="list-container" class="space-y-3">
-      {applications.length === 0 ? (
-        <div class="mosaic-card p-8 text-center"><p class="text-sm" style="color:var(--mosaic-text-muted);">No applications yet.</p></div>
-      ) : applications.map(a => (
-        <div data-list-item data-title={a.studentName||a.student_name||''} data-status={a.status||'pending'} data-date={a.createdAt||a.created_at||''} class="mosaic-card p-4 group flex items-center gap-4">
-          <div class="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold text-white" style="background:linear-gradient(135deg,#05B34D 0%,#049940 100%);">{(a.studentName||a.student_name||'A').charAt(0)}</div>
-          <div class="flex-1 min-w-0"><p class="text-sm font-semibold" style="color:var(--mosaic-text);">{a.studentName || a.student_name || 'Unknown'}</p><p class="text-xs" style="color:var(--mosaic-text-muted);">{a.parentName || a.parent_name || ''} · {a.parentEmail || a.parent_email || ''}</p></div>
-          <span class:list={["text-[10px] font-bold uppercase px-2 py-1 rounded-full",(a.status||'pending')==='accepted'?"bg-green-100 text-green-700":(a.status||'pending')==='rejected'?"bg-red-100 text-red-700":"bg-amber-100 text-amber-700"]}>{a.status || 'pending'}</span>
-        </div>
-      ))}
-    </div>
-  </div>
+  <div id="lb-shell-banner" class="hidden"></div>
+  <div id="lb-workspace"></div>
 </DashboardLayout>
+<script is:inline define:vars={{ shellMode: "list", shellCollection: "admission_periods", shellTitle: "Admissions", shellRoles: ["school_admin","super_admin"] }}>
+  window.LB_SHELL = { mode: shellMode, collection: shellCollection, title: shellTitle, roles: shellRoles };
+</script>

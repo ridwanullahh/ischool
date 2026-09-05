@@ -168,17 +168,13 @@ const { name, value = '', id = 'rich-editor', placeholder = 'Start writing...', 
         aiStatus.classList.remove('hidden');
 
         try {
-          var res = await fetch('/api/dashboard/ai-write', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              action: action,
-              text: selectedText || fullContent,
-              context: fullContent,
-              schoolSlug: schoolSlug
-            })
+          var res = await window.LbRuntime.invoke('ai-write', {
+            action: action,
+            text: selectedText || fullContent,
+            context: fullContent,
+            schoolSlug: schoolSlug
           });
-          var data = await res.json();
+          var data = res || {};
           if (data.result) {
             if (action === 'generate') {
               editor.innerHTML += data.result;

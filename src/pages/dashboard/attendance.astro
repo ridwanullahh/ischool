@@ -1,60 +1,13 @@
 ---
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
-import ListToolbar from '../../components/ListToolbar.astro';
-import { getUserSchoolId } from '../../lib/school.js';
-import { getDb } from '../../lib/db/index.js';
-import { attendance, students, classes, enrollments } from '../../lib/db/schema.js';
-import { eq, desc } from 'drizzle-orm';
-
-const user = Astro.locals.user!;
-const schoolId = getUserSchoolId(user);
-const db = getDb();
-let records: any[] = [];
-let allStudents: any[] = [];
-let allClasses: any[] = [];
-let stats = { total: 0, present: 0, absent: 0, late: 0 };
-let classStudentMap: Record<string, any[]> = {};
-
-if (schoolId) {
-  try {
-    allStudents = await db.select().from(students).where(eq(students.schoolId, schoolId)).all() || [];
-    allClasses = await db.select().from(classes).where(eq(classes.schoolId, schoolId)).all() || [];
-    const studentMap = new Map((allStudents||[]).map((s:any) => [s.id, s]));
-    const rawRecords = await db.select().from(attendance).where(eq(attendance.schoolId, schoolId)).orderBy(desc(attendance.date)).limit(100).all() || [];
-    records = rawRecords.map((r:any) => {
-      const student = studentMap.get(r.studentId ?? r.student_id);
-      return { ...r, studentName: student ? `${student.firstName||student.first_name||''} ${student.lastName||student.last_name||''}`.trim() : 'Unknown', studentIdentifier: student?.studentId || student?.student_id || '' };
-    });
-    const today = new Date().toISOString().split('T')[0];
-    const todayRecords = records.filter(r => r.date === today);
-    stats = { total: todayRecords.length, present: todayRecords.filter(r => r.status === 'present').length, absent: todayRecords.filter(r => r.status === 'absent').length, late: todayRecords.filter(r => r.status === 'late').length };
-    const enr = await db.select().from(enrollments).where(eq(enrollments.schoolId, schoolId)).all() || [];
-    for (const e of (enr||[])) { if (e.status === 'accepted') { const cid = e.classId ?? e.class_id; if (cid) { if (!classStudentMap[cid]) classStudentMap[cid] = []; const s = studentMap.get(e.studentId ?? e.student_id); if (s) classStudentMap[cid].push({ id: s.id, name: `${s.firstName||s.first_name||''} ${s.lastName||s.last_name||''}`.trim(), code: s.studentId || s.student_id || '' }); } } }
-  } catch {}
-}
+// Static shell (zero-workers deployment): rendered at build time; the
+// workspace below loads live data client-side from lightbase via
+// /js/lb-runtime.js. Former SSR page removed — see DEPLOYMENT.md.
 ---
-
 <DashboardLayout title="Attendance - iSchool">
-  <div class="mb-6"><h1 class="text-2xl font-bold mb-1" style="font-family:'Space Grotesk',sans-serif;color:var(--mosaic-text);">Attendance</h1><p class="text-sm" style="color:var(--mosaic-text-muted);">Track and manage student attendance.</p></div>
-
-  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-    <div class="mosaic-card p-4"><p class="text-[10px] font-medium uppercase tracking-wider mb-1" style="color:var(--mosaic-text-subtle);">Today's Total</p><p class="text-2xl font-bold" style="font-family:'Space Grotesk',sans-serif;color:var(--mosaic-text);">{stats.total}</p></div>
-    <div class="mosaic-card p-4"><p class="text-[10px] font-medium uppercase tracking-wider mb-1" style="color:var(--mosaic-text-subtle);">Present</p><p class="text-2xl font-bold" style="font-family:'Space Grotesk',sans-serif;color:#05B34D;">{stats.present}</p></div>
-    <div class="mosaic-card p-4"><p class="text-[10px] font-medium uppercase tracking-wider mb-1" style="color:var(--mosaic-text-subtle);">Absent</p><p class="text-2xl font-bold" style="font-family:'Space Grotesk',sans-serif;color:#EF4444;">{stats.absent}</p></div>
-    <div class="mosaic-card p-4"><p class="text-[10px] font-medium uppercase tracking-wider mb-1" style="color:var(--mosaic-text-subtle);">Late</p><p class="text-2xl font-bold" style="font-family:'Space Grotesk',sans-serif;color:#F2B91C;">{stats.late}</p></div>
-  </div>
-
-  <ListToolbar searchPlaceholder="Search attendance..." filterOptions={[{value:'present',label:'Present'},{value:'absent',label:'Absent'},{value:'late',label:'Late'}]} filterField="status" />
-
-  <div id="list-container" class="space-y-3">
-    {records.length === 0 ? (
-      <div class="mosaic-card p-12 text-center"><h3 class="text-base font-semibold mb-1" style="color:var(--mosaic-text);">No attendance records yet</h3></div>
-    ) : records.map(r => (
-      <div data-list-item data-title={r.studentName||''} data-status={r.status||''} data-date={r.date||''} class="mosaic-card p-4 group flex items-center gap-4">
-        <div class="w-10 h-10 rounded-full flex items-center justify-center" style={`background:${r.status==='present'?'rgba(5,179,77,0.1)':r.status==='absent'?'rgba(239,68,68,0.1)':'rgba(242,185,28,0.1)'};`}><span class="text-xs font-bold" style={`color:${r.status==='present'?'#05B34D':r.status==='absent'?'#EF4444':'#F2B91C'};`}>{(r.studentName||'S').charAt(0)}</span></div>
-        <div class="flex-1 min-w-0"><p class="text-sm font-semibold" style="color:var(--mosaic-text);">{r.studentName}</p><p class="text-xs" style="color:var(--mosaic-text-muted);">{r.studentIdentifier} · {r.date || ''}</p></div>
-        <span class:list={["text-[10px] font-bold uppercase px-2 py-1 rounded-full",r.status==='present'?"bg-green-100 text-green-700":r.status==='absent'?"bg-red-100 text-red-700":"bg-amber-100 text-amber-700"]}>{r.status}</span>
-      </div>
-    ))}
-  </div>
+  <div id="lb-shell-banner" class="hidden"></div>
+  <div id="lb-workspace"></div>
 </DashboardLayout>
+<script is:inline define:vars={{ shellMode: "list", shellCollection: "attendance", shellTitle: "Attendance", shellRoles: ["school_admin","super_admin"] }}>
+  window.LB_SHELL = { mode: shellMode, collection: shellCollection, title: shellTitle, roles: shellRoles };
+</script>

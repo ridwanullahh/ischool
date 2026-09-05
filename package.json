@@ -7,10 +7,9 @@
   },
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build && node scripts/pack-pages-output.mjs dist",
-    "build:cloudflare": "DEPLOY_TARGET=cloudflare astro build",
+    "build": "astro build",
     "preview": "astro preview",
-    "start": "node ./dist/server/entry.mjs",
+    "start": "npx serve dist || python3 -m http.server 8080 -d dist",
     "astro": "astro",
     "db:migrate": "node --experimental-strip-types src/lib/db/migrate.ts",
     "db:seed": "jiti src/lib/db/seed.ts",

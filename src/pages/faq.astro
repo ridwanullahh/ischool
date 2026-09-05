@@ -1,11 +1,9 @@
 ---
 import MarketingLayout from '../layouts/MarketingLayout.astro';
-import { getDb } from '../lib/db/index.js';
-import { platformFaqs } from '../lib/db/schema.js';
-import { eq } from 'drizzle-orm';
+import { platformList } from '../lib/prerender-data.ts';
 
-const db = getDb();
-const faqs = await db.select().from(platformFaqs).where(eq(platformFaqs.isPublished, true)).orderBy(platformFaqs.sortOrder).all();
+const faqs = await platformList('platform_faqs', { field: 'is_published', op: 'eq', value: true });
+faqs.sort((a: any, b: any) => (a.sort_order ?? a.sortOrder ?? 0) - (b.sort_order ?? b.sortOrder ?? 0));
 const categories = [...new Set(faqs.map(f => f.category))];
 ---
 

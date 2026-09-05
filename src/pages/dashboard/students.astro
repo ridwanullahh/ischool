@@ -1,78 +1,13 @@
 ---
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
-import ListToolbar from '../../components/ListToolbar.astro';
-import { getUserSchoolId } from '../../lib/school.js';
-import { getDb } from '../../lib/db/index.js';
-import { students, enrollments, classes } from '../../lib/db/schema.js';
-import { eq, desc } from 'drizzle-orm';
-
-const user = Astro.locals.user!;
-const schoolId = getUserSchoolId(user);
-const db = getDb();
-let allStudents: any[] = [];
-let allEnrollments: any[] = [];
-let allClasses: any[] = [];
-if (schoolId) {
-  try {
-    allStudents = await db.select().from(students).where(eq(students.schoolId, schoolId)).orderBy(desc(students.createdAt)).all() || [];
-    allEnrollments = await db.select().from(enrollments).where(eq(enrollments.schoolId, schoolId)).all() || [];
-    allClasses = await db.select().from(classes).where(eq(classes.schoolId, schoolId)).all() || [];
-  } catch {}
-}
-const classMap = new Map((allClasses||[]).map((c:any) => [c.id, c.name]));
-const enrollmentMap = new Map<string, string>();
-for (const e of (allEnrollments||[])) { if (e.status === 'accepted') { enrollmentMap.set(String(e.studentId ?? e.student_id), String(e.classId ?? e.class_id)); } }
-const success = Astro.url.searchParams.get('success');
+// Static shell (zero-workers deployment): rendered at build time; the
+// workspace below loads live data client-side from lightbase via
+// /js/lb-runtime.js. Former SSR page removed — see DEPLOYMENT.md.
 ---
-
-<DashboardLayout title="All Students - iSchool">
-  {success && <div class="mosaic-card p-4 mb-4" style="border-color:#05B34D;background:rgba(5,179,77,0.05);"><p class="text-sm font-medium" style="color:#05B34D;">Student saved successfully.</p></div>}
-
-  <div class="mb-6">
-    <div class="flex items-center justify-between">
-      <div><h1 class="text-2xl font-bold mb-1" style="font-family:'Space Grotesk',sans-serif;color:var(--mosaic-text);">All Students</h1><p class="text-sm" style="color:var(--mosaic-text-muted);">{allStudents.length} students enrolled</p></div>
-    </div>
-  </div>
-
-  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-    <div class="mosaic-card p-4"><p class="text-[10px] font-medium uppercase tracking-wider mb-1" style="color:var(--mosaic-text-subtle);">Total</p><p class="text-2xl font-bold" style="font-family:'Space Grotesk',sans-serif;color:var(--mosaic-text);">{allStudents.length}</p></div>
-    <div class="mosaic-card p-4"><p class="text-[10px] font-medium uppercase tracking-wider mb-1" style="color:var(--mosaic-text-subtle);">Male</p><p class="text-2xl font-bold" style="font-family:'Space Grotesk',sans-serif;color:#3B82F6;">{allStudents.filter(s => (s.gender||'').toLowerCase()==='male').length}</p></div>
-    <div class="mosaic-card p-4"><p class="text-[10px] font-medium uppercase tracking-wider mb-1" style="color:var(--mosaic-text-subtle);">Female</p><p class="text-2xl font-bold" style="font-family:'Space Grotesk',sans-serif;color:#EC4899;">{allStudents.filter(s => (s.gender||'').toLowerCase()==='female').length}</p></div>
-    <div class="mosaic-card p-4"><p class="text-[10px] font-medium uppercase tracking-wider mb-1" style="color:var(--mosaic-text-subtle);">Active</p><p class="text-2xl font-bold" style="font-family:'Space Grotesk',sans-serif;color:#05B34D;">{allStudents.filter(s => (s.status||'active')==='active').length}</p></div>
-  </div>
-
-  <ListToolbar searchPlaceholder="Search students..." filterOptions={[{value:'active',label:'Active'},{value:'inactive',label:'Inactive'},{value:'graduated',label:'Graduated'}]} filterField="status" newItemHref="/dashboard/students/new" newItemLabel="+ Add Student" />
-
-  <div id="list-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-    {allStudents.length === 0 ? (
-      <div class="col-span-full mosaic-card p-12 text-center">
-        <h3 class="text-base font-semibold mb-1" style="color:var(--mosaic-text);">No students yet</h3>
-        <a href="/dashboard/students/new" class="mosaic-btn-primary inline-block px-6 py-2.5 text-sm mt-2">+ Add Student</a>
-      </div>
-    ) : allStudents.map(s => {
-      const cls = classMap.get(enrollmentMap.get(String(s.id)) || '');
-      return (
-        <div data-list-item data-title={`${s.firstName||s.first_name||''} ${s.lastName||s.last_name||''}`.trim()} data-status={s.status||'active'} data-date={s.createdAt||s.created_at||''} class="mosaic-card p-5 group">
-          <div class="flex items-center gap-3 mb-3">
-            <div class="w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold text-white" style="background:linear-gradient(135deg,#05B34D 0%,#049940 100%);">{(s.firstName||s.first_name||'S').charAt(0)}</div>
-            <div class="flex-1 min-w-0">
-              <h3 class="text-sm font-bold truncate" style="color:var(--mosaic-text);">{s.firstName||s.first_name||''} {s.lastName||s.last_name||''}</h3>
-              <p class="text-xs" style="color:var(--mosaic-text-muted);">{s.studentId || s.student_id || '—'}</p>
-            </div>
-            <span class:list={["text-[10px] font-medium px-2 py-0.5 rounded-full",(s.status||'active')==='active'?"bg-green-100 text-green-700":"bg-gray-100 text-gray-600"]}>{s.status||'active'}</span>
-          </div>
-          <div class="grid grid-cols-2 gap-2 text-xs">
-            <div><p class="text-[10px] uppercase tracking-wider" style="color:var(--mosaic-text-subtle);">Class</p><p class="font-medium truncate" style="color:var(--mosaic-text);">{cls || '—'}</p></div>
-            <div><p class="text-[10px] uppercase tracking-wider" style="color:var(--mosaic-text-subtle);">Gender</p><p class="font-medium" style="color:var(--mosaic-text);">{s.gender || '—'}</p></div>
-            <div><p class="text-[10px] uppercase tracking-wider" style="color:var(--mosaic-text-subtle);">Parent</p><p class="font-medium truncate" style="color:var(--mosaic-text);">{s.parentName || s.parent_name || '—'}</p></div>
-            <div><p class="text-[10px] uppercase tracking-wider" style="color:var(--mosaic-text-subtle);">Enrolled</p><p class="font-medium" style="color:var(--mosaic-text);">{s.enrollmentDate || s.enrollment_date || '—'}</p></div>
-          </div>
-          <div class="flex items-center justify-between mt-3 pt-3" style="border-top:1px solid var(--mosaic-border);">
-            <span class="text-[11px]" style="color:var(--mosaic-text-subtle);">{s.email || ''}</span>
-            <a href={`/dashboard/students/${s.id}/edit`} class="p-1.5 rounded-lg transition-colors hover:bg-gray-100 dark:hover:bg-slate-700" title="Edit"><svg class="w-4 h-4" style="color:var(--mosaic-text-muted);" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></a>
-          </div>
-        </div>
-      );
-    })}
-  </div>
+<DashboardLayout title="Students - iSchool">
+  <div id="lb-shell-banner" class="hidden"></div>
+  <div id="lb-workspace"></div>
 </DashboardLayout>
+<script is:inline define:vars={{ shellMode: "list", shellCollection: "students", shellTitle: "Students", shellRoles: ["school_admin","super_admin"] }}>
+  window.LB_SHELL = { mode: shellMode, collection: shellCollection, title: shellTitle, roles: shellRoles };
+</script>

@@ -1,0 +1,12 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+// Static shell (zero-workers deployment) — data via the platform-admin
+// lightbase Edge Function through /js/lb-runtime.js.
+---
+<AdminLayout title="Platform Admin - Index">
+  <div id="lb-shell-banner" class="hidden"></div>
+  <div id="lb-workspace"></div>
+</AdminLayout>
+<script is:inline define:vars={{ shellMode: "admin-overview", shellCollection: "index", shellTitle: "Platform Admin - Index", shellRoles: ["super_admin"] }}>
+  window.LB_SHELL = { mode: shellMode, collection: shellCollection, title: shellTitle, roles: shellRoles };
+</script>

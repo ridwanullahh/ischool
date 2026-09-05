@@ -40,6 +40,12 @@ export function setSchoolDataCache(slug: string, dataType: string, data: any): v
   _schoolDataCache.set(`${slug}:${dataType}`, data);
 }
 
+/** Read-only peek into the preloaded per-school data cache (build-time prerender helper). */
+export function peekSchoolData(slug: string, dataType: string): any {
+  const v = _schoolDataCache.get(`${slug}:${dataType}`);
+  return v === undefined ? [] : v;
+}
+
 // ═══════════════════════════════════════════════════════
 // Async preloader — called from middleware for [slug] pages
 // ═══════════════════════════════════════════════════════
@@ -426,9 +432,21 @@ export function getSchoolClassBySlug(schoolId: any, slug: string): any {
 export function getSchoolFormBySlug(schoolId: any, slug: string): any {
   try {
     if (isLightbase()) {
-      // Forms are not preloaded — fetch synchronously is not possible in Lightbase mode.
-      // The caller (form page) should use the async API directly. Return null as fallback.
-      return null;
+      // Forms are loaded into the per-school cache by the build-time
+      // prerender loader (prerender-data.preloadAllSchools). The sync
+      // accessor reads the cache so prerendering needs no async calls.
+      const s = slugFromSchoolId(schoolId);
+      const cached = getCachedForSlug(s, 'forms', []);
+      const arr = Array.isArray(cached) ? cached : [];
+      const row = arr.find((fm: any) => fm.slug === slug) ||
+             (/^\d+$/.test(slug) ? arr.find((fm: any) => String(fm.id) === slug) : null) ||
+             null;
+      if (!row) return null;
+      return {
+        ...row,
+        fields: parseJsonCol(row.fields, []),
+        settings: parseJsonCol(row.settings, {}),
+      };
     }
     const db = rawDb();
     const row = db.prepare('SELECT * FROM forms WHERE school_id = ? AND slug = ?').get(schoolId, slug);

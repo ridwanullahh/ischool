@@ -1,35 +1,13 @@
 ---
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
-import ListToolbar from '../../components/ListToolbar.astro';
-import { getUserSchoolId } from '../../lib/school.js';
-import { getDb } from '../../lib/db/index.js';
-import { popups } from '../../lib/db/schema.js';
-import { eq, desc } from 'drizzle-orm';
-const user = Astro.locals.user!;
-const schoolId = getUserSchoolId(user);
-const db = getDb();
-let items: any[] = [];
-if (schoolId) { try { items = await db.select().from(popups).where(eq(popups.schoolId, schoolId)).orderBy(desc(popups.createdAt)).all() || []; } catch {} }
-const success = Astro.url.searchParams.get('success');
+// Static shell (zero-workers deployment): rendered at build time; the
+// workspace below loads live data client-side from lightbase via
+// /js/lb-runtime.js. Former SSR page removed — see DEPLOYMENT.md.
 ---
 <DashboardLayout title="Popups - iSchool">
-  {success && <div class="mosaic-card p-4 mb-4" style="border-color:#05B34D;background:rgba(5,179,77,0.05);"><p class="text-sm font-medium" style="color:#05B34D;">Popup saved successfully.</p></div>}
-  <div class="mb-6"><h1 class="text-2xl font-bold mb-1" style="font-family:'Space Grotesk',sans-serif;color:var(--mosaic-text);">Popups</h1><p class="text-sm" style="color:var(--mosaic-text-muted);">Manage website popups.</p></div>
-  <ListToolbar searchPlaceholder="Search popups..." newItemHref="/dashboard/popups/new" newItemLabel="+ New Popup" />
-  <div id="list-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-    {items.length === 0 ? (
-      <div class="col-span-full mosaic-card p-12 text-center"><h3 class="text-base font-semibold mb-1" style="color:var(--mosaic-text);">No popups yet</h3><a href="/dashboard/popups/new" class="mosaic-btn-primary inline-block px-6 py-2.5 text-sm mt-2">+ New Popup</a></div>
-    ) : items.map(item => (
-      <div data-list-item data-title={item.title||''} data-status={String(item.isActive ?? item.is_active ?? true)} data-date={item.createdAt||item.created_at||''} class="mosaic-card p-5 group">
-        <div class="flex items-center gap-2 mb-3">
-          {item.displayRule||item.display_rule ? <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full" style="background:rgba(168,85,247,0.1);color:#A855F7;">{item.displayRule||item.display_rule}</span> : ''}
-          <span class:list={["text-[10px] font-medium px-2 py-0.5 rounded-full",(item.isActive ?? item.is_active ?? true)?"bg-green-100 text-green-700":"bg-gray-100 text-gray-600"]}>{(item.isActive ?? item.is_active ?? true) ? 'Active' : 'Inactive'}</span>
-        </div>
-        <h3 class="text-sm font-bold mb-2" style="color:var(--mosaic-text);">{item.title||'Untitled'}</h3>
-        <p class="text-xs line-clamp-3 mb-3" style="color:var(--mosaic-text-muted);">{item.content||'No content.'}</p>
-        {item.buttonText||item.button_text ? <p class="text-[11px] font-medium" style="color:#05B34D;">CTA: {item.buttonText||item.button_text}</p> : ''}
-        <div class="flex items-center justify-between mt-3"><span class="text-[11px]" style="color:var(--mosaic-text-subtle);">{item.createdAt||item.created_at?new Date(item.createdAt||item.created_at).toLocaleDateString():''}</span><a href={`/dashboard/popups/${item.id}/edit`} class="p-1.5 rounded-lg transition-colors hover:bg-gray-100 dark:hover:bg-slate-700" title="Edit"><svg class="w-4 h-4" style="color:var(--mosaic-text-muted);" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></a></div>
-      </div>
-    ))}
-  </div>
+  <div id="lb-shell-banner" class="hidden"></div>
+  <div id="lb-workspace"></div>
 </DashboardLayout>
+<script is:inline define:vars={{ shellMode: "list", shellCollection: "popups", shellTitle: "Popups", shellRoles: ["school_admin","super_admin"] }}>
+  window.LB_SHELL = { mode: shellMode, collection: shellCollection, title: shellTitle, roles: shellRoles };
+</script>

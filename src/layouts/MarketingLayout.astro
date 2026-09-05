@@ -8,7 +8,9 @@ interface Props {
 }
 
 const { title = 'iSchool - The Complete School Management Platform', description = 'All-in-one school management software with 16 powerful modules. SIS, LMS, Finance, HR, Library, Exams, and more.' } = Astro.props;
-const user = Astro.locals.user;
+// Static deployment: no SSR session. The marketing header shows the
+// signed-out state; signed-in users navigate via the dashboard shell.
+const user: any = null;
 
 const modules = [
   { slug: 'sis', name: 'Student Information', icon: 'users', desc: 'Complete student records & enrollment' },

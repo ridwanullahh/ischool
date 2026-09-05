@@ -1,97 +1,13 @@
 ---
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
-import { getUserSchoolId } from '../../lib/school.js';
-import { getDb } from '../../lib/db/index.js';
-import { users, schoolMembers, libraryLoans } from '../../lib/db/schema.js';
-import { eq, and } from 'drizzle-orm';
-
-const user = Astro.locals.user!;
-if (!user) return Astro.redirect('/auth/login');
-const schoolId = getUserSchoolId(user);
-if (!schoolId) return Astro.redirect('/dashboard');
-const db = getDb();
-
-const members = await db.select({
-  id: users.id, name: users.name, email: users.email, role: users.role,
-  createdAt: users.createdAt,
-}).from(users)
-  .innerJoin(schoolMembers, eq(users.id, schoolMembers.userId))
-  .where(eq(schoolMembers.schoolId, schoolId)).all();
-
-const allLoans = await db.select().from(libraryLoans).where(eq(libraryLoans.schoolId, schoolId)).all();
-const loanCounts = new Map<number, { active: number; total: number; fines: number }>();
-for (const l of allLoans) {
-  if (!loanCounts.has(l.borrowerId)) loanCounts.set(l.borrowerId, { active: 0, total: 0, fines: 0 });
-  const c = loanCounts.get(l.borrowerId)!;
-  c.total++;
-  if (l.status === 'active' || l.status === 'overdue') c.active++;
-  if (l.fine && !l.finePaid) c.fines += l.fine;
-}
-
-const roleColors: Record<string, string> = {
-  school_admin: 'bg-purple-100 text-purple-700', teacher: 'bg-blue-100 text-blue-700',
-  student: 'bg-green-100 text-green-700', parent: 'bg-amber-100 text-amber-700',
-  staff: 'bg-gray-100 text-gray-700', accountant: 'bg-cyan-100 text-cyan-700',
-  librarian: 'bg-indigo-100 text-indigo-700', it_admin: 'bg-red-100 text-red-700',
-};
-const fmtDate = (d: any) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+// Static shell (zero-workers deployment): rendered at build time; the
+// workspace below loads live data client-side from lightbase via
+// /js/lb-runtime.js. Former SSR page removed — see DEPLOYMENT.md.
 ---
-
-<DashboardLayout title="Library Members - iSchool">
-  <div class="space-y-6">
-    <div>
-      <h2 class="text-2xl font-bold text-gray-900">Library Members</h2>
-      <p class="text-sm text-gray-500 mt-1">All students and staff are automatically library members. View borrowing activity, outstanding fines, and member status.</p>
-    </div>
-
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-      <div class="bg-white rounded-xl border p-4"><div class="text-xs text-gray-500 uppercase">Total Members</div><div class="text-2xl font-bold">{members.length}</div></div>
-      <div class="bg-white rounded-xl border p-4"><div class="text-xs text-gray-500 uppercase">With Active Loans</div><div class="text-2xl font-bold text-blue-600">{members.filter(m => (loanCounts.get(m.id)?.active || 0) > 0).length}</div></div>
-      <div class="bg-white rounded-xl border p-4"><div class="text-xs text-gray-500 uppercase">With Unpaid Fines</div><div class="text-2xl font-bold text-red-600">{members.filter(m => (loanCounts.get(m.id)?.fines || 0) > 0).length}</div></div>
-      <div class="bg-white rounded-xl border p-4"><div class="text-xs text-gray-500 uppercase">Total Fines Due</div><div class="text-2xl font-bold text-amber-600">₦{members.reduce((s, m) => s + (loanCounts.get(m.id)?.fines || 0), 0).toLocaleString()}</div></div>
-    </div>
-
-    <div class="bg-white rounded-xl border border-gray-200">
-      <div class="p-4 border-b">
-        <input id="searchInput" type="text" placeholder="Search members by name or email…" class="w-full px-3 py-2 border rounded-lg text-sm" oninput="filterMembers()" />
-      </div>
-      <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-          <thead class="bg-gray-50"><tr class="text-left text-xs text-gray-500 uppercase">
-            <th class="px-4 py-3">Member</th><th class="px-4 py-3">Role</th>
-            <th class="px-4 py-3">Email</th><th class="px-4 py-3">Active Loans</th>
-            <th class="px-4 py-3">Total Loans</th><th class="px-4 py-3">Unpaid Fines</th>
-            <th class="px-4 py-3">Joined</th>
-          </tr></thead>
-          <tbody class="divide-y divide-gray-200">
-            {members.length === 0 ? (
-              <tr><td colspan="7" class="px-4 py-8 text-center text-gray-500">No library members yet.</td></tr>
-            ) : members.map(m => {
-              const c = loanCounts.get(m.id) || { active: 0, total: 0, fines: 0 };
-              return (
-                <tr class="hover:bg-gray-50 member-row" data-search={`${m.name} ${m.email}`.toLowerCase()}>
-                  <td class="px-4 py-3 font-medium text-gray-900">{m.name}</td>
-                  <td class="px-4 py-3"><span class={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${roleColors[m.role] || 'bg-gray-100'}`}>{m.role.replace('_', ' ')}</span></td>
-                  <td class="px-4 py-3 text-gray-600">{m.email}</td>
-                  <td class="px-4 py-3 text-blue-700 font-medium">{c.active}</td>
-                  <td class="px-4 py-3 text-gray-600">{c.total}</td>
-                  <td class="px-4 py-3 text-red-700 font-medium">{c.fines > 0 ? `₦${c.fines.toLocaleString()}` : '—'}</td>
-                  <td class="px-4 py-3 text-gray-600">{fmtDate(m.createdAt)}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <script is:inline set:html={`(function(){
-    window.filterMembers = function() {
-      var q = document.getElementById('searchInput').value.toLowerCase();
-      document.querySelectorAll('.member-row').forEach(function(row) {
-        row.style.display = !q || row.dataset.search.indexOf(q) >= 0 ? '' : 'none';
-      });
-    };
-  })();`} />
+<DashboardLayout title="Library-Members - iSchool">
+  <div id="lb-shell-banner" class="hidden"></div>
+  <div id="lb-workspace"></div>
 </DashboardLayout>
+<script is:inline define:vars={{ shellMode: "list", shellCollection: "library-members", shellTitle: "Library-Members", shellRoles: ["school_admin","super_admin"] }}>
+  window.LB_SHELL = { mode: shellMode, collection: shellCollection, title: shellTitle, roles: shellRoles };
+</script>
